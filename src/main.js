@@ -9,6 +9,7 @@ import { createHud } from './hud.js';
 import { ROUND } from './config.js';
 import { update as updateCamera } from './camera.js';
 import { setMode, isLight } from './theme.js';
+import { createRoster } from './roster.js';
 
 const STORE_NAMES = 'cosmos.names';
 const STORE_THEME = 'cosmos.theme';
@@ -49,6 +50,7 @@ let last = performance.now();
 let order = [];
 let orderIndex = 0;
 let names = [];
+let roster = null;
 
 // ── Sizing ──────────────────────────────────────────────────────────────────
 
@@ -118,25 +120,22 @@ function startRound(mapDef) {
 
 // ── Entrants ────────────────────────────────────────────────────────────────
 
-function parseNames(text) {
-  return text
-    .split('\n')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    // Long names would overrun both the label and the standings row.
-    .map((s) => (s.length > 22 ? `${s.slice(0, 21)}…` : s))
-    .slice(0, 40);
-}
-
-function applyNames(text, { restart = true } = {}) {
-  names = parseNames(text);
-  save(STORE_NAMES, text);
-  const hint = document.getElementById('names-hint');
-  hint.textContent = names.length
+// Reflects the boxes into the hint line. Deliberately does NOT restart the
+// round: you would not want the race resetting under you on every keystroke.
+// "Race these" is what commits the roster.
+function refreshHint() {
+  const n = roster ? roster.names().length : 0;
+  document.getElementById('names-hint').textContent = n
     // The population is set by the map, so a roster shorter than the field
     // leaves some objects unnamed rather than shrinking the race.
-    ? `${names.length} named. Objects beyond that stay unnamed.`
+    ? `${n} named. Objects beyond that stay unnamed.`
     : 'Leave empty for unnamed objects.';
+  if (roster) save(STORE_NAMES, JSON.stringify(roster.names()));
+}
+
+function applyNames({ restart = true } = {}) {
+  names = roster.names();
+  refreshHint();
   if (restart) restartRound();
 }
 
@@ -259,21 +258,29 @@ function buildControls() {
   themeBtn.addEventListener('click', () => applyTheme(isLight() ? 'dark' : 'light'));
   applyTheme(load(STORE_THEME) === 'light' ? 'light' : 'dark', { rebuild: false });
 
-  const namesInput = document.getElementById('names-input');
-  const saved = load(STORE_NAMES);
-  if (saved) {
-    namesInput.value = saved;
-    applyNames(saved, { restart: false });
+  roster = createRoster(document.getElementById('name-list'), refreshHint);
+
+  // Restore a saved roster. The old build stored the raw textarea contents, so
+  // accept either shape rather than throwing away someone's list on upgrade.
+  let saved = [];
+  const raw = load(STORE_NAMES);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      saved = Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      saved = String(raw).split('\n').map((s) => s.trim()).filter(Boolean);
+    }
   }
-  document.getElementById('btn-names')
-    .addEventListener('click', () => applyNames(namesInput.value));
+  roster.setNames(saved);
+  names = roster.names();
+  refreshHint();
+
+  document.getElementById('btn-names').addEventListener('click', () => applyNames());
+  document.getElementById('btn-add').addEventListener('click', () => roster.addAndFocus());
   document.getElementById('btn-names-clear').addEventListener('click', () => {
-    namesInput.value = '';
-    applyNames('');
-  });
-  // Ctrl/Cmd+Enter from inside the box, so you never have to reach for the mouse.
-  namesInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) applyNames(namesInput.value);
+    roster.clear();
+    applyNames();
   });
 
   document.getElementById('btn-skip').addEventListener('click', () => {
