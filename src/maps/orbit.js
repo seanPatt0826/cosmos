@@ -23,7 +23,7 @@ export default {
   id: 'orbit',
   name: 'Orbital Arena',
   theme: 'orbit',
-  population: [16, 22],
+  population: [20, 28],
   blurb: 'round and round',
 
   build({ sim, seed }) {
@@ -92,7 +92,7 @@ export default {
     // every orbit off true, and the composed look of this map is the point.
     const holes = [];
     for (let i = 0; i < 2; i++) {
-      const r = rng.range(12, 16);
+      const r = rng.range(21, 28);
       // Parked in the lanes *between* the player shells (300 / 480 / 660). The
       // first version orbited at shell radii and swept the field clean in half
       // a minute.
@@ -100,12 +100,14 @@ export default {
       const h = createHole(sim, {
         x: dist, y: 0, r,
         seed: hashSeed('obh', seed, i),
-        mu: r * 70,
-        maxAccel: 0.4,
+        mu: r * 145,
+        maxAccel: 0.8,
       });
       h.dist = dist;
       h.angle = rng.range(0, Math.PI * 2);
-      h.omega = (orbitalSpeed(baseMu, dist) / dist) * (i % 2 ? -1 : 1) * 0.34;
+      // Slow sweep. Now that the wells are large, a quick orbit drags them
+      // through every shell and clears the field in half a minute.
+      h.omega = (orbitalSpeed(baseMu, dist) / dist) * (i % 2 ? -1 : 1) * 0.16;
       holes.push(h);
     }
 
@@ -170,7 +172,7 @@ export default {
           h.well.x = Math.cos(h.angle) * h.dist;
           h.well.y = Math.sin(h.angle) * h.dist;
         }
-        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.35, muGrow: 0.3 });
+        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.2, muGrow: 0.25 });
 
         for (const pl of round.alivePlayers()) {
           const pos = pl.body.position;

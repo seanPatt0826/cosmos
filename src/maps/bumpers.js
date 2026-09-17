@@ -19,13 +19,13 @@ import {
   createStuckWatch,
 } from './hazards.js';
 
-const ARENA = 1280;
+const ARENA = 1680;
 
 export default {
   id: 'bumpers',
   name: 'Bumper Field',
   theme: 'bumpers',
-  population: [18, 26],
+  population: [24, 32],
   blurb: 'everything bounces',
 
   build({ sim, seed }) {
@@ -71,13 +71,13 @@ export default {
     for (let i = 0; i < 2; i++) {
       const a = rng.range(0, Math.PI * 2) + i * Math.PI;
       const d = rng.range(340, 720);
-      const r = rng.range(14, 19);
+      const r = rng.range(25, 34);
       holes.push(createHole(sim, {
         x: Math.cos(a) * d, y: Math.sin(a) * d, r,
         seed: hashSeed('bfh', seed, i),
         drift: 0.45,
-        mu: r * 75,
-        maxAccel: 0.5,
+        mu: r * 165,
+        maxAccel: 0.9,
       }));
     }
 
@@ -124,12 +124,12 @@ export default {
       update(dt, round) {
         this.time += dt;
         const p = round.pressure;
-        this.edge = ARENA - p * (ARENA - 700);
+        this.edge = ARENA - p * (ARENA - 980);
 
         for (const b of bumpers) b.flash *= Math.pow(0.86, dt / 16.667);
         const alive = round.alivePlayers();
         updatePulsars(sim, pulsars, dt, alive, round.particles);
-        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.6, muGrow: 0.7 });
+        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.3, muGrow: 0.4 });
 
         for (const h of holes) {
           const d = Math.hypot(h.well.x, h.well.y);

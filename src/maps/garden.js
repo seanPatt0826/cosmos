@@ -19,14 +19,14 @@ import {
   createStuckWatch,
 } from './hazards.js';
 
-const W = 2200;
-const H = 1450;
+const W = 2650;
+const H = 1700;
 
 export default {
   id: 'garden',
   name: 'Black Hole Garden',
   theme: 'garden',
-  population: [16, 24],
+  population: [22, 30],
   blurb: 'mind the holes',
 
   build({ sim, seed }) {
@@ -43,21 +43,21 @@ export default {
     );
 
     const holes = [];
-    const holeCount = rng.int(3, 4);
+    const holeCount = rng.int(2, 3);
     for (let i = 0; i < holeCount; i++) {
       // A jittered ring, so no two ever sit on top of each other and read as
       // one bigger hole.
       const a = (i / holeCount) * Math.PI * 2 + rng.wobble(0.4);
       const d = rng.range(0.28, 0.62);
-      const r = rng.range(14, 22);
+      const r = rng.range(26, 38);
       holes.push(createHole(sim, {
         x: Math.cos(a) * half.w * d,
         y: Math.sin(a) * half.h * d,
         r,
         seed: hashSeed('bh', seed, i),
         drift: rng() < 0.55 ? 0.42 : 0,
-        mu: r * 95,
-        maxAccel: 0.6,
+        mu: r * 195,
+        maxAccel: 1.05,
       }));
     }
 
@@ -119,7 +119,7 @@ export default {
         const p = round.pressure;
         const alive = round.alivePlayers();
 
-        updateHoles(holes, dt, p, bounds, round.particles, { grow: 1.15, muGrow: 1.2 });
+        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.3, muGrow: 0.4 });
 
         // Creep toward the middle as the round ages, narrowing the safe lanes.
         const drift = 0.00035 * p * (dt / 16.667);

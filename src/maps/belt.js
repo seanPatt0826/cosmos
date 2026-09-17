@@ -17,13 +17,13 @@ import {
   createStuckWatch,
 } from './hazards.js';
 
-const ARENA = 1120;
+const ARENA = 1620;
 
 export default {
   id: 'belt',
   name: 'Asteroid Belt',
   theme: 'belt',
-  population: [18, 26],
+  population: [24, 32],
   blurb: 'watch out',
 
   build({ sim, seed }) {
@@ -87,7 +87,7 @@ export default {
     }
 
     const nebulae = [];
-    for (let i = 0; i < rng.int(2, 3); i++) {
+    for (let i = 0; i < 2; i++) {
       const a = rng.range(0, Math.PI * 2);
       const d = rng.range(0.2, 0.62) * ARENA;
       nebulae.push(createNebula(
@@ -98,16 +98,16 @@ export default {
     // Black holes among the rock. Drifting, and deaf to the asteroids — a well
     // that ate the field would leave an empty arena within a minute.
     const holes = [];
-    for (let i = 0; i < rng.int(2, 3); i++) {
+    for (let i = 0; i < 2; i++) {
       const a = rng.range(0, Math.PI * 2);
       const d = rng.range(0.25, 0.6) * ARENA;
-      const r = rng.range(16, 23);
+      const r = rng.range(28, 40);
       holes.push(createHole(sim, {
         x: Math.cos(a) * d, y: Math.sin(a) * d, r,
         seed: hashSeed('bbh', seed, i),
         drift: 0.5,
-        mu: r * 90,
-        maxAccel: 0.55,
+        mu: r * 185,
+        maxAccel: 1.0,
       }));
     }
 
@@ -138,7 +138,7 @@ export default {
       update(dt, round) {
         this.time += dt;
         const p = round.pressure;
-        this.edge = ARENA - p * (ARENA - 640);
+        this.edge = ARENA - p * (ARENA - 920);
 
         // Rocks stay in the ring; players do not. That asymmetry is the map.
         for (const r of rocks.concat(shards.map((s) => ({ body: s.body, r: s.len * 0.4 })))) {
@@ -182,7 +182,7 @@ export default {
         const alive = round.alivePlayers();
         applyNebula(sim, nebulae, alive, dt);
         updateComets(sim, comets, dt, round.particles);
-        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.7, muGrow: 0.9 });
+        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.3, muGrow: 0.4 });
 
         // Keep the wells inside the contracting ring, or they end up stranded
         // outside the arena where nothing can reach them.

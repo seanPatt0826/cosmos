@@ -29,7 +29,7 @@ export default {
   id: 'binary',
   name: 'Binary Stars',
   theme: 'binary',
-  population: [16, 24],
+  population: [22, 30],
   blurb: 'two suns, no rest',
 
   build({ sim, seed }) {
@@ -59,12 +59,12 @@ export default {
     for (let i = 0; i < 2; i++) {
       const a = rng.range(0, Math.PI * 2) + i * Math.PI;
       const d = rng.range(760, 950);
-      const r = rng.range(15, 21);
+      const r = rng.range(26, 36);
       holes.push(createHole(sim, {
         x: Math.cos(a) * d, y: Math.sin(a) * d, r,
         seed: hashSeed('bnh', seed, i),
-        mu: r * 85,
-        maxAccel: 0.5,
+        mu: r * 175,
+        maxAccel: 0.95,
       }));
     }
 
@@ -123,7 +123,7 @@ export default {
           s.well.y = Math.sin(this.angle + s.phase) * this.sep;
         }
 
-        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.5, muGrow: 0.5 });
+        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.25, muGrow: 0.3 });
 
         for (const pl of round.alivePlayers()) {
           const pos = pl.body.position;
