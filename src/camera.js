@@ -1,0 +1,112 @@
+// The camera does the work a commentator would.
+//
+// It frames whoever is still alive and tightens as the population drops, so the
+// finale becomes a close-up without ever cutting. Everything is eased; nothing
+// snaps. A hard cut would break the spell this whole thing runs on.
+
+import { CAMERA, ROUND } from './config.js';
+
+export function createCamera(bounds) {
+  const cx = bounds ? bounds.x + bounds.w / 2 : 0;
+  const cy = bounds ? bounds.y + bounds.h / 2 : 0;
+  return {
+    x: cx, y: cy, zoom: 1,
+    tx: cx, ty: cy, tz: 1,
+    shake: 0,
+    ox: 0, oy: 0,
+  };
+}
+
+export function nudge(cam, amount) {
+  cam.shake = Math.min(9, cam.shake + amount);
+}
+
+export function update(cam, dtMs, players, viewW, viewH, bounds, opts = {}) {
+  const alive = players.filter((p) => p.alive && p.body);
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  const focus = alive.length ? alive : players.filter((p) => p.death && p.death.t < 1);
+
+  if (focus.length) {
+    for (const p of focus) {
+      const pos = p.body ? p.body.position : p.death.pos;
+      if (!pos) continue;
+      if (pos.x < minX) minX = pos.x;
+      if (pos.y < minY) minY = pos.y;
+      if (pos.x > maxX) maxX = pos.x;
+      if (pos.y > maxY) maxY = pos.y;
+    }
+  }
+
+  if (!isFinite(minX)) {
+    minX = bounds.x;
+    minY = bounds.y;
+    maxX = bounds.x + bounds.w;
+    maxY = bounds.y + bounds.h;
+  }
+
+  const pad = CAMERA.padding;
+  const w = Math.max(220, maxX - minX) + pad * 2;
+  const h = Math.max(220, maxY - minY) + pad * 2;
+
+  cam.tx = (minX + maxX) / 2;
+  cam.ty = (minY + maxY) / 2;
+
+  let z = Math.min(viewW / w, viewH / h);
+  // Once it is down to the last few, push in. The tension is on their faces,
+  // so to speak, not on the empty arena around them.
+  if (alive.length && alive.length <= ROUND.finalCallout) z *= CAMERA.finaleZoom;
+  if (opts.zoomBias) z *= opts.zoomBias;
+  cam.tz = Math.max(CAMERA.minZoom, Math.min(CAMERA.maxZoom, z));
+
+  // Frame-rate independent easing: the same feel at 30fps as at 144.
+  const f = Math.min(3, dtMs / 16.667);
+  const ke = 1 - Math.pow(1 - CAMERA.ease, f);
+  const kz = 1 - Math.pow(1 - CAMERA.zoomEase, f);
+  cam.x += (cam.tx - cam.x) * ke;
+  cam.y += (cam.ty - cam.y) * ke;
+  cam.zoom += (cam.tz - cam.zoom) * kz;
+
+  if (cam.shake > 0.01) {
+    cam.ox = (Math.random() - 0.5) * cam.shake;
+    cam.oy = (Math.random() - 0.5) * cam.shake;
+    cam.shake *= Math.pow(0.88, f);
+  } else {
+    cam.ox = 0;
+    cam.oy = 0;
+    cam.shake = 0;
+  }
+}
+
+export function applyTransform(ctx, cam, viewW, viewH) {
+  ctx.translate(viewW / 2 + cam.ox, viewH / 2 + cam.oy);
+  ctx.scale(cam.zoom, cam.zoom);
+  ctx.translate(-cam.x, -cam.y);
+}
+
+// World to screen. Name labels are drawn after the camera transform is undone,
+// so they stay a constant readable size however far the camera has pushed in.
+export function worldToScreen(cam, x, y, viewW, viewH) {
+  return {
+    x: (x - cam.x) * cam.zoom + viewW / 2 + cam.ox,
+    y: (y - cam.y) * cam.zoom + viewH / 2 + cam.oy,
+  };
+}
+
+// Normalised -1..1 pan, for the parallax background.
+export function panOf(cam, bounds) {
+  const cx = bounds.x + bounds.w / 2;
+  const cy = bounds.y + bounds.h / 2;
+  return {
+    x: clamp((cam.x - cx) / (bounds.w / 2 || 1), -1, 1),
+    y: clamp((cam.y - cy) / (bounds.h / 2 || 1), -1, 1),
+  };
+}
+
+function clamp(v, lo, hi) {
+  return v < lo ? lo : v > hi ? hi : v;
+}

@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Cosmos — a little universe, drawn by hand</title>
+<meta name="description" content="Twenty hand-drawn celestial objects are released into a physics playground and knocked out one by one until one survives. Then it starts again somewhere else. Nothing to click.">
+<meta name="theme-color" content="#07060F">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cosmos">
+<meta property="og:title" content="Cosmos — a little universe, drawn by hand">
+<meta property="og:description" content="A cozy space physics toy. Watch until one is left.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cosmos — a little universe, drawn by hand">
+<meta name="twitter:description" content="A cozy space physics toy. Watch until one is left.">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230A0818'/%3E%3Cpath d='M16 6.5c5.1 0 9.2 4.2 9.4 9.4.2 5.3-4.1 9.6-9.4 9.6-5.2 0-9.5-4.3-9.4-9.5.1-5.2 4.3-9.5 9.4-9.5z' fill='none' stroke='%23F2EADB' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M5 19.5c4.5 2.6 17 2.9 22-1' stroke='%23E8A33D' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght@0,300..700;1,300..600&display=swap" rel="stylesheet">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+<style>
+  :root {
+    color-scheme: dark;
+    --void:    #07060F;
+    --void-2:  #0C0A1A;
+    --paper:   #F2EADB;
+    --ink:     rgba(242, 234, 219, 0.62);
+    --ink-dim: rgba(242, 234, 219, 0.34);
+    --line:    rgba(242, 234, 219, 0.14);
+    --accent:  #E8A33D;
+    --panel-bg: rgba(11, 9, 24, 0.88);
+    --rail-w:  300px;
+    --font: "Shantell Sans", "Comic Sans MS", "Segoe Print", cursive;
+  }
+
+  /* Light mode is a daytime sketchbook, not the dark theme turned up. The
+     drawings themselves are unchanged — paper and graphite read correctly on
+     either ground, which is the one lucky thing about this art direction. */
+  body.light {
+    --void:    #E9E4D6;
+    --void-2:  #EFEADC;
+    --paper:   #2E2934;
+    --ink:     rgba(46, 41, 52, 0.78);
+    --ink-dim: rgba(46, 41, 52, 0.45);
+    --line:    rgba(46, 41, 52, 0.18);
+    --accent:  #B06E14;
+    --panel-bg: rgba(248, 244, 234, 0.93);
+    color-scheme: light;
+  }
+  body.light #banner { text-shadow: 0 0 26px rgba(255, 255, 255, 0.75); }
+  body.light #controls button:hover { background: rgba(46, 41, 52, 0.09); }
+  body.light .names button.ghost:hover { background: rgba(46, 41, 52, 0.08); }
+  body.light #standings-list .row i { box-shadow: 0 0 0 1px rgba(46, 41, 52, 0.3) inset; }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--void);
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.5;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    opacity: 0;
+    transition: opacity 700ms ease;
+  }
+  body.ready { opacity: 1; }
+
+  /* ── Frame ──────────────────────────────────────────────────────────── */
+
+  /* The game is the page. No frame, no padding, no letterboxing — the canvas
+     fills the window and everything else floats on top of it. */
+  .console { height: 100%; width: 100%; }
+
+  .stage-wrap {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--void-2);
+  }
+
+  canvas#stage { display: block; width: 100%; height: 100%; }
+
+  /* ── Rail ───────────────────────────────────────────────────────────── */
+
+  .rail {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: var(--rail-w);
+    max-height: calc(100% - 28px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    /* Above the canvas, and clickable — the entrants box lives in here. */
+    z-index: 3;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  /* No backdrop-filter anywhere in this file, deliberately. A blur that samples
+     a live canvas behind it corrupted on the owner's machine — a band of smeared
+     garbage across the row of the controls bar — and it is expensive besides.
+     The panels are simply opaque enough to read instead. */
+
+  /* Reserved from first paint, ad or no ad. */
+  .ad-slot {
+    flex: 0 0 250px;
+    width: 300px;
+    height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    border: 1px dashed var(--line);
+    background: var(--panel-bg);
+    color: var(--ink-dim);
+    font-size: 12.5px;
+    overflow: hidden;
+  }
+
+  /* Wordmark and links, tucked into the far corner and out of the way. */
+  .corner {
+    position: absolute;
+    left: 20px;
+    bottom: 16px;
+    z-index: 3;
+  }
+  .corner h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--paper);
+    opacity: 0.85;
+  }
+  .corner nav { display: flex; gap: 13px; font-size: 12.5px; margin-top: 1px; }
+  .corner nav a { color: var(--ink-dim); text-decoration: none; }
+  .corner nav a:hover { color: var(--paper); text-decoration: underline; }
+
+  /* ── Entrants ───────────────────────────────────────────────────────── */
+
+  .names {
+    padding: 10px 11px 11px;
+    border-radius: 12px;
+    background: var(--panel-bg);
+    border: 1px solid var(--line);
+  }
+  .names label {
+    display: block;
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin-bottom: 5px;
+  }
+  .names textarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 74px;
+    font-family: inherit;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--paper);
+    background: var(--panel-bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  .names textarea:focus {
+    outline: none;
+    border-color: rgba(232, 163, 61, 0.55);
+  }
+  .names textarea::placeholder { color: var(--ink-dim); opacity: 0.7; }
+
+  .names-row { display: flex; gap: 7px; margin-top: 7px; }
+  .names button {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 5px 13px;
+    border-radius: 999px;
+    cursor: pointer;
+    border: 1px solid rgba(232, 163, 61, 0.5);
+    background: rgba(232, 163, 61, 0.14);
+    color: var(--accent);
+    transition: background 160ms ease;
+  }
+  .names button:hover { background: rgba(232, 163, 61, 0.26); }
+  .names button.ghost {
+    border-color: var(--line);
+    background: transparent;
+    color: var(--ink-dim);
+  }
+  .names button.ghost:hover { background: rgba(242, 234, 219, 0.08); color: var(--paper); }
+  .names-hint { margin: 6px 0 0; font-size: 12px; color: var(--ink-dim); }
+
+  /* ── HUD ────────────────────────────────────────────────────────────── */
+
+  .hud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  #map-name {
+    position: absolute;
+    top: 16px;
+    left: 20px;
+    font-size: 19px;
+    color: var(--ink);
+  }
+  #map-name.intro { animation: slideIn 900ms cubic-bezier(.2,.8,.3,1) both; }
+  #map-blurb {
+    position: absolute;
+    top: 41px;
+    left: 20px;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--ink-dim);
+  }
+
+  /* ── Standings ──────────────────────────────────────────────────────── */
+
+  /* Now a block inside the rail rather than a floating panel of its own. */
+  #standings {
+    flex: 0 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 9px 11px 9px;
+    border-radius: 12px;
+    background: var(--panel-bg);
+    border: 1px solid var(--line);
+  }
+
+  #count {
+    font-size: 15px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    padding-bottom: 6px;
+    margin-bottom: 5px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  #standings-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-size: 13px;
+  }
+  #standings-list .row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 1.5px 0;
+    color: var(--ink);
+    /* Names are user text and can be anything; never let one break the panel. */
+    min-width: 0;
+  }
+  #standings-list .row span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #standings-list .row i {
+    flex: 0 0 9px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
+  }
+  #standings-list .row.more { color: var(--ink-dim); font-style: italic; }
+  #standings-list .row.more i { background: transparent; box-shadow: none; }
+  #standings-list .row.win { color: var(--accent); font-weight: 600; }
+
+  #banner {
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    text-align: center;
+    font-size: 62px;
+    font-weight: 600;
+    color: var(--paper);
+    opacity: 0;
+    transform: translateY(-50%) scale(0.94);
+    transition: opacity 320ms ease, transform 420ms cubic-bezier(.2,.8,.3,1);
+    text-shadow: 0 0 34px rgba(242, 234, 219, 0.28);
+  }
+  #banner.on { opacity: 1; transform: translateY(-50%) scale(1); }
+  #banner.count-in { font-size: 90px; opacity: 0.32; }
+  #banner.final { font-size: 46px; opacity: 0.72; letter-spacing: 0.04em; }
+  /* Shifted off centre: the winner is framed dead centre by then, and a word
+     printed across it hides the thing you are meant to be looking at. */
+  #banner.winner { font-size: 62px; letter-spacing: 0.05em; top: 27%; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ── Controls ───────────────────────────────────────────────────────── */
+
+  #controls {
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 9px;
+    border-radius: 999px;
+    background: var(--panel-bg);
+    border: 1px solid var(--line);
+    pointer-events: auto;
+    transition: opacity 520ms ease, transform 520ms ease;
+    max-width: calc(100% - 32px);
+  }
+  #controls.hidden { opacity: 0; transform: translateX(-50%) translateY(9px); pointer-events: none; }
+
+  #controls button {
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 4px 11px;
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+    white-space: nowrap;
+  }
+  #controls button:hover { background: rgba(242, 234, 219, 0.09); color: var(--paper); }
+  #controls button.active { border-color: rgba(232, 163, 61, 0.5); color: var(--accent); }
+
+  #map-picker { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+  .divider { width: 1px; align-self: stretch; background: var(--line); margin: 2px 4px; }
+
+  /* ── Transition ─────────────────────────────────────────────────────── */
+
+  #fade {
+    position: absolute;
+    inset: 0;
+    background: var(--void);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 480ms ease;
+  }
+  #fade.on { opacity: 1; }
+
+  /* ── Narrow ─────────────────────────────────────────────────────────── */
+
+  /* On a phone a 300px column would eat half the arena, so the rail becomes a
+     narrow strip and the entrants box collapses to a tap-to-open panel. The
+     stage still fills the screen behind it. */
+  @media (max-width: 900px) {
+    .rail {
+      width: min(260px, 46vw);
+      top: 10px;
+      right: 10px;
+      gap: 9px;
+    }
+    .ad-slot {
+      width: 100%;
+      flex: 0 0 auto;
+      height: 130px;
+    }
+    .names textarea { min-height: 58px; }
+    .corner h1 { font-size: 17px; }
+    /* Keep the list short so the entrants box stays on screen. */
+    #standings-list { font-size: 12px; max-height: 132px; overflow-y: auto; }
+  }
+
+  @media (max-width: 560px) {
+    .rail { width: 44vw; }
+    .ad-slot { height: 100px; font-size: 11px; }
+    .names label, .names-hint { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #banner, #fade, #map-name.intro { transition: none; animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="console">
+  <div class="stage-wrap">
+    <canvas id="stage"></canvas>
+
+    <aside class="rail">
+      <div class="ad-slot" id="ad-slot">advertisement</div>
+
+      <div id="standings">
+        <div id="count"></div>
+        <ul id="standings-list"></ul>
+      </div>
+
+      <section class="names">
+        <label for="names-input">Entrants</label>
+        <textarea id="names-input" rows="5" spellcheck="false"
+          placeholder="One name per line.&#10;&#10;Ana&#10;Bo&#10;Chidi"></textarea>
+        <div class="names-row">
+          <button type="button" id="btn-names">Race these</button>
+          <button type="button" id="btn-names-clear" class="ghost">Clear</button>
+        </div>
+        <p class="names-hint" id="names-hint">Leave empty for unnamed objects.</p>
+      </section>
+    </aside>
+
+    <div class="corner">
+      <h1>Cosmos</h1>
+      <nav><a href="./about.html">about</a><a href="./privacy.html">privacy</a></nav>
+    </div>
+
+    <div class="hud">
+      <div id="map-name"></div>
+      <div id="map-blurb"></div>
+      <div id="banner"></div>
+
+      <div id="controls">
+        <div id="map-picker"></div>
+        <span class="divider"></span>
+        <button type="button" id="btn-play">pause</button>
+        <button type="button" id="btn-speed">1×</button>
+        <button type="button" id="btn-mute">sound off</button>
+        <button type="button" id="btn-theme">light</button>
+        <button type="button" id="btn-skip">skip</button>
+      </div>
+    </div>
+
+    <div id="fade"></div>
+  </div>
+
+</div>
+
+<script type="module" src="./src/ads.js"></script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

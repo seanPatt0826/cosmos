@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Cosmos works</title>
+<meta name="description" content="Cosmos is a cozy space physics toy. Fifteen to thirty hand-drawn celestial objects are released into one of three little universes and knocked out until one survives. Nothing is scripted.">
+<meta name="theme-color" content="#07060F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230A0818'/%3E%3Cpath d='M16 6.5c5.1 0 9.2 4.2 9.4 9.4.2 5.3-4.1 9.6-9.4 9.6-5.2 0-9.5-4.3-9.4-9.5.1-5.2 4.3-9.5 9.4-9.5z' fill='none' stroke='%23F2EADB' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M5 19.5c4.5 2.6 17 2.9 22-1' stroke='%23E8A33D' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght@0,300..700;1,300..600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --void: #07060F;
+    --paper: #F2EADB;
+    --ink: rgba(242, 234, 219, 0.72);
+    --ink-soft: rgba(242, 234, 219, 0.42);
+    --line: rgba(242, 234, 219, 0.14);
+    --accent: #E8A33D;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 22px 70px;
+    background: var(--void);
+    background-image:
+      radial-gradient(ellipse 70% 50% at 20% -8%, rgba(90, 50, 140, 0.34), transparent 70%),
+      radial-gradient(ellipse 60% 45% at 88% 12%, rgba(30, 70, 130, 0.28), transparent 70%);
+    background-repeat: no-repeat;
+    color: var(--ink);
+    font-family: "Shantell Sans", "Comic Sans MS", "Segoe Print", cursive;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    max-width: 68ch; margin: 0 auto;
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 18px; flex-wrap: wrap;
+    padding: 26px 0 8px; border-bottom: 1px solid var(--line);
+  }
+  header .wordmark { margin: 0; font-size: 26px; font-weight: 600; color: var(--paper); }
+  header a { color: var(--ink-soft); text-decoration: none; font-size: 14px; }
+  header a:hover { color: var(--paper); text-decoration: underline; }
+  main { max-width: 68ch; margin: 0 auto; }
+  h1 { font-size: 32px; font-weight: 600; color: var(--paper); margin: 34px 0 10px; }
+  h2 { font-size: 20px; font-weight: 600; color: var(--paper); margin: 34px 0 8px; }
+  .standfirst { font-size: 18px; color: var(--ink); margin: 0 0 6px; }
+  p, li { color: var(--ink); }
+  ul, ol { padding-left: 22px; }
+  li { margin: 5px 0; }
+  strong { color: var(--paper); font-weight: 600; }
+  a { color: var(--accent); }
+  .back {
+    display: inline-block; margin-top: 34px; padding: 9px 20px;
+    border: 1px solid rgba(232, 163, 61, 0.45); border-radius: 999px;
+    color: var(--accent); text-decoration: none; font-size: 15px;
+  }
+  .back:hover { background: rgba(232, 163, 61, 0.12); }
+  footer {
+    max-width: 68ch; margin: 44px auto 0; padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-size: 14px; color: var(--ink-soft);
+  }
+  footer a { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1 class="wordmark">Cosmos</h1>
+  <a href="./index.html">Back to the universe</a>
+</header>
+
+<main>
+  <h1>How it works</h1>
+  <p class="standfirst">Cosmos is a toy, not a game. Nobody plays it. Fifteen to thirty little celestial objects are released into a physics playground and knocked out one at a time until one is left, and then it happens again somewhere else.</p>
+
+  <h2>The short version</h2>
+  <ol>
+    <li>A universe loads and fills with drifting objects.</li>
+    <li>A short countdown, then everything is released at once.</li>
+    <li>Physics takes over. Objects fall, orbit, collide, and shove each other around.</li>
+    <li>They are eliminated as they hit whatever that universe uses for a hazard.</li>
+    <li>The last one left wins, and the next universe fades in.</li>
+  </ol>
+  <p>A round usually runs about a minute, sometimes closer to two. There is nothing to click, and nothing is required of you.</p>
+
+  <h2>Racing your own names</h2>
+  <p>Paste a list into the entrants box — one name per line — and press <strong>Race these</strong>. Each name rides an object, carries a label as it goes, and the survivor is announced by name. This is the marble-roulette use: settling who presents first, who buys lunch, or which entry wins the giveaway, in a way everyone can watch happen.</p>
+  <p>The order you type them in gives nobody an advantage; the roster is shuffled before it is handed out. Leave the box empty and objects go unnamed, which is how the toy runs on its own.</p>
+  <p>Your list is kept in your browser so it survives a refresh. It is never sent anywhere — see <a href="./privacy.html">Privacy</a>.</p>
+
+  <h2>Who's still in</h2>
+  <p>The panel in the top right lists every object still alive, with its colour, and shrinks as the round goes on. When there is no roster it falls back to colour names, so it still tells you something. That list plus the count is the whole interface — there is deliberately no score, no combo counter and no experience bar anywhere.</p>
+
+  <h2>Light and dark</h2>
+  <p>The toggle switches between deep space and a daytime sketchbook: warm paper, pencil stars, pastel washes. The objects are identical in both, because a paper fill with a graphite outline happens to read correctly on a dark ground and a light one — the single piece of luck in this art direction. Only the background, the glow and the page chrome change, and the choice is remembered.</p>
+
+  <h2>The three universes</h2>
+  <ul>
+    <li><strong>Black Hole Garden</strong> — an open room with bouncy walls and a handful of gravity wells, some of them drifting. Enough momentum carries you straight past one; not quite enough does not. Nebula patches rob you of exactly that momentum, and pulsars can shove you clear at the last second.</li>
+    <li><strong>Orbital Arena</strong> — a planet and its moons, with real orbital mechanics. Objects are placed on genuine circular orbits at the start, which is why it looks composed rather than chaotic. The planet slowly gains mass, so every orbit is quietly decaying.</li>
+    <li><strong>Asteroid Belt</strong> — no ambient gravity, just a great deal of rock with a great deal of momentum, including long shards that tumble end over end and collide nothing like a circle does. Everything that happens here happens because something hit something else.</li>
+  </ul>
+
+  <h2>Is any of it scripted?</h2>
+  <p>No. There is no winner chosen in advance and animated afterwards. Every round is a real rigid-body simulation running at sixty steps a second, and the survivor is whoever the physics happens to leave standing. Gravity wells apply a genuine inverse-square pull, so acceleration does not depend on an object's mass and every object is affected identically. Nobody is weighted, favoured, or nudged.</p>
+  <p>The one thing that is arranged is that a round has to <em>end</em>. Two objects can happily orbit each other forever, and a toy that never resolves is broken. So each universe has a pressure that escalates on a timer: event horizons grow and creep inward, boundaries contract, orbits decay. It guarantees a winner, and it is also where most of the drama comes from.</p>
+
+  <h2>Why it looks like that</h2>
+  <p>The background is a straightforwardly pretty deep-space scene. Everything else is drawn as though someone made it with a pencil and a box of crayons.</p>
+  <p>That means no perfect circles — every shape is a polygon whose vertices stray off true. Every line is drawn two or three times at slightly different offsets, and the strokes run past the corners they end on, which is the giveaway of a real hand. Fills are uneven hatching that deliberately stops short of the outline, so the paper shows through at the edges.</p>
+  <p>Each object is also drawn three separate times and the versions are cycled about eight times a second, so the linework wriggles. Animators call it shooting on threes. It is what stops the drawings feeling like stickers.</p>
+  <p>All of that is far too expensive to do sixty times a second for thirty objects, so it happens once, up front, and the game spends the rest of its time compositing. The imperfections are also seeded per object, never re-rolled per frame — otherwise thirty sketchy objects would shimmer like television static.</p>
+
+  <h2>Sound</h2>
+  <p>Every sound is generated in the browser as it plays; there are no audio files. The drone underneath drifts between a few chord voicings, and each impact rings a bell pitched by how hard the collision actually was. It starts muted, because a page that begins humming at you unbidden deserves to be closed.</p>
+
+  <h2>What it is for</h2>
+  <p>Nothing in particular. Leave it running in a tab. Watch a round while you think about something else.</p>
+
+  <a class="back" href="./index.html">Go and watch</a>
+</main>
+
+<footer>
+  <p><a href="./index.html">Home</a> &nbsp;·&nbsp; <a href="./privacy.html">Privacy</a></p>
+</footer>
+
+</body>
+</html>
