@@ -198,6 +198,47 @@ export function createAudio() {
     osc.stop(t + 0.6);
   };
 
+  // A soft thump rather than a bang. This is still a cozy toy; the explosion
+  // should read as "oh!" and not as artillery.
+  a.boom = () => {
+    if (a.muted || !a.ctx) return;
+    const t = a.ctx.currentTime;
+
+    const osc = a.ctx.createOscillator();
+    const g = a.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, t);
+    osc.frequency.exponentialRampToValueAtTime(42, t + 0.34);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.22, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    osc.connect(g);
+    g.connect(a.master);
+    osc.start(t);
+    osc.stop(t + 0.55);
+
+    // A short filtered noise burst for the crumple.
+    const len = Math.floor(a.ctx.sampleRate * 0.3);
+    const buf = a.ctx.createBuffer(1, len, a.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+    }
+    const src = a.ctx.createBufferSource();
+    const bp = a.ctx.createBiquadFilter();
+    const ng = a.ctx.createGain();
+    src.buffer = buf;
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(900, t);
+    bp.frequency.exponentialRampToValueAtTime(180, t + 0.3);
+    bp.Q.value = 0.8;
+    ng.gain.value = 0.11;
+    src.connect(bp);
+    bp.connect(ng);
+    ng.connect(a.master);
+    src.start(t);
+  };
+
   a.win = () => {
     if (a.muted || !a.ctx) return;
     const t = a.ctx.currentTime;

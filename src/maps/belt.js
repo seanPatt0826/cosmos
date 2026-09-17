@@ -14,6 +14,7 @@ import {
   createShard, drawShards,
   createNebula, applyNebula, drawNebula,
   createComet, updateComets, drawComets,
+  createStuckWatch,
 } from './hazards.js';
 
 const ARENA = 1120;
@@ -111,6 +112,7 @@ export default {
     }
 
     const comets = [createComet(sim, bounds, hashSeed('bcom', seed))];
+    const stuckWatch = createStuckWatch();
 
     return {
       bounds,
@@ -204,6 +206,10 @@ export default {
           const h = holeCapturing(holes, pos);
           if (h) round.kill(pl, 'hole', { at: pos, target: { x: h.well.x, y: h.well.y } });
         }
+
+        stuckWatch(round.alivePlayers(), dt, (pl) => {
+          round.kill(pl, 'boom', { at: pl.body.position });
+        });
       },
 
       drawBack(g, cam, time) {

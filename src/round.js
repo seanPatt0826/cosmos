@@ -20,7 +20,11 @@ export const PHASE = {
   DONE: 'done',
 };
 
-const DEATH_MS = { hole: 1150, scribble: 620, drift: 1500 };
+const DEATH_MS = { hole: 1150, scribble: 620, drift: 1500, boom: 760 };
+
+// How hard an exploding object shoves whatever is standing near it.
+const BLAST_RADIUS = 260;
+const BLAST_FORCE = 0.026;
 
 export function createRound(mapDef, seed, audio, names = []) {
   const rng = makeRng(hashSeed('round', seed));
@@ -98,6 +102,30 @@ export function createRound(mapDef, seed, audio, names = []) {
         Particles.unravel(particles, pos.x, pos.y, opts.target.x, opts.target.y, colour);
         Particles.burst(particles, pos.x, pos.y, colour, { count: 10, speed: 1.6, ring: false });
         audio.capture();
+      } else if (kind === 'boom') {
+        // Going out with a bang, and taking the neighbourhood with it. The
+        // shove is the useful part: an object wedged badly enough to explode is
+        // often wedged against somebody else, and this frees them both.
+        Particles.burst(particles, pos.x, pos.y, colour, {
+          count: 26, speed: 5.2, ringTo: BLAST_RADIUS * 0.8, ringLife: 760, size: 8,
+        });
+        Particles.burst(particles, pos.x, pos.y, '#FFE79B', {
+          count: 14, speed: 3.4, ring: false, maxLife: 520,
+        });
+        Particles.scribble(particles, pos.x, pos.y, colour, BODY.radius * 2);
+        for (const other of round.alivePlayers()) {
+          const dx = other.body.position.x - pos.x;
+          const dy = other.body.position.y - pos.y;
+          const d = Math.hypot(dx, dy);
+          if (d > BLAST_RADIUS || d < 1) continue;
+          const k = (1 - d / BLAST_RADIUS) * BLAST_FORCE;
+          sim.Matter.Body.applyForce(other.body, other.body.position, {
+            x: (dx / d) * other.body.mass * k,
+            y: (dy / d) * other.body.mass * k,
+          });
+        }
+        nudge(cam, 5);
+        audio.boom();
       } else if (kind === 'scribble') {
         Particles.scribble(particles, pos.x, pos.y, colour, BODY.radius * 1.5);
         Particles.burst(particles, pos.x, pos.y, colour, { count: 13, speed: 2.2 });

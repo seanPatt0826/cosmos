@@ -254,6 +254,14 @@ function bakeNebula(r, seed) {
   return { canvas: c, worldSize: size };
 }
 
+// A patch must never bring anything to a complete stop.
+//
+// In an arena with no ambient gravity, a body damped to zero has nothing left
+// to accelerate it — and the patches are deliberately placed clear of the wells,
+// so nothing is nearby to pull it out either. It simply sits there for the rest
+// of the round. This floor keeps a patch a bog rather than a tarpit.
+const NEBULA_FLOOR = 0.6;
+
 export function applyNebula(sim, patches, players, dt) {
   const f = dt / 16.667;
   for (const p of players) {
@@ -262,15 +270,70 @@ export function applyNebula(sim, patches, players, dt) {
     for (const n of patches) {
       const d = Math.hypot(pos.x - n.x, pos.y - n.y);
       if (d > n.r) continue;
+      const v = p.body.velocity;
+      const s = Math.hypot(v.x, v.y);
+      if (s <= NEBULA_FLOOR) continue;
       // Thickest in the middle, so the edge is a nudge and the core is a bog.
       const k = 1 - d / n.r;
       const damp = Math.pow(1 - 0.028 * k, f);
-      sim.Matter.Body.setVelocity(p.body, {
-        x: p.body.velocity.x * damp,
-        y: p.body.velocity.y * damp,
-      });
+      const next = Math.max(NEBULA_FLOOR, s * damp);
+      sim.Matter.Body.setVelocity(p.body, { x: (v.x / s) * next, y: (v.y / s) * next });
     }
   }
+}
+
+// ── Getting stuck ───────────────────────────────────────────────────────────
+//
+// Even with the floor above, a physics sim will find somewhere to wedge an
+// object: a corner it bounces in forever, a tiny circle it never leaves. This
+// watches displacement rather than speed, so it catches both a dead stop and a
+// slow pointless loop.
+
+// Stuck means "going nowhere", which is not the same as "moving slowly".
+//
+// The first version measured distance from a reference point and reset the
+// moment an object strayed past it. That misses the commonest case entirely:
+// something bouncing between two walls, or looping in a small circle, travels
+// plenty while ending up exactly where it began. It also fired on merely slow
+// objects and became the map's main cause of death, halving round length.
+//
+// So sample the position on a timer and compare the ends of a rolling window.
+// Net displacement is the thing that actually matters.
+// Measured: travel=62 leaves zero objects visibly parked. Tightening to 46 did
+// not reduce how often this fires — it just let more stuck objects slip through
+// the net, which is the opposite of the point.
+export function createStuckWatch({ travel = 62, windowMs = 5500, sampleMs = 700 } = {}) {
+  const tracks = new Map();
+  const slots = Math.max(2, Math.round(windowMs / sampleMs));
+
+  return function check(players, dt, onStuck) {
+    const live = new Set();
+    for (const p of players) {
+      if (!p.body) continue;
+      live.add(p.id);
+      let t = tracks.get(p.id);
+      if (!t) {
+        t = { acc: 0, pts: [] };
+        tracks.set(p.id, t);
+      }
+      t.acc += dt;
+      if (t.acc < sampleMs) continue;
+      t.acc = 0;
+
+      t.pts.push({ x: p.body.position.x, y: p.body.position.y });
+      if (t.pts.length > slots) t.pts.shift();
+      if (t.pts.length < slots) continue;
+
+      const a = t.pts[0];
+      const b = t.pts[t.pts.length - 1];
+      if (Math.hypot(b.x - a.x, b.y - a.y) < travel) {
+        tracks.delete(p.id);
+        onStuck(p);
+      }
+    }
+    // Do not leak state for objects that have already left the round.
+    for (const id of [...tracks.keys()]) if (!live.has(id)) tracks.delete(id);
+  };
 }
 
 export function drawNebula(g, patches, time) {

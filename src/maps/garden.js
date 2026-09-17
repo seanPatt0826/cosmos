@@ -16,6 +16,7 @@ import {
   createNebula, applyNebula, drawNebula,
   createPulsar, updatePulsars, drawPulsars,
   createComet, updateComets, drawComets,
+  createStuckWatch,
 } from './hazards.js';
 
 const W = 2200;
@@ -90,6 +91,9 @@ export default {
 
     const comets = [createComet(sim, bounds, hashSeed('com', seed))];
 
+    // Anything that stops moving for long enough goes up. See hazards.js.
+    const stuckWatch = createStuckWatch();
+
     return {
       bounds,
       holes,
@@ -133,6 +137,10 @@ export default {
           const h = holeCapturing(holes, pos);
           if (h) round.kill(pl, 'hole', { at: pos, target: { x: h.well.x, y: h.well.y } });
         }
+
+        stuckWatch(round.alivePlayers(), dt, (pl) => {
+          round.kill(pl, 'boom', { at: pl.body.position });
+        });
       },
 
       drawBack(g, cam, time) {

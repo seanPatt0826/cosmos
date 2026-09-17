@@ -196,6 +196,12 @@ function drawPlayers(g, round, time) {
       drawSprite(g, p.sprite, 0, 0, d.angle + t * 5, 1, 1, p.boilOffset % 3);
       g.restore();
       softGlow(g, x, y, 34 * (1 - t), p.col.glow, 0.3 * (1 - t));
+    } else if (d.kind === 'boom') {
+      // Blown apart: the drawing swells, spins and thins out fast.
+      const e = 1 - Math.pow(1 - t, 3);
+      const scale = 1 + e * 1.5;
+      softGlow(g, d.pos.x, d.pos.y, 70 + e * 190, '#FFE79B', 0.5 * (1 - e));
+      drawSprite(g, p.sprite, d.pos.x, d.pos.y, d.angle + e * 3.4, scale, 1 - e, p.boilOffset % 3);
     } else if (d.kind === 'scribble') {
       const scale = 1 + t * 0.14;
       drawSprite(g, p.sprite, d.pos.x, d.pos.y, d.angle, scale, 1 - t, p.boilOffset % 3);
