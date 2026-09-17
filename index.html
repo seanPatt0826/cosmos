@@ -291,8 +291,15 @@
     list-style: none;
     margin: 0;
     padding: 0;
-    overflow: hidden;
+    /* Scrolls rather than clips. Hidden overflow sliced the last row in half,
+       which looked like a rendering fault rather than a full list. */
+    overflow-y: auto;
+    scrollbar-width: thin;
     font-size: 13px;
+    /* A scroll container still slices whatever row straddles its edge. Fading
+       the last few pixels turns that slice into "there is more below". */
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent);
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent);
   }
   #standings-list .row {
     display: flex;

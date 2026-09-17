@@ -19,6 +19,8 @@ export const THEMES = {
   orbit: { wash: ['#1E3A6E', '#245F73', '#18265C'], deep: '#060A18' },
   belt: { wash: ['#5A3A24', '#6E4630', '#2A2038'], deep: '#0C0812' },
   pinball: { wash: ['#5C2A5E', '#1F5570', '#6B3A2A'], deep: '#090615' },
+  binary: { wash: ['#6E3A2A', '#2A4A7A', '#5A2E6E'], deep: '#0A0712' },
+  bumpers: { wash: ['#6B2A5E', '#3A2A7A', '#7A3A4E'], deep: '#0B0618' },
 };
 
 // Daytime. Not the dark palette lightened — a different drawing: a cool sheet
@@ -29,6 +31,8 @@ export const LIGHT_THEMES = {
   orbit: { wash: ['#A8C0E4', '#A6CBD6', '#B0BCE6'], deep: '#E4E6DC' },
   belt: { wash: ['#DCBFA2', '#D6B49C', '#C0B4CE'], deep: '#EDE5D6' },
   pinball: { wash: ['#D6AEDA', '#A9CBDC', '#E0BCA6'], deep: '#EBE3D6' },
+  binary: { wash: ['#E4BCA2', '#A8BEE0', '#CEA8DC'], deep: '#EDE5D6' },
+  bumpers: { wash: ['#DCA8D2', '#B0A8E0', '#E0AABC'], deep: '#EBE2D8' },
 };
 
 const PARALLAX_FAR = 0.055;

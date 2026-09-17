@@ -1,0 +1,178 @@
+// Bumper Field — the loud one.
+//
+// No gravity, no orbits, nothing to fall down. Just a field of repulsors and a
+// boundary that closes. Everything ricochets, and because nothing slows down,
+// a single good hit keeps paying out for the rest of the round.
+//
+// This is where the bumpers went when the pinball map was retired — they were
+// the best thing in it, and they never needed gravity to work.
+
+import { makeRng, hashSeed } from '../rng.js';
+import { staticCircle, add, onCollide } from '../engine.js';
+import { bakeBumper, drawSprite, boilFrame } from '../sprites.js';
+import { drawRing } from './common.js';
+import { softGlow } from '../sketch.js';
+import { PALETTE } from '../config.js';
+import {
+  createHole, updateHoles, holeCapturing, drawHoles,
+  createPulsar, updatePulsars, drawPulsars,
+  createStuckWatch,
+} from './hazards.js';
+
+const ARENA = 1280;
+
+export default {
+  id: 'bumpers',
+  name: 'Bumper Field',
+  theme: 'bumpers',
+  population: [18, 26],
+  blurb: 'everything bounces',
+
+  build({ sim, seed }) {
+    const rng = makeRng(hashSeed('bumpers', seed));
+    const bounds = { x: -ARENA, y: -ARENA, w: ARENA * 2, h: ARENA * 2 };
+
+    // Spread on jittered rings rather than at random: pure random clumps, and a
+    // clump reads as one lumpy obstacle instead of several bumpers.
+    const bumpers = [];
+    const rings = [
+      { count: rng.int(3, 4), d: 250 },
+      { count: rng.int(5, 7), d: 560 },
+      { count: rng.int(6, 8), d: 860 },
+    ];
+    let n = 0;
+    for (const ring of rings) {
+      for (let i = 0; i < ring.count; i++) {
+        const a = (i / ring.count) * Math.PI * 2 + rng.wobble(0.35);
+        const d = ring.d + rng.wobble(70);
+        const r = rng.range(34, 62);
+        const col = rng.pick(PALETTE);
+        const body = staticCircle(sim, Math.cos(a) * d, Math.sin(a) * d, r, {
+          restitution: 1.15, friction: 0, label: "bumper",
+        });
+        add(sim, body);
+        bumpers.push({
+          body, r, col, flash: 0,
+          sprite: bakeBumper(r, hashSeed('bf', seed, n), col),
+          boil: n % 3,
+        });
+        n++;
+      }
+    }
+
+    const pulsars = [];
+    for (let i = 0; i < 2; i++) {
+      const a = rng.range(0, Math.PI * 2) + i * Math.PI;
+      const d = rng.range(380, 700);
+      pulsars.push(createPulsar(sim, Math.cos(a) * d, Math.sin(a) * d, hashSeed('bfp', seed, i)));
+    }
+
+    const holes = [];
+    for (let i = 0; i < 2; i++) {
+      const a = rng.range(0, Math.PI * 2) + i * Math.PI;
+      const d = rng.range(340, 720);
+      const r = rng.range(14, 19);
+      holes.push(createHole(sim, {
+        x: Math.cos(a) * d, y: Math.sin(a) * d, r,
+        seed: hashSeed('bfh', seed, i),
+        drift: 0.45,
+        mu: r * 75,
+        maxAccel: 0.5,
+      }));
+    }
+
+    onCollide(sim, (a, b) => {
+      for (const bump of bumpers) {
+        if (a !== bump.body && b !== bump.body) continue;
+        const other = a === bump.body ? b : a;
+        if (other.isStatic) continue;
+        const dx = other.position.x - bump.body.position.x;
+        const dy = other.position.y - bump.body.position.y;
+        const d = Math.hypot(dx, dy) || 1;
+        // An honest kick outward, on top of the restitution.
+        sim.Matter.Body.applyForce(other, other.position, {
+          x: (dx / d) * other.mass * 0.007,
+          y: (dy / d) * other.mass * 0.007,
+        });
+        bump.flash = 1;
+      }
+    });
+
+    const stuckWatch = createStuckWatch();
+
+    return {
+      bounds,
+      time: 0,
+      edge: ARENA,
+
+      spawn(n2) {
+        const out = [];
+        for (let i = 0; i < n2; i++) {
+          const a = (i / n2) * Math.PI * 2;
+          const d = ARENA * 0.92;
+          // Aimed inward, so the field starts working immediately.
+          out.push({
+            x: Math.cos(a) * d,
+            y: Math.sin(a) * d,
+            vx: -Math.cos(a) * rng.range(1.6, 3.1) + rng.wobble(0.7),
+            vy: -Math.sin(a) * rng.range(1.6, 3.1) + rng.wobble(0.7),
+          });
+        }
+        return out;
+      },
+
+      update(dt, round) {
+        this.time += dt;
+        const p = round.pressure;
+        this.edge = ARENA - p * (ARENA - 700);
+
+        for (const b of bumpers) b.flash *= Math.pow(0.86, dt / 16.667);
+        const alive = round.alivePlayers();
+        updatePulsars(sim, pulsars, dt, alive, round.particles);
+        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.6, muGrow: 0.7 });
+
+        for (const h of holes) {
+          const d = Math.hypot(h.well.x, h.well.y);
+          const limit = this.edge - h.well.capture - 110;
+          if (d > limit && d > 0) {
+            h.well.x = (h.well.x / d) * limit;
+            h.well.y = (h.well.y / d) * limit;
+            h.vx *= -1;
+            h.vy *= -1;
+          }
+        }
+
+        for (const pl of alive) {
+          const pos = pl.body.position;
+          if (Math.hypot(pos.x, pos.y) > this.edge) {
+            round.kill(pl, 'drift', { at: pos });
+            continue;
+          }
+          const h = holeCapturing(holes, pos);
+          if (h) round.kill(pl, 'hole', { at: pos, target: { x: h.well.x, y: h.well.y } });
+        }
+
+        stuckWatch(round.alivePlayers(), dt, (pl) => {
+          round.kill(pl, 'boom', { at: pl.body.position });
+        });
+      },
+
+      drawBack(g, cam, time) {
+        drawRing(g, 0, 0, this.edge, 44, { color: '#D6A0C8', alpha: 0.42, width: 2.8 });
+        drawRing(g, 0, 0, this.edge + 14, 45, { color: '#D6A0C8', alpha: 0.14, width: 1.4, passes: 1 });
+      },
+
+      drawFront(g, cam, time) {
+        drawHoles(g, holes, time);
+        for (const b of bumpers) {
+          const s = 1 + b.flash * 0.16;
+          if (b.flash > 0.02) {
+            softGlow(g, b.body.position.x, b.body.position.y, b.r * 3.4, b.col.glow, b.flash * 0.4);
+          }
+          drawSprite(g, b.sprite, b.body.position.x, b.body.position.y, 0, s, 1, boilFrame(time, b.boil));
+        }
+        drawPulsars(g, pulsars, time);
+      },
+    };
+  },
+};

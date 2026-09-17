@@ -126,7 +126,7 @@ function drawTrails(g, players) {
       const b = Math.floor(((c + 1) / chunks) * (t.length - 1));
       if (b - a < 1) continue;
       const near = (c + 1) / chunks;
-      g.globalAlpha = (p.alive ? 0.42 : 0.22) * near * near;
+      g.globalAlpha = (p.alive ? (isLight() ? 0.55 : 0.42) : 0.22) * near * near;
       g.strokeStyle = p.col.crayon;
       g.lineWidth = 0.9 + near * 2.2;
       g.beginPath();
@@ -168,6 +168,14 @@ function drawPlayers(g, round, time) {
       }
       const isWinner = round.winner === p;
       const glowA = isWinner ? 0.34 + round.winnerBloom * 0.3 : 0.2;
+
+      if (isLight()) {
+        // On paper a glow cannot make anything stand out — a pale wash on a pale
+        // ground just disappears. A soft shadow underneath does the job instead:
+        // it lifts the scrap of paper off the page and gives the outline
+        // something to sit against.
+        softGlow(g, pos.x + 3, y + 4, 40, '#6A5E52', 0.5 * intro);
+      }
       softGlow(g, pos.x, y, 46 * (isWinner ? 1.7 : 1), p.col.glow, glowA * intro);
       drawSprite(g, p.sprite, pos.x, y, p.body.angle, scale, intro, frame);
       continue;
