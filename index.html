@@ -37,7 +37,7 @@
     --panel-bg: rgba(13, 10, 27, 0.9);
     --edge: rgba(242, 234, 219, 0.3);
     --edge-soft: rgba(242, 234, 219, 0.1);
-    --rail-w:  300px;
+    --rail-w:  310px;
     --font: "Shantell Sans", "Comic Sans MS", "Segoe Print", cursive;
   }
 
@@ -98,18 +98,37 @@
 
   .rail {
     position: absolute;
-    top: 14px;
-    right: 14px;
+    top: 10px;
+    right: 9px;
     width: var(--rail-w);
-    max-height: calc(100% - 28px);
+    max-height: calc(100% - 20px);
     display: flex;
     flex-direction: column;
     gap: 12px;
     /* Above the canvas, and clickable — the entrants box lives in here. */
     z-index: 3;
+    /* The panels are tilted a fraction of a degree, which makes their boxes
+       fractionally wider than the column. Per spec, setting overflow-y alone
+       turns overflow-x from visible into auto, so that fraction was enough to
+       put a horizontal scrollbar along the bottom of the sidebar. The padding
+       gives the tilt and the offset shadow somewhere to sit. */
+    padding: 4px 5px;
+    overflow-x: hidden;
     overflow-y: auto;
     scrollbar-width: thin;
+    scrollbar-color: var(--edge-soft) transparent;
   }
+
+  .rail::-webkit-scrollbar, #standings-list::-webkit-scrollbar, #name-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  .rail::-webkit-scrollbar-thumb, #standings-list::-webkit-scrollbar-thumb,
+  #name-list::-webkit-scrollbar-thumb {
+    background: var(--edge-soft);
+    border-radius: 3px;
+  }
+  .rail::-webkit-scrollbar-track, #standings-list::-webkit-scrollbar-track,
+  #name-list::-webkit-scrollbar-track { background: transparent; }
 
   /* No backdrop-filter anywhere in this file, deliberately. A blur that samples
      a live canvas behind it corrupted on the owner's machine — a band of smeared
@@ -140,7 +159,10 @@
   /* Reserved from first paint, ad or no ad. */
   .ad-slot {
     flex: 0 0 250px;
-    width: 300px;
+    /* Fluid, so the column can carry padding without the slot overflowing it.
+       The inner width still resolves to exactly 300px, which is what an ad
+       unit needs. */
+    width: 100%;
     height: 250px;
     display: flex;
     align-items: center;
@@ -158,6 +180,11 @@
     letter-spacing: normal;
     padding: 16px 18px;
     text-align: left;
+    /* Top-aligned, not centred. Centring meant that if the text was ever
+       taller than the box it was clipped at BOTH ends, and the card read as a
+       sentence starting in the middle. */
+    align-items: flex-start;
+    justify-content: flex-start;
   }
   .ad-card-lead {
     margin: 0 0 8px;
@@ -271,7 +298,7 @@
   .name-row input:focus + .name-del { opacity: 1; }
   .name-del:hover { color: var(--accent); }
 
-  .names-row { display: flex; gap: 7px; margin-top: 7px; }
+  .names-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
   .names button {
     font-family: inherit;
     font-size: 13px;
@@ -345,6 +372,7 @@
     list-style: none;
     margin: 0;
     padding: 0;
+    scrollbar-color: var(--edge-soft) transparent;
     /* Scrolls rather than clips. Hidden overflow sliced the last row in half,
        which looked like a rendering fault rather than a full list. */
     overflow-y: auto;
@@ -483,11 +511,10 @@
       right: 10px;
       gap: 9px;
     }
-    .ad-slot {
-      width: 100%;
-      flex: 0 0 auto;
-      height: 130px;
-    }
+    .ad-slot { width: 100%; flex: 0 0 auto; height: auto; min-height: 96px; }
+    /* Narrow column: keep the headline and the link, drop the paragraph. */
+    .ad-card-body { display: none; }
+    .ad-card-lead { font-size: 16px; margin-bottom: 4px; }
     /* One column: two name boxes side by side inside a 44vw rail is unusable. */
     #name-list { grid-template-columns: 1fr; max-height: 30vh; }
     .corner h1 { font-size: 17px; }
