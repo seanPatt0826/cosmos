@@ -110,6 +110,18 @@ export const CAMERA = {
   finaleZoom: 1.55,
 };
 
+// ── Background ──────────────────────────────────────────────────────────────
+//
+// 'plain' paints one flat wash and nothing else. 'full' brings back the drifting
+// nebulae, the pencil stars and the parallax.
+//
+// Plain is not only simpler to look at, it is the single biggest saving
+// available per frame: 'full' blits two canvases the size of the window (times
+// 1.5 overscan) on every single frame, whatever else is happening. Change this
+// one word to put it back.
+
+export const BACKGROUND = 'plain';
+
 // ── Physics loop ────────────────────────────────────────────────────────────
 
 export const SIM = {

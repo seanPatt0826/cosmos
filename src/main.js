@@ -186,6 +186,7 @@ function frame(now) {
   updateCamera(round.cam, Math.max(1, raw), round.players, stageW, viewH, round.map.bounds);
   render(g, round, bg, viewW, viewH, round.time, stageW);
   hud.update(round, raw);
+  sampleFps(raw);
 
   if (round.phase === PHASE.DONE && !transitioning) {
     transitioning = true;
@@ -197,6 +198,41 @@ function frame(now) {
     }, ROUND.fadeMs * 0.55);
   }
 }
+
+// ── Frame counter ───────────────────────────────────────────────────────────
+//
+// Hidden until you press F. It exists because "it feels laggy" and "it is
+// running at 41fps, worst frame 90ms" are very different reports, and only the
+// second one can be acted on. Costs nothing while hidden.
+
+const fpsEl = document.getElementById('fps');
+let fpsOn = false;
+let fpsFrames = [];
+let fpsAt = 0;
+
+function sampleFps(raw) {
+  if (!fpsOn) return;
+  fpsFrames.push(raw);
+  fpsAt += raw;
+  if (fpsAt < 500) return;
+  fpsAt = 0;
+  const s = fpsFrames.slice().sort((a, b) => a - b);
+  const p50 = s[Math.floor(s.length / 2)] || 16.7;
+  fpsEl.textContent =
+    `${Math.round(1000 / p50)} fps   frame ${p50.toFixed(1)}ms   worst ${s[s.length - 1].toFixed(0)}ms\n`
+    + `${viewW}x${viewH}  dpr ${dpr.toFixed(2)}  canvas ${canvas.width}x${canvas.height}`;
+  fpsFrames = [];
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'f' && e.key !== 'F') return;
+  if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+  fpsOn = !fpsOn;
+  fpsFrames = [];
+  fpsAt = 0;
+  fpsEl.hidden = !fpsOn;
+  if (fpsOn) fpsEl.textContent = 'measuring…';
+});
 
 // ── Controls ────────────────────────────────────────────────────────────────
 

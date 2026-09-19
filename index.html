@@ -407,6 +407,18 @@
     to   { opacity: 1; transform: none; }
   }
 
+  /* Press F to show it. Exists because "it feels laggy" and "it is running at
+     41fps" are very different reports, and only the second one can be acted on. */
+  #fps {
+    position: absolute;
+    left: 20px;
+    top: 64px;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: pre;
+  }
+
   /* ── Controls ───────────────────────────────────────────────────────── */
 
   #controls {
@@ -529,6 +541,7 @@
       <div id="map-name"></div>
       <div id="map-blurb"></div>
       <div id="banner"></div>
+      <div id="fps" hidden></div>
 
       <div id="controls">
         <div id="map-picker"></div>

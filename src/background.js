@@ -8,7 +8,7 @@
 // Baked to two offscreen layers and blitted with parallax. Redrawn only on
 // resize or a change of universe.
 
-import { SPACE } from './config.js';
+import { SPACE, BACKGROUND } from './config.js';
 import { makeRng, hashSeed } from './rng.js';
 import { applyGrain, hexToRgba } from './sketch.js';
 import { isLight } from './theme.js';
@@ -137,6 +137,31 @@ function drawStars(ctx, rng, w, h, count, opts = {}) {
 export function createBackground(w, h, seed, themeKey) {
   const set = isLight() ? LIGHT_THEMES : THEMES;
   const theme = set[themeKey] || set.garden;
+
+  // Plain: one flat wash, no layers, no parallax, nothing blitted per frame.
+  // Two full-window canvases were being drawn every frame before anything else
+  // happened; this removes that entirely.
+  if (BACKGROUND !== 'full') {
+    const grad = { top: theme.deep, base: theme.wash[0] };
+    return {
+      theme,
+      w,
+      h,
+      plain: true,
+      draw(ctx) {
+        ctx.save();
+        const g = ctx.createLinearGradient(0, 0, w * 0.35, h);
+        g.addColorStop(0, hexToRgba(grad.base, isLight() ? 0.5 : 0.28));
+        g.addColorStop(1, hexToRgba(grad.top, 1));
+        ctx.fillStyle = theme.deep;
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+      },
+    };
+  }
+
   const bw = w * OVERSCAN;
   const bh = h * OVERSCAN;
 
