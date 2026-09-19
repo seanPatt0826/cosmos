@@ -112,15 +112,13 @@ export const CAMERA = {
 
 // ── Background ──────────────────────────────────────────────────────────────
 //
-// 'plain' paints one flat wash and nothing else. 'full' brings back the drifting
-// nebulae, the pencil stars and the parallax.
-//
-// Plain is not only simpler to look at, it is the single biggest saving
-// available per frame: 'full' blits two canvases the size of the window (times
-// 1.5 overscan) on every single frame, whatever else is happening. Change this
-// one word to put it back.
-
-export const BACKGROUND = 'plain';
+// There is no longer a setting here. The background is one flat wash, always.
+// The switchable 'full' version — drifting nebulae, pencil stars, parallax —
+// blitted two canvases the size of the window (times 1.5 overscan) before
+// anything else in every frame, and was the single biggest cost in the
+// renderer. A one-word flag that could put that back is not a fix, so the code
+// behind it has been deleted; see background.js, and git history for the
+// artwork.
 
 // ── Physics loop ────────────────────────────────────────────────────────────
 
