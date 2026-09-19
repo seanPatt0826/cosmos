@@ -16,8 +16,21 @@ import { isLight } from './theme.js';
 export function render(g, round, bg, viewW, viewH, time, stageW = viewW) {
   const { cam, map, players } = round;
 
+  /* Clear the whole backing store, then put back the device-pixel-ratio
+     transform that sizing established.
+
+     Resetting to the identity matrix here was wrong on any screen with a
+     pixel ratio above 1. The canvas is viewW*dpr by viewH*dpr device pixels,
+     so under identity a clear of viewW by viewH wiped only the top-left
+     1/dpr of it: the right and bottom edges were never cleared and built up
+     smeared streaks of every frame ever drawn. Everything after the clear was
+     drawn at 1/dpr scale into that same corner. At dpr 1 the identity matrix
+     happens to be correct, which is why this only ever showed up on a
+     high-density display. */
+  const scale = g.canvas.width / viewW;
   g.setTransform(1, 0, 0, 1, 0, 0);
-  g.clearRect(0, 0, viewW, viewH);
+  g.clearRect(0, 0, g.canvas.width, g.canvas.height);
+  g.setTransform(scale, 0, 0, scale, 0, 0);
 
   const pan = panOf(cam, map.bounds);
   bg.draw(g, pan.x, pan.y);
