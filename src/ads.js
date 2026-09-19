@@ -9,6 +9,22 @@ import { ADS_ENABLED, ADSENSE_CLIENT, ADSENSE_SLOT } from './config.js';
 
 const slot = document.getElementById('ad-slot');
 
+// While advertising is off, the slot still reserves its exact 300x250 — but an
+// empty dashed rectangle is the least appealing thing on the page, and it sits
+// in the most prominent corner. So it holds a card until there is an ad to put
+// there. Identical dimensions, so switching ads on shifts nothing.
+if (!ADS_ENABLED && slot) {
+  slot.classList.add('ad-empty');
+  slot.innerHTML = `
+    <div class="ad-card">
+      <p class="ad-card-lead">Nobody is playing.</p>
+      <p class="ad-card-body">Objects are released into a physics playground and
+        knocked out one at a time. The last one left wins, then it happens again
+        somewhere else. Nothing is scripted.</p>
+      <a class="ad-card-link" href="./about.html">how it works</a>
+    </div>`;
+}
+
 if (ADS_ENABLED && slot) {
   const s = document.createElement('script');
   s.async = true;
