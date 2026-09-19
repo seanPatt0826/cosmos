@@ -133,19 +133,12 @@ behaviour keeps the simulation readable and fair; the drawing is decoration.
 
 ## 5. The universes
 
-Population is 15–30, chosen per map.
+Population is 20–32, chosen per map.
 
-*Cosmic Drop, a vertical falling shaft, was built and then removed from rotation
-at the owner's request. Its source remains at `src/maps/drop.js`.*
-
-### Cosmic Drop
-
-Uniform downward gravity through a long vertical shaft of platforms, pegs,
-bouncers and moving ledges. The camera scrolls down with the pack.
-
-- **Elimination:** void gaps in the side walls, and a soft nebula tide sweeping
-  down from above that catches anyone who gets stuck.
-- **Tightening:** the tide accelerates; gaps widen.
+*Two maps built around falling — Cosmic Drop, a vertical shaft, and Cosmic
+Pinball — were built, then removed at the owner's request and later deleted
+outright. The notes below on rounds that could never end came from Pinball and
+are kept because the lessons outlived the map.*
 
 ### Black Hole Garden
 
@@ -173,13 +166,22 @@ everything is collision chaos and chain reactions.
 - **Elimination:** ejected past the boundary.
 - **Tightening:** the boundary contracts; asteroids get faster and more numerous.
 
-### Cosmic Pinball
+### Binary Stars
 
-The chaotic one. Repulsor bumpers, paired wormholes, rotating paddles, bounce
-pads, local gravity-flip zones, and one well at the bottom.
+Two heavy suns circling a barycentre. Two moving masses give a chaotic field:
+passing behind a star at the wrong moment flings a body across the arena.
 
-- **Elimination:** down the drains, or into the well.
-- **Tightening:** drains widen; gravity strengthens.
+- **Elimination:** burning up on either star, capture by an outlying well, or
+  being flung past the boundary ring.
+- **Tightening:** the pair spirals together and gains mass; the ring contracts.
+
+### Bumper Field
+
+No gravity and no orbits. A field of repulsors and a closing boundary, where
+nothing slows down so one good hit keeps paying out.
+
+- **Elimination:** ejected past the boundary, or into one of the wells.
+- **Tightening:** the boundary contracts; the wells grow.
 
 ### Elimination effects
 

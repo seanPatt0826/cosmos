@@ -14,11 +14,9 @@ import { applyGrain, hexToRgba } from './sketch.js';
 import { isLight } from './theme.js';
 
 export const THEMES = {
-  drop: { wash: ['#3B2A6E', '#5B2E7A', '#1E2A6B'], deep: '#080714' },
   garden: { wash: ['#4A1F5E', '#7A2A63', '#241640'], deep: '#0A0616' },
   orbit: { wash: ['#1E3A6E', '#245F73', '#18265C'], deep: '#060A18' },
   belt: { wash: ['#5A3A24', '#6E4630', '#2A2038'], deep: '#0C0812' },
-  pinball: { wash: ['#5C2A5E', '#1F5570', '#6B3A2A'], deep: '#090615' },
   binary: { wash: ['#6E3A2A', '#2A4A7A', '#5A2E6E'], deep: '#0A0712' },
   bumpers: { wash: ['#6B2A5E', '#3A2A7A', '#7A3A4E'], deep: '#0B0618' },
 };
@@ -26,11 +24,9 @@ export const THEMES = {
 // Daytime. Not the dark palette lightened — a different drawing: a cool sheet
 // of paper with pale pastel washes and stars put in with a sharp pencil.
 export const LIGHT_THEMES = {
-  drop: { wash: ['#B9A8E8', '#C8A8DE', '#A8B4E0'], deep: '#E7E2D4' },
   garden: { wash: ['#C4A2D8', '#DDA6C6', '#B4A0D4'], deep: '#EAE1D8' },
   orbit: { wash: ['#A8C0E4', '#A6CBD6', '#B0BCE6'], deep: '#E4E6DC' },
   belt: { wash: ['#DCBFA2', '#D6B49C', '#C0B4CE'], deep: '#EDE5D6' },
-  pinball: { wash: ['#D6AEDA', '#A9CBDC', '#E0BCA6'], deep: '#EBE3D6' },
   binary: { wash: ['#E4BCA2', '#A8BEE0', '#CEA8DC'], deep: '#EDE5D6' },
   bumpers: { wash: ['#DCA8D2', '#B0A8E0', '#E0AABC'], deep: '#EBE2D8' },
 };
@@ -140,7 +136,7 @@ function drawStars(ctx, rng, w, h, count, opts = {}) {
 
 export function createBackground(w, h, seed, themeKey) {
   const set = isLight() ? LIGHT_THEMES : THEMES;
-  const theme = set[themeKey] || set.drop;
+  const theme = set[themeKey] || set.garden;
   const bw = w * OVERSCAN;
   const bh = h * OVERSCAN;
 

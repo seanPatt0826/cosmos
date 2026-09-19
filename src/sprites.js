@@ -11,13 +11,13 @@
 import { SKETCH, PAPER, GRAPHITE, PAPER_SHADE } from './config.js';
 import { makeRng, hashSeed } from './rng.js';
 import {
-  circlePath, ellipsePath, rectPath, strokeSketch, strokeLine,
+  circlePath, ellipsePath, strokeSketch, strokeLine,
   paperFill, hatch, mixHex, pathTo, shrinkPath,
 } from './sketch.js';
 
 // Sprites are baked with this much room around them. It is deliberately tight:
 // a generous margin means every frame downscales a mostly-empty canvas, which
-// is what held the Belt and Pinball maps at thirty frames a second. 1.58 clears
+// is what held the busiest maps at thirty frames a second. 1.58 clears
 // the longest thing any archetype draws (a sun's rays, at 1.44).
 const MARGIN = 1.58;
 
@@ -279,69 +279,6 @@ export function bakeBody(archetype, col, seed, worldRadius) {
 
 // ── Scenery ─────────────────────────────────────────────────────────────────
 
-// Platforms get a canvas shaped like the platform. A square one would waste
-// most of its pixels on a long thin bar — and cost real memory once a map has
-// sixty of them.
-export function bakePlatform(w, h, seed, opts = {}) {
-  const sc = SKETCH.spriteScale;
-  const pad = Math.max(14, h * 0.9);
-  const cw = Math.ceil((w + pad * 2) * sc);
-  const ch = Math.ceil((h + pad * 2) * sc);
-  const out = [];
-  const tint = opts.color || '#8FA3C8';
-  for (let f = 0; f < SKETCH.boilFrames; f++) {
-    const c = document.createElement('canvas');
-    c.width = cw;
-    c.height = ch;
-    const ctx = c.getContext('2d');
-    ctx.translate(cw / 2, ch / 2);
-    const rng = makeRng(hashSeed('plat', seed, f));
-    const pts = rectPath(rng, w * sc, h * sc, { wobble: Math.min(3, h * sc * 0.12) });
-    paperFill(ctx, pts, rng, { alpha: 0.9 });
-    hatch(ctx, pts, rng, {
-      color: tint, angle: -0.5, alpha: 0.5,
-      width: Math.max(2, h * sc * 0.22), spacing: Math.max(3.4, h * sc * 0.2), cross: false,
-    });
-    strokeSketch(ctx, pts, rng, { color: GRAPHITE, width: Math.max(1.6, h * sc * 0.12) });
-
-    // Cracks, for a ledge that is about to give way. Drawn inside the slab so
-    // the break reads as damage rather than as decoration.
-    if (opts.cracks) {
-      ctx.save();
-      pathTo(ctx, shrinkPath(pts, 1.5), true);
-      ctx.clip();
-      const n = Math.max(2, Math.round((w * sc) / 70));
-      for (let i = 0; i < n; i++) {
-        const x = (-0.5 + (i + 0.5) / n) * w * sc + rng.wobble(w * sc * 0.06);
-        strokeLine(ctx, { x, y: -h * sc * 0.6 }, {
-          x: x + rng.wobble(h * sc * 0.9), y: h * sc * 0.6,
-        }, rng, {
-          color: GRAPHITE, width: Math.max(1.4, h * sc * 0.09),
-          passes: 2, alpha: 0.85, segments: 3, wobble: h * sc * 0.16,
-        });
-      }
-      ctx.restore();
-    }
-    out.push(c);
-  }
-  return { frames: out, worldW: cw / sc, worldH: ch / sc };
-}
-
-// A little round stud. Its physics body is a circle, so drawing it as anything
-// else — a reused platform sprite, say — makes collisions look wrong.
-export function bakePeg(radius, seed, colour) {
-  const r = quantise(radius);
-  const v = variant(seed);
-  return cached(`peg|${r}|${v}|${colour}`, () => bake(r, (ctx, S, rng) => {
-    const body = circlePath(rng, S * 0.9, { steps: 16, wobble: 0.075 });
-    paperFill(ctx, body, rng);
-    hatch(ctx, body, rng, {
-      color: colour, angle: rng.range(-1.2, 1.2), alpha: 0.6, width: S * 0.2,
-    });
-    strokeSketch(ctx, body, rng, { color: GRAPHITE, width: S * 0.12 });
-  }, hashSeed('peg', v)));
-}
-
 export function bakePlanet(radius, seed, col, opts = {}) {
   const r = quantise(radius); const v = variant(seed);
   return cached(`planet|${r}|${v}|${col.name}|${opts.bands ?? 3}`, () => bakePlanetRaw(r, v, col, opts));
@@ -452,25 +389,6 @@ function bakeBlackHoleRaw(radius, seed) {
 
 // A turnstile: two crossed bars on a hub, spinning slowly. Baked as one sprite
 // and rotated, though the physics behind it is two separate bars.
-export function bakePinwheel(len, thick, seed, colour) {
-  return bake(len / 2, (ctx, S, rng) => {
-    const L = (len / 2) * SKETCH.spriteScale;
-    const T = thick * SKETCH.spriteScale;
-    for (const vertical of [false, true]) {
-      const bar = rectPath(rng, vertical ? T : L * 2, vertical ? L * 2 : T, { wobble: T * 0.12 });
-      paperFill(ctx, bar, rng, { alpha: 0.92 });
-      hatch(ctx, bar, rng, {
-        color: colour, angle: vertical ? 1.1 : -0.5, alpha: 0.55,
-        width: T * 0.24, spacing: T * 0.22, cross: false,
-      });
-      strokeSketch(ctx, bar, rng, { color: GRAPHITE, width: T * 0.14 });
-    }
-    const hub = circlePath(rng, T * 0.85, { steps: 14, wobble: 0.08 });
-    paperFill(ctx, hub, rng, { color: mixHex(colour, PAPER, 0.3) });
-    strokeSketch(ctx, hub, rng, { color: GRAPHITE, width: T * 0.14, passes: 2 });
-  }, hashSeed('pinwheel', seed));
-}
-
 // A long angular rock. Collides nothing like a circle does, which is the point.
 export function bakeShard(len, seed) {
   const L = quantise(len, 8); const v = variant(seed);

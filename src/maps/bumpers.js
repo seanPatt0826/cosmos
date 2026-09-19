@@ -4,8 +4,8 @@
 // boundary that closes. Everything ricochets, and because nothing slows down,
 // a single good hit keeps paying out for the rest of the round.
 //
-// This is where the bumpers went when the pinball map was retired — they were
-// the best thing in it, and they never needed gravity to work.
+// The bumpers outlived the pinball map they were built for. They were the best
+// thing in it, and they never needed gravity to work.
 
 import { makeRng, hashSeed } from '../rng.js';
 import { staticCircle, add, onCollide } from '../engine.js';

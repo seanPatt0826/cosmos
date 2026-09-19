@@ -28,7 +28,8 @@ const BLAST_FORCE = 0.026;
 
 export function createRound(mapDef, seed, audio, names = []) {
   const rng = makeRng(hashSeed('round', seed));
-  const sim = createSim({ gravityY: mapDef.id === 'drop' ? 0.85 : 0 });
+  // No map has ambient gravity any more; the two that fell were deleted.
+  const sim = createSim();
 
   const map = mapDef.build({ sim, seed, rng });
   const [lo, hi] = mapDef.population;

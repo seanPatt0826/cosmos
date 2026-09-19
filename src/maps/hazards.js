@@ -1,20 +1,19 @@
 // Obstacles, shared across universes.
 //
 // One rule holds for everything in this file except the black holes: none of it
-// eliminates anybody. A pinwheel flings you, a nebula slows you, a pulsar
-// shoves you, a comet barges through you — and then the map's own hazards
-// decide what that cost you. That keeps the tone gentle, and it keeps six new
-// obstacle types from collapsing every round into twenty seconds.
+// eliminates anybody. A nebula slows you, a pulsar shoves you, a comet barges
+// through you — and then the map's own hazards decide what that cost you. That
+// keeps the tone gentle, and it keeps new obstacle types from collapsing every
+// round into twenty seconds.
 //
 // Black holes are the exception, because a black hole that does not swallow
 // anything is just scenery.
 
 import { makeRng, hashSeed } from '../rng.js';
 import {
-  bakeBlackHole, bakePinwheel, bakeShard, bakeComet, bakePulsar, bakePlatform,
-  drawSprite, boilFrame,
+  bakeBlackHole, bakeShard, bakeComet, bakePulsar, drawSprite, boilFrame,
 } from '../sprites.js';
-import { staticRect, staticCircle, add, remove, addWell } from '../engine.js';
+import { staticCircle, add, addWell } from '../engine.js';
 import { strokeSketch, softGlow, hexToRgba } from '../sketch.js';
 import * as Particles from '../particles.js';
 
@@ -89,117 +88,6 @@ export function drawHoles(g, holes, time) {
   for (const h of holes) {
     softGlow(g, h.well.x, h.well.y, h.well.capture * 4.2, '#7B4FCF', 0.2);
     drawSprite(g, h.sprite, h.well.x, h.well.y, 0, h.well.capture / h.baseR, 1, boilFrame(time, h.boil));
-  }
-}
-
-// ── Pinwheels ───────────────────────────────────────────────────────────────
-
-export function createPinwheel(sim, x, y, len, seed, colour = '#B9A3E8') {
-  const thick = Math.max(16, len * 0.09);
-  // Two bars rather than one sprite-shaped body: the physics has to be a cross
-  // too, or objects pass straight through half of what they can see.
-  const bars = [
-    staticRect(sim, x, y, len, thick, { restitution: 0.95, friction: 0.01, label: 'pinwheel' }),
-    staticRect(sim, x, y, thick, len, { restitution: 0.95, friction: 0.01, label: 'pinwheel' }),
-  ];
-  add(sim, bars);
-  const rng = makeRng(hashSeed('pw', seed));
-  return {
-    bars, x, y, len,
-    angle: rng.range(0, Math.PI),
-    omega: rng.range(0.5, 1.25) * rng.sign(),
-    sprite: bakePinwheel(len, thick, seed, colour),
-    boil: seed % 3,
-  };
-}
-
-export function updatePinwheels(sim, wheels, dt) {
-  const t = dt / 1000;
-  for (const w of wheels) {
-    w.angle += w.omega * t;
-    for (let i = 0; i < w.bars.length; i++) {
-      sim.Matter.Body.setAngle(w.bars[i], w.angle + (i ? Math.PI / 2 : 0));
-      sim.Matter.Body.setAngularVelocity(w.bars[i], w.omega * t);
-    }
-  }
-}
-
-export function drawPinwheels(g, wheels, time) {
-  for (const w of wheels) {
-    drawSprite(g, w.sprite, w.x, w.y, w.angle, 1, 1, boilFrame(time, w.boil));
-  }
-}
-
-// ── Crumbling ledges ────────────────────────────────────────────────────────
-
-export function createCrumble(sim, x, y, w, h, seed, opts = {}) {
-  const body = staticRect(sim, x, y, w, h, {
-    angle: opts.angle || 0,
-    restitution: 0.5,
-    friction: 0.02,
-    label: 'crumble',
-  });
-  add(sim, body);
-  return {
-    body, x, y, w, h,
-    angle: opts.angle || 0,
-    solid: bakePlatform(w, h, seed, { color: '#C8A07E' }),
-    cracked: bakePlatform(w, h, seed, { color: '#C8A07E', cracks: true }),
-    boil: seed % 3,
-    state: 'solid',
-    timer: 0,
-    inWorld: true,
-  };
-}
-
-// Hooked up through the sim's collision listener: a ledge starts failing the
-// moment something lands on it, not on a timer.
-export function touchCrumble(crumbles, bodyA, bodyB) {
-  for (const c of crumbles) {
-    if (c.state !== 'solid') continue;
-    if (bodyA !== c.body && bodyB !== c.body) continue;
-    const other = bodyA === c.body ? bodyB : bodyA;
-    if (other.label !== 'player') continue;
-    c.state = 'cracking';
-    c.timer = 620;
-  }
-}
-
-export function updateCrumbles(sim, crumbles, dt, particles) {
-  for (const c of crumbles) {
-    if (c.state === 'solid') continue;
-    c.timer -= dt;
-    if (c.timer > 0) continue;
-
-    if (c.state === 'cracking') {
-      c.state = 'gone';
-      c.timer = 7000;
-      if (c.inWorld) {
-        remove(sim, c.body);
-        c.inWorld = false;
-      }
-      Particles.burst(particles, c.x, c.y, '#C8A07E', { count: 12, speed: 1.8, ring: false });
-      Particles.puff(particles, c.x, c.y, '#DCD5C6', 8);
-    } else {
-      c.state = 'solid';
-      if (!c.inWorld) {
-        add(sim, c.body);
-        c.inWorld = true;
-      }
-    }
-  }
-}
-
-export function drawCrumbles(g, crumbles, time) {
-  for (const c of crumbles) {
-    if (c.state === 'gone') continue;
-    const cracking = c.state === 'cracking';
-    // A last shudder before it lets go.
-    const shake = cracking ? (Math.random() - 0.5) * 2.4 : 0;
-    drawSprite(
-      g, cracking ? c.cracked : c.solid,
-      c.x + shake, c.y + shake, c.angle, 1, 1, boilFrame(time, c.boil),
-    );
   }
 }
 
