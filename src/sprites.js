@@ -21,6 +21,44 @@ import {
 // the longest thing any archetype draws (a sun's rays, at 1.44).
 const MARGIN = 1.58;
 
+// ── Sprite cache ────────────────────────────────────────────────────────────
+//
+// Baking was never the expensive part of changing universe — measured, it is
+// three to twenty-six milliseconds. The freeze was the *first frame* of the new
+// round, where sixty-odd brand-new canvases all get handed to the GPU at once.
+// Transitions hitched for up to 233ms at 2560x1440, every thirty seconds.
+//
+// So scenery sprites are kept between rounds. Sizes are quantised and seeds are
+// folded into a small range, which bounds how many distinct textures can ever
+// exist: after the first pass through the maps, a transition uploads nothing.
+// Reuse is less work under any rasterizer, which is the only kind of
+// optimisation worth making here.
+
+const spriteCache = new Map();
+const SEED_VARIANTS = 8;
+
+function cached(key, make) {
+  let s = spriteCache.get(key);
+  if (!s) {
+    s = make();
+    // Generous, and bounded. Every key quantises its size and seed, so this is
+    // a safety net rather than something the game reaches in normal play.
+    if (spriteCache.size > 600) spriteCache.clear();
+    spriteCache.set(key, s);
+  }
+  return s;
+}
+
+// Sizes are quantised so a random radius cannot mint a new texture every round.
+// Callers ask for the rounded value too, so the drawing and the physics agree.
+export function quantise(v, step = 2) {
+  return Math.max(step, Math.round(v / step) * step);
+}
+
+function variant(seed) {
+  return ((seed % SEED_VARIANTS) + SEED_VARIANTS) % SEED_VARIANTS;
+}
+
 function makeCanvas(size) {
   const c = document.createElement('canvas');
   c.width = size;
@@ -292,17 +330,24 @@ export function bakePlatform(w, h, seed, opts = {}) {
 // A little round stud. Its physics body is a circle, so drawing it as anything
 // else — a reused platform sprite, say — makes collisions look wrong.
 export function bakePeg(radius, seed, colour) {
-  return bake(radius, (ctx, S, rng) => {
+  const r = quantise(radius);
+  const v = variant(seed);
+  return cached(`peg|${r}|${v}|${colour}`, () => bake(r, (ctx, S, rng) => {
     const body = circlePath(rng, S * 0.9, { steps: 16, wobble: 0.075 });
     paperFill(ctx, body, rng);
     hatch(ctx, body, rng, {
       color: colour, angle: rng.range(-1.2, 1.2), alpha: 0.6, width: S * 0.2,
     });
     strokeSketch(ctx, body, rng, { color: GRAPHITE, width: S * 0.12 });
-  }, hashSeed('peg', seed));
+  }, hashSeed('peg', v)));
 }
 
 export function bakePlanet(radius, seed, col, opts = {}) {
+  const r = quantise(radius); const v = variant(seed);
+  return cached(`planet|${r}|${v}|${col.name}|${opts.bands ?? 3}`, () => bakePlanetRaw(r, v, col, opts));
+}
+
+function bakePlanetRaw(radius, seed, col, opts) {
   return bake(radius, (ctx, S, rng) => {
     const body = circlePath(rng, S * 0.94, { steps: 34, wobble: 0.035 });
     paperFill(ctx, body, rng);
@@ -330,6 +375,11 @@ export function bakePlanet(radius, seed, col, opts = {}) {
 }
 
 export function bakeAsteroid(radius, seed) {
+  const r = quantise(radius); const v = variant(seed);
+  return cached(`ast|${r}|${v}`, () => bakeAsteroidRaw(r, v));
+}
+
+function bakeAsteroidRaw(radius, seed) {
   return bake(radius, (ctx, S, rng) => {
     const pts = circlePath(rng, S * 0.86, { steps: 13, wobble: 0.22 });
     paperFill(ctx, pts, rng, { color: '#DCD5C6', alpha: 0.92 });
@@ -349,6 +399,11 @@ export function bakeAsteroid(radius, seed) {
 // A black hole is the one thing here drawn in negative: scribbled dark, with a
 // bright crayon rim, so the eye reads a hole punched in the paper.
 export function bakeBlackHole(radius, seed) {
+  const r = quantise(radius); const v = variant(seed);
+  return cached(`hole|${r}|${v}`, () => bakeBlackHoleRaw(r, v));
+}
+
+function bakeBlackHoleRaw(radius, seed) {
   return bake(radius * 1.35, (ctx, S, rng) => {
     const r = S / 1.35;
     const rim = circlePath(rng, r * 1.06, { steps: 30, wobble: 0.05 });
@@ -418,6 +473,11 @@ export function bakePinwheel(len, thick, seed, colour) {
 
 // A long angular rock. Collides nothing like a circle does, which is the point.
 export function bakeShard(len, seed) {
+  const L = quantise(len, 8); const v = variant(seed);
+  return cached(`shard|${L}|${v}`, () => bakeShardRaw(L, v));
+}
+
+function bakeShardRaw(len, seed) {
   return bake(len / 2, (ctx, S, rng) => {
     const pts = [];
     const n = 9;
@@ -440,6 +500,11 @@ export function bakeShard(len, seed) {
 }
 
 export function bakeComet(radius, seed, colour) {
+  const r = quantise(radius); const v = variant(seed);
+  return cached(`comet|${r}|${v}|${colour}`, () => bakeCometRaw(r, v, colour));
+}
+
+function bakeCometRaw(radius, seed, colour) {
   return bake(radius, (ctx, S, rng) => {
     const head = circlePath(rng, S * 0.78, { steps: 13, wobble: 0.16 });
     paperFill(ctx, head, rng);
@@ -458,6 +523,11 @@ export function bakeComet(radius, seed, colour) {
 
 // A little star that periodically shoves everything away from it.
 export function bakePulsar(radius, seed, colour) {
+  const r = quantise(radius); const v = variant(seed);
+  return cached(`pulsar|${r}|${v}|${colour}`, () => bakePulsarRaw(r, v, colour));
+}
+
+function bakePulsarRaw(radius, seed, colour) {
   return bake(radius, (ctx, S, rng) => {
     const n = 9;
     const pts = [];
@@ -476,6 +546,11 @@ export function bakePulsar(radius, seed, colour) {
 }
 
 export function bakeBumper(radius, seed, col) {
+  const r = quantise(radius); const v = variant(seed);
+  return cached(`bumper|${r}|${v}|${col.name}`, () => bakeBumperRaw(r, v, col));
+}
+
+function bakeBumperRaw(radius, seed, col) {
   return bake(radius, (ctx, S, rng) => {
     const outer = circlePath(rng, S * 0.94, { steps: 20, wobble: 0.06 });
     paperFill(ctx, outer, rng);

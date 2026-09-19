@@ -40,20 +40,36 @@ export default {
       { count: rng.int(5, 7), d: 560 },
       { count: rng.int(6, 8), d: 860 },
     ];
+    // Four sizes and four colours, fixed for the round, and the drawing keyed to
+    // the bumper's index rather than the round seed.
+    //
+    // This map was the one transition that never got cheaper: eighteen bumpers
+    // drawn from a continuous radius and the full fourteen-colour palette on a
+    // fresh seed meant every round minted eighteen textures it had never seen,
+    // and the hitch stayed at 100ms however long you played. Narrowing the
+    // combinations lets the cache actually land — and a field of four related
+    // colours looks more composed than fourteen scattered ones anyway.
+    const SIZES = [36, 44, 52, 60];
+    const palette = [];
+    while (palette.length < 4) {
+      const c = rng.pick(PALETTE);
+      if (!palette.includes(c)) palette.push(c);
+    }
+
     let n = 0;
     for (const ring of rings) {
       for (let i = 0; i < ring.count; i++) {
         const a = (i / ring.count) * Math.PI * 2 + rng.wobble(0.35);
         const d = ring.d + rng.wobble(70);
-        const r = rng.range(34, 62);
-        const col = rng.pick(PALETTE);
+        const r = SIZES[rng.int(0, SIZES.length - 1)];
+        const col = palette[n % palette.length];
         const body = staticCircle(sim, Math.cos(a) * d, Math.sin(a) * d, r, {
-          restitution: 1.15, friction: 0, label: "bumper",
+          restitution: 1.15, friction: 0, label: 'bumper',
         });
         add(sim, body);
         bumpers.push({
           body, r, col, flash: 0,
-          sprite: bakeBumper(r, hashSeed('bf', seed, n), col),
+          sprite: bakeBumper(r, n, col),
           boil: n % 3,
         });
         n++;

@@ -209,8 +209,21 @@ export function drawCrumbles(g, crumbles, time) {
 // momentum to climb back out, which is the whole idea.
 
 export function createNebula(x, y, r, seed) {
-  return { x, y, r, seed, phase: Math.random() * 6, sprite: bakeNebula(r, seed) };
+  // Quantised and cached for the same reason the scenery sprites are: a patch
+  // canvas is up to 500px square, and minting two or three fresh ones on every
+  // change of universe is texture upload the transition cannot afford.
+  const qr = Math.round(r / 20) * 20;
+  const v = ((seed % 6) + 6) % 6;
+  const key = `${qr}|${v}`;
+  let sprite = nebulaCache.get(key);
+  if (!sprite) {
+    sprite = bakeNebula(qr, v);
+    nebulaCache.set(key, sprite);
+  }
+  return { x, y, r: qr, seed, phase: Math.random() * 6, sprite };
 }
+
+const nebulaCache = new Map();
 
 // Baked once. A patch is five overlapping radial gradients plus a scruffy
 // outline; rebuilding all of that every frame for three or four patches was
