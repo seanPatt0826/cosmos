@@ -324,11 +324,9 @@ function glowSprite(color, bucket) {
   c.width = size;
   c.height = size;
   const gx = c.getContext('2d');
-  const g = gx.createRadialGradient(bucket, bucket, 0, bucket, bucket, bucket);
-  g.addColorStop(0, hexToRgba(color, 1));
-  g.addColorStop(0.4, hexToRgba(color, 0.35));
-  g.addColorStop(1, hexToRgba(color, 0));
-  gx.fillStyle = g;
+  // Shares its stops with the uncached path, so a glow either side of the
+  // GLOW_MAX threshold is the same drawing.
+  gx.fillStyle = glowStops(gx.createRadialGradient(bucket, bucket, 0, bucket, bucket, bucket), color);
   gx.fillRect(0, 0, size, size);
 
   // Colours come from a fixed palette and radii are bucketed, so this settles
@@ -338,12 +336,19 @@ function glowSprite(color, bucket) {
   return c;
 }
 
+// The largest glow the cache will ever hold, as a radius. Past this a sprite
+// stops being an optimisation and becomes a defect: see softGlow.
+const GLOW_MAX = 512;
+
+function glowStops(grad, color) {
+  grad.addColorStop(0, hexToRgba(color, 1));
+  grad.addColorStop(0.4, hexToRgba(color, 0.35));
+  grad.addColorStop(1, hexToRgba(color, 0));
+  return grad;
+}
+
 export function softGlow(ctx, x, y, r, color, alpha = 0.5) {
   if (r <= 0 || alpha <= 0.002) return;
-  // Quantised so a smoothly growing bloom reuses one cached sprite rather than
-  // baking a new one every frame. Drawn at the true radius, so nothing snaps.
-  const bucket = Math.max(8, Math.min(512, Math.round(r / 8) * 8));
-  const sprite = glowSprite(color, bucket);
 
   ctx.save();
   if (isLight()) {
@@ -354,7 +359,31 @@ export function softGlow(ctx, x, y, r, color, alpha = 0.5) {
     ctx.globalAlpha = Math.min(1, alpha);
     ctx.globalCompositeOperation = 'lighter';
   }
-  ctx.drawImage(sprite, x - r, y - r, r * 2, r * 2);
+
+  if (r > GLOW_MAX) {
+    // A glow this big used to be drawn by stretching the largest cached
+    // sprite: a 1024px texture blown up across nearly three thousand device
+    // pixels, composited additively. Magnifying eight-bit gradient stops that
+    // far has nowhere to hide, so it banded into visible concentric rings —
+    // and on an Intel/ANGLE machine it came with a smeared band across the
+    // lower half of the frame, which never appeared in a captured screenshot.
+    // The rings are measured and certain; whether the smear is the same blit
+    // meeting a driver limit is suspected, not proven. Both go away here.
+    //
+    // A real gradient is resolution-independent and never becomes a texture.
+    // It costs more per call than a blit, but the arena only ever has one or
+    // two glows this size, and the fill is clipped to the canvas regardless.
+    ctx.fillStyle = glowStops(ctx.createRadialGradient(x, y, 0, x, y, r), color);
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // Quantised so a smoothly growing bloom reuses one cached sprite rather
+    // than baking a new one every frame. Drawn at the true radius, so nothing
+    // snaps as it grows.
+    const bucket = Math.max(8, Math.round(r / 8) * 8);
+    ctx.drawImage(glowSprite(color, bucket), x - r, y - r, r * 2, r * 2);
+  }
   ctx.restore();
 }
 
