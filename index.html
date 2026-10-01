@@ -161,9 +161,6 @@
   .rail .panel:nth-child(2) { transform: rotate(0.3deg); }
   .rail .panel:nth-child(3) { transform: rotate(-0.22deg); }
 
-  /* Reserved from first paint, ad or no ad. */
-  /* Filled by ads.js while advertising is off — see the note there. Solid edge
-     rather than dashed, because it is content now, not a reservation. */
 
   /* Wordmark and links, tucked into the far corner and out of the way. */
   .corner {
@@ -313,7 +310,7 @@
   }
 
   /* ── Universe picker ────────────────────────────────────────────────── */
-
+
   .universe {
     display: block;
     width: 100%;
@@ -333,7 +330,7 @@
     color: var(--accent);
   }
   /* The portrait sits flush to the card's edges; the name is a caption under
-     it rather than a label beside it. */
+     it rather than a label beside it. */
 
   /* ── HUD ────────────────────────────────────────────────────────────── */
 
@@ -529,8 +526,8 @@
       top: 10px;
       right: 10px;
       gap: 9px;
-    }
-    /* Narrow column: keep the headline and the link, drop the paragraph. */
+    }
+    /* Narrow column: keep the headline and the link, drop the paragraph. */
     /* One column: two name boxes side by side inside a 44vw rail is unusable. */
     #name-list { grid-template-columns: 1fr; max-height: 30vh; }
     .corner h1 { font-size: 17px; }
@@ -539,7 +536,7 @@
   }
 
   @media (max-width: 560px) {
-    .rail { width: 44vw; }
+    .rail { width: 44vw; }
     .names label, .names-hint { display: none; }
   }
 
