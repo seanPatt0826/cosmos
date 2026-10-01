@@ -49,7 +49,7 @@
     --panel-bg: rgba(13, 10, 27, 0.9);
     --edge: rgba(242, 234, 219, 0.3);
     --edge-soft: rgba(242, 234, 219, 0.1);
-    --rail-w:  310px;
+    --rail-w:  340px;
     --font: "Shantell Sans", "Comic Sans MS", "Segoe Print", cursive;
   }
 
@@ -173,6 +173,60 @@
   .rail .panel:nth-child(2) { transform: rotate(0.3deg); }
   .rail .panel:nth-child(3) { transform: rotate(-0.22deg); }
 
+
+  /* ── Knocked out ────────────────────────────────────────────────────── */
+  /*
+     The left side was empty while the right carried everything. This is the
+     other half of the story the standings tell: the list on the right says who
+     is still in, this says who just went and what got them.
+  */
+  .feed {
+    position: absolute;
+    left: 18px;
+    top: 92px;
+    width: 212px;
+    /* Matches the Entrants panel, so the two sides of the screen are padded
+       the same. Without it the text sat hard against the border. */
+    padding: 11px 12px 12px;
+    z-index: 3;
+    /* Tilted the other way from the rail's panels, so the two sides look
+       drawn by the same hand rather than duplicated. */
+    transform: rotate(0.4deg);
+  }
+  .feed[hidden] { display: none; }
+  #feed-list {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+  }
+  #feed-list li {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 2px 0;
+    font-size: 12.5px;
+    line-height: 1.25;
+  }
+  #feed-list i {
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    transform: translateY(-1px);
+  }
+  #feed-list .who {
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* The cause sits right, quieter than the name: you read who first. */
+  #feed-list .how {
+    margin-left: auto;
+    flex: 0 0 auto;
+    color: var(--ink-dim);
+    font-size: 11.5px;
+  }
 
   /* Wordmark and links, tucked into the far corner and out of the way. */
   .corner {
@@ -357,7 +411,7 @@
     display: block;
     width: 100%;
     height: auto;
-    aspect-ratio: 282 / 176;
+    aspect-ratio: 336 / 210;
     margin-top: 8px;
     border-radius: 9px;
     border: 1px solid var(--line);
@@ -589,6 +643,9 @@
      narrow strip and the entrants box collapses to a tap-to-open panel. The
      stage still fills the screen behind it. */
   @media (max-width: 900px) {
+    /* No room for two columns of panels; the rail wins. */
+    .feed { display: none; }
+
     .rail {
       width: min(260px, 46vw);
       top: 10px;
@@ -628,7 +685,7 @@
 
       <section class="chase panel">
         <label>Close-up</label>
-        <canvas id="chase-cam" width="282" height="176"></canvas>
+        <canvas id="chase-cam" width="336" height="210"></canvas>
         <p class="chase-caption" id="chase-caption"></p>
       </section>
 
@@ -649,6 +706,11 @@
         <div id="universe-grid"></div>
       </section>
 
+    </aside>
+
+    <aside class="feed panel" id="feed" hidden>
+      <label>Knocked out</label>
+      <ul id="feed-list"></ul>
     </aside>
 
     <div class="corner">

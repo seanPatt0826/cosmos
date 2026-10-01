@@ -22,6 +22,9 @@ export const PHASE = {
 
 const DEATH_MS = { hole: 1150, scribble: 620, drift: 1500, boom: 760 };
 
+// How many eliminations the feed on the left remembers.
+const OUT_LOG = 6;
+
 // How hard an exploding object shoves whatever is standing near it.
 const BLAST_RADIUS = 260;
 const BLAST_FORCE = 0.026;
@@ -73,6 +76,7 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
     elapsed: 0,
     phaseTime: 0,
     aliveCount: count,
+    out: [],
     startCount: count,
     pressure: 0,
     winner: null,
@@ -103,6 +107,18 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
         r0: opts.target ? Math.hypot(pos.x - opts.target.x, pos.y - opts.target.y) : 0,
         a0: opts.target ? Math.atan2(pos.y - opts.target.y, pos.x - opts.target.x) : 0,
       };
+
+      // A short record of what just happened, for the feed on the left. Only
+      // the last few matter — it is there to say who went out a moment ago,
+      // not to keep a ledger of the whole round — so it is capped here rather
+      // than left to grow for the reader to trim.
+      round.out.unshift({
+        name: player.name || player.col.name,
+        crayon: player.col.crayon,
+        kind,
+        at: round.time,
+      });
+      if (round.out.length > OUT_LOG) round.out.length = OUT_LOG;
 
       remove(sim, player.body);
       player.body = null;

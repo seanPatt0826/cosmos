@@ -19,10 +19,13 @@ export function createHud() {
     banner: document.getElementById('banner'),
     fade: document.getElementById('fade'),
     controls: document.getElementById('controls'),
+    feed: document.getElementById('feed'),
+    feedList: document.getElementById('feed-list'),
   };
 
   let lastBanner = '';
   let lastSig = '';
+  let lastFeed = '';
   let idle = 0;
 
   const hud = {
@@ -63,6 +66,7 @@ export function createHud() {
       }
 
       renderStandings(round);
+      drawFeed(round);
 
       idle += dtMs;
       if (idle > 2800) el.controls.classList.add('hidden');
@@ -101,6 +105,42 @@ export function createHud() {
       rows.push(`<li class="row more"><i></i><span>+${alive.length - MAX_ROWS} more</span></li>`);
     }
     el.list.innerHTML = rows.join('');
+  }
+
+  // Four causes, in the words someone watching would use. The engine's names
+  // for them — scribble, boom — describe the drawing, not what happened.
+  const CAUSE = {
+    hole: 'black hole',
+    drift: 'flung out',
+    scribble: 'burned up',
+    boom: 'blown apart',
+  };
+
+  // How long an entry stays on the left before it fades out. This is a feed of
+  // what just happened, not a record of the round; the standings already say
+  // who is left, and a list that only grows would end up repeating them.
+  const FEED_MS = 8000;
+
+  function drawFeed(round) {
+    if (!el.feed || !el.feedList) return;
+    const live = round.out.filter((o) => round.time - o.at < FEED_MS);
+    // The age bucket is part of the signature on purpose: without it the
+    // rows would be rebuilt only when an entry arrived or dropped off, and
+    // the fade would sit frozen in between.
+    const bucket = live.length ? Math.floor(round.time / 700) : 0;
+    const sig = bucket + ':' + live.map((o) => o.name + o.kind + o.at).join('|');
+    if (sig === lastFeed) return;
+    lastFeed = sig;
+
+    el.feed.hidden = live.length === 0;
+    el.feedList.innerHTML = live.map((o) => {
+      // Oldest entries dim rather than vanishing, so the list does not twitch.
+      const age = (round.time - o.at) / FEED_MS;
+      const alpha = (1 - age * age).toFixed(2);
+      return `<li style="opacity:${alpha}"><i style="background:${o.crayon}"></i>`
+        + `<span class="who">${escapeHtml(o.name)}</span>`
+        + `<span class="how">${CAUSE[o.kind] || 'out'}</span></li>`;
+    }).join('');
   }
 
   function setBanner(text, cls) {
