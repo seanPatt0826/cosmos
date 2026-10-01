@@ -11,6 +11,7 @@ import { update as updateCamera } from './camera.js';
 import { setMode, isLight } from './theme.js';
 import { createRoster } from './roster.js';
 import { createCameraBox } from './camerabox.js';
+import { createUniverses } from './universes.js';
 
 const STORE_NAMES = 'cosmos.names';
 const STORE_THEME = 'cosmos.theme';
@@ -53,6 +54,7 @@ let orderIndex = 0;
 let names = [];
 let roster = null;
 let chase = null;
+let universes = null;
 
 // ── Sizing ──────────────────────────────────────────────────────────────────
 
@@ -274,6 +276,7 @@ function markActiveMap(id) {
   document.querySelectorAll('#map-picker button').forEach((b) => {
     b.classList.toggle('active', b.dataset.map === id);
   });
+  if (universes) universes.setActive(id);
 }
 
 function buildControls() {
@@ -326,7 +329,9 @@ function buildControls() {
     if (rebuild && round) bg = createBackground(viewW, viewH, round.seed, round.mapDef.theme);
     // The portraits carry their own skies, so they are stale the moment the
     // palette flips.
-    if (rebuild) { /* theme rebuild */ }
+    // The portraits carry their own skies, so they are stale the moment the
+    // palette flips.
+    if (rebuild && universes) universes.refresh();
   }
   themeBtn.addEventListener('click', () => applyTheme(isLight() ? 'dark' : 'light'));
   applyTheme(load(STORE_THEME) === 'light' ? 'light' : 'dark', { rebuild: false });
@@ -380,18 +385,22 @@ function buildControls() {
   // The picker builds seven physics worlds to photograph them, which is not
   // something to make the first frame wait for. Built now, painted once the
   // arena is already up.
+  universes = createUniverses(document.getElementById('universe-grid'), (id) => {
+    if (transitioning) return;
+    goToMap(id);
+  });
+  // Seven physics worlds is not something to make the first frame wait for.
+  const paintPortraits = () => {
+    universes.refresh();
+    if (round) universes.setActive(round.mapDef.id);
+  };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(paintPortraits, { timeout: 1200 });
+  else setTimeout(paintPortraits, 300);
+
   chase = createCameraBox(
     document.getElementById('chase-cam'),
     document.getElementById('chase-caption'),
   );
-
-  const paintPortraits = () => {
-  };
-  if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(paintPortraits, { timeout: 1200 });
-  } else {
-    setTimeout(paintPortraits, 300);
-  }
 
   for (const ev of ['mousemove', 'touchstart', 'keydown']) {
     window.addEventListener(ev, () => hud.wake(), { passive: true });

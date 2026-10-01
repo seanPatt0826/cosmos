@@ -283,6 +283,62 @@
 
   .names-hint { margin: 6px 0 0; font-size: 12px; color: var(--ink-dim); }
 
+  /* ── Universe picker ────────────────────────────────────────────────── */
+
+  #universe-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .universe {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-dim);
+    font-family: inherit;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 160ms ease, color 160ms ease;
+  }
+  .universe:hover { border-color: rgba(232, 163, 61, 0.55); color: var(--paper); }
+  .universe.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  /* The portrait sits flush to the card's edges; the name is a caption under
+     it rather than a label beside it. */
+  .universe-shot {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 132 / 84;
+  }
+  .universe-about {
+    margin: 9px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--ink-dim);
+    /* Reserves room for the longest explanation so the panel does not jump
+       as the pointer moves across the grid. */
+    min-height: 5.8em;
+  }
+  .universe-name {
+    display: block;
+    padding: 3px 4px 4px;
+    font-size: 10.5px;
+    line-height: 1.15;
+    text-align: center;
+    /* Long names must not widen the grid column. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+
   /* ── Chase camera ───────────────────────────────────────────────────── */
 
   #chase-cam {
@@ -330,7 +386,7 @@
     color: var(--accent);
   }
   /* The portrait sits flush to the card's edges; the name is a caption under
-     it rather than a label beside it. */
+     it rather than a label beside it. */
 
   /* ── HUD ────────────────────────────────────────────────────────────── */
 
@@ -574,6 +630,11 @@
         </div>
         <button type="button" id="btn-example" class="example">Watch an example</button>
         <p class="names-hint" id="names-hint">Add names, or watch an example.</p>
+      </section>
+
+      <section class="universes panel">
+        <label>Universes</label>
+        <div id="universe-grid"></div>
       </section>
 
     </aside>
