@@ -218,7 +218,8 @@ function frame(now) {
   if (!round) return;
 
   if (dt > 0) round.update(dt);
-  updateCamera(round.cam, Math.max(1, raw), round.players, stageW, viewH, round.map.bounds);
+  updateCamera(round.cam, Math.max(1, raw), round.players, stageW, viewH, round.map.bounds,
+    { edge: round.map.edge });
   // The ring in the wide shot needs to know who the close-up is holding.
   // The ring marks whoever the close-up is holding, hovered or locked.
   round.focusId = chase ? (chase.hoverOn() ?? chase.lockedOn()) : null;

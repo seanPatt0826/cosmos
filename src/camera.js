@@ -6,6 +6,11 @@
 
 import { CAMERA, ROUND } from './config.js';
 
+// How much of the arena diameter the wide shot has to hold. Slightly under
+// one, so the rim sits at the edge of the frame rather than floating inside
+// it with dead space beyond.
+const RIM_IN_SHOT = 0.92;
+
 export function createCamera(bounds) {
   const cx = bounds ? bounds.x + bounds.w / 2 : 0;
   const cy = bounds ? bounds.y + bounds.h / 2 : 0;
@@ -50,8 +55,36 @@ export function update(cam, dtMs, players, viewW, viewH, bounds, opts = {}) {
   }
 
   const pad = CAMERA.padding;
-  const w = Math.max(220, maxX - minX) + pad * 2;
-  const h = Math.max(220, maxY - minY) + pad * 2;
+  let w = Math.max(220, maxX - minX) + pad * 2;
+  let h = Math.max(220, maxY - minY) + pad * 2;
+
+  // Keep the arena wall in shot.
+  //
+  // Framing the survivors alone is the right instinct and it was quietly
+  // hiding the thing the arena is built around. The rim sits at radius 1250
+  // to 1680 depending on the map, the objects spend the early round clustered
+  // near the middle, and the result was a view cropped so far inside the
+  // boundary that the fence only ever appeared as a stray arc clipping one
+  // corner — a closed rim and an open one looked identical from the seat the
+  // player is actually in.
+  //
+  // So the framing has a floor: whatever the pack is doing, hold enough of
+  // the world to show the boundary. It still follows the pack, still eases,
+  // and `edge` contracts as the round tightens, so this pulls in on its own
+  // rather than locking the shot wide.
+  //
+  // Deliberately not applied to the finale. Once it is down to the last few
+  // the close-up matters more than the wall, and `finaleZoom` below should be
+  // free to push past this.
+  const finale = alive.length > 0 && alive.length <= ROUND.finalCallout;
+  if (!finale) {
+    // Circular arenas carry a live `edge`; Nebula Garden is a walled box and
+    // carries none, so its own bounds stand in.
+    const spanW = opts.edge ? opts.edge * 2 : (bounds ? bounds.w : 0);
+    const spanH = opts.edge ? opts.edge * 2 : (bounds ? bounds.h : 0);
+    if (spanW) w = Math.max(w, spanW * RIM_IN_SHOT + pad);
+    if (spanH) h = Math.max(h, spanH * RIM_IN_SHOT + pad);
+  }
 
   cam.tx = (minX + maxX) / 2;
   cam.ty = (minY + maxY) / 2;
