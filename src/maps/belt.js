@@ -150,7 +150,7 @@ export default {
         this.time += dt;
         const p = round.pressure;
         this.edge = ARENA - p * (ARENA - 920);
-        fence.update(dt, this.edge, round.pressure);
+        fence.update(dt, this.edge, round.pressure, round.particles);
 
         // Rocks stay in the ring; players do not. That asymmetry is the map.
         for (const r of rocks.concat(shards.map((s) => ({ body: s.body, r: s.len * 0.4 })))) {

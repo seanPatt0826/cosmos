@@ -13,7 +13,7 @@ import { makeRng, hashSeed } from '../rng.js';
 import {
   bakeBlackHole, bakeShard, bakeComet, bakePulsar, drawSprite, boilFrame,
 } from '../sprites.js';
-import { staticCircle, staticRect, add, addWell } from '../engine.js';
+import { staticCircle, staticRect, add, addWell, onCollide } from '../engine.js';
 import { drawArc } from './common.js';
 import { strokeSketch, softGlow, hexToRgba } from '../sketch.js';
 import * as Particles from '../particles.js';
@@ -467,7 +467,12 @@ export function createArcFence(sim, {
   spin = 0.00011,
   thickness = 26,
   clearance = 8,
-  restitution = 1,
+  // Above one on purpose. A wall that merely conserves speed is correct
+  // physics and dull to watch: a body arrives, turns round, and leaves at the
+  // pace it came. Returning a little more than it was given makes the rim the
+  // liveliest thing in the arena, which is what it is there for. The engine's
+  // speed clamp keeps it from compounding into nonsense.
+  restitution = 1.22,
   colour = '#8C7FB8',
   seed = 1,
 } = {}) {
@@ -498,6 +503,21 @@ export function createArcFence(sim, {
   // an arc is short. Parking them beats creating and destroying bodies mid-round.
   const PARKED = radius * 40;
 
+  // Where the rim has just been struck, drained into sparks on the next frame.
+  // Collected here rather than drawn from the handler because a collision fires
+  // mid-step, when there is no drawing context and no particle system to hand.
+  const struck = [];
+  onCollide(sim, (a, b, rel) => {
+    const fence = a.label === 'fence' ? a : b.label === 'fence' ? b : null;
+    if (!fence || rel < 2) return;
+    const other = fence === a ? b : a;
+    if (other.label !== 'player') return;
+    // Parked pieces sit forty radii out and should never register, but a stray
+    // hit there would throw sparks into empty space far off screen.
+    if (Math.abs(fence.position.x) > radius * 4) return;
+    struck.push({ x: other.position.x, y: other.position.y, rel });
+  });
+
   return {
     pieces,
     arcs,
@@ -524,8 +544,22 @@ export function createArcFence(sim, {
     // So the fence is at its most solid early, when bounce is what the map
     // wants, and has thinned to almost nothing by the time the round needs to
     // be over. Every other pressure in this game works the same way.
-    update(dt, edge, pressure = 0) {
+    update(dt, edge, pressure = 0, particles = null) {
       const { Body } = sim.Matter;
+
+      // A scatter of crayon flecks where the rim was hit, brighter the harder
+      // it was hit. Cheap, and it is what tells you the wall did something
+      // rather than the object simply changing its mind.
+      if (particles) {
+        for (const s of struck) {
+          const hard = Math.min(1, (s.rel - 2) / 10);
+          Particles.burst(particles, s.x, s.y, colour, {
+            count: 3 + Math.round(hard * 7),
+            speed: 1.4 + hard * 2.6,
+          });
+        }
+      }
+      struck.length = 0;
       this.angle += spin * dt;
       this.radius = edge - thickness / 2 - clearance;
       // Past `retireAt` the fence is gone outright, not merely thin.

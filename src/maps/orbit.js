@@ -166,7 +166,7 @@ export default {
         this.mu = baseMu * (1 + p * 1.25);
         planet.mu = this.mu;
         this.edge = ARENA - p * (ARENA - 560);
-        fence.update(dt, this.edge, round.pressure);
+        fence.update(dt, this.edge, round.pressure, round.particles);
 
         for (const m of moons) {
           m.angle += m.omega * t * 60;

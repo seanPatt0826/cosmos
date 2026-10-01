@@ -152,7 +152,7 @@ export default {
         this.time += dt;
         const p = round.pressure;
         this.edge = ARENA - p * (ARENA - 980);
-        fence.update(dt, this.edge, round.pressure);
+        fence.update(dt, this.edge, round.pressure, round.particles);
 
         for (const b of bumpers) b.flash *= Math.pow(0.86, dt / 16.667);
         const alive = round.alivePlayers();

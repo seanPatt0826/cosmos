@@ -142,7 +142,7 @@ export default {
 
         this.edge = ARENA - (p / 3.2) * (ARENA - ARENA_MIN);
 
-        fence.update(dt, this.edge, round.pressure);
+        fence.update(dt, this.edge, round.pressure, round.particles);
         placeMouths(this.time);
 
         updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.22, muGrow: 0.3 });

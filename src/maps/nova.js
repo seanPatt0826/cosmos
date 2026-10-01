@@ -147,7 +147,7 @@ export default {
 
         this.edge = ARENA - (p / 3.2) * (ARENA - ARENA_MIN);
 
-        fence.update(dt, this.edge, round.pressure);
+        fence.update(dt, this.edge, round.pressure, round.particles);
 
         applyNebula(sim, nebulae, alive, dt);
 

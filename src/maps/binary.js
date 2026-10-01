@@ -121,7 +121,7 @@ export default {
         // The pair closes as the round ages, and both grow heavier.
         this.sep = SEP * (1 - p * 0.45);
         this.edge = ARENA - p * (ARENA - 780);
-        fence.update(dt, this.edge, round.pressure);
+        fence.update(dt, this.edge, round.pressure, round.particles);
         const mu = MU * (1 + p * 0.7);
 
         // Each star orbits the barycentre at the speed its partner's mass
