@@ -146,6 +146,11 @@
      broken. */
   .panel {
     position: relative;
+    /* Keep their natural height and let the rail scroll. As flex children they
+       shrink by default, and once there were five of them that quietly
+       squeezed the standings list down to nothing — the count stayed but the
+       names under it were crushed to zero height. */
+    flex-shrink: 0;
     background: var(--panel-bg);
     border: 1.5px solid var(--edge);
     border-radius: 17px 11px 19px 13px / 13px 19px 11px 17px;
@@ -330,6 +335,32 @@
 
   .names-hint { margin: 6px 0 0; font-size: 12px; color: var(--ink-dim); }
 
+  /* ── Chase camera ───────────────────────────────────────────────────── */
+
+  #chase-cam {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 282 / 176;
+    margin-top: 8px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    /* The crop is a magnified bitmap, so it is soft by nature. On artwork that
+       is already pencil and crayon that reads as depth of field rather than as
+       a low-resolution mistake. */
+    background: var(--void-2);
+  }
+  .chase-caption {
+    margin: 6px 0 0;
+    font-size: 12px;
+    text-align: center;
+    color: var(--ink-dim);
+    min-height: 1.3em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   /* ── Universe picker ────────────────────────────────────────────────── */
 
   #universe-grid {
@@ -415,8 +446,11 @@
 
   /* Now a block inside the rail rather than a floating panel of its own. */
   #standings {
-    flex: 0 1 auto;
-    min-height: 0;
+    /* Was `0 1 auto` with min-height 0, which let it shrink away entirely:
+       with five panels in the column the list collapsed to a single pixel and
+       the count sat on top of nothing. The rail scrolls, so no panel needs to
+       give up height for another. */
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     padding: 10px 12px 10px;
@@ -612,6 +646,12 @@
         <div id="count"></div>
         <ul id="standings-list"></ul>
       </div>
+
+      <section class="chase panel">
+        <label>Close-up</label>
+        <canvas id="chase-cam" width="282" height="176"></canvas>
+        <p class="chase-caption" id="chase-caption"></p>
+      </section>
 
       <section class="names panel">
         <label>Entrants</label>

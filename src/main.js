@@ -11,6 +11,7 @@ import { update as updateCamera } from './camera.js';
 import { setMode, isLight } from './theme.js';
 import { createRoster } from './roster.js';
 import { createUniverses } from './universes.js';
+import { createCameraBox } from './camerabox.js';
 
 const STORE_NAMES = 'cosmos.names';
 const STORE_THEME = 'cosmos.theme';
@@ -53,6 +54,7 @@ let orderIndex = 0;
 let names = [];
 let roster = null;
 let universes = null;
+let chase = null;
 
 // ── Sizing ──────────────────────────────────────────────────────────────────
 
@@ -142,6 +144,7 @@ function startRound(mapDef) {
   round = createRound(mapDef, seed, audio, names, { idle: !racing() });
   bg = createBackground(viewW, viewH, seed, mapDef.theme);
   hud.setMap(mapDef);
+  if (chase) chase.reset();
   markActiveMap(mapDef.id);
 }
 
@@ -217,6 +220,7 @@ function frame(now) {
   if (dt > 0) round.update(dt);
   updateCamera(round.cam, Math.max(1, raw), round.players, stageW, viewH, round.map.bounds);
   render(g, round, bg, viewW, viewH, round.time, stageW);
+  if (chase) chase.update(round, raw, canvas, stageW, viewH, dpr);
   hud.update(round, raw);
   sampleFps(raw);
 
@@ -379,6 +383,11 @@ function buildControls() {
   // The picker builds seven physics worlds to photograph them, which is not
   // something to make the first frame wait for. Built now, painted once the
   // arena is already up.
+  chase = createCameraBox(
+    document.getElementById('chase-cam'),
+    document.getElementById('chase-caption'),
+  );
+
   universes = createUniverses(document.getElementById('universe-grid'), (id) => {
     if (transitioning) return;
     goToMap(id);
