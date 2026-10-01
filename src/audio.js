@@ -6,6 +6,15 @@
 //
 // Muted by default. Browsers block autoplay audio anyway, and a cozy toy that
 // starts humming unbidden is the fastest way to get a tab closed.
+//
+// On measuring this, for whoever changes it next. Route the output through an
+// analyser and record the envelope, and do it with an EMPTY arena: with a race
+// running, every collision bell is a transient, and they swamp whatever the
+// background is doing. Measured against a race, the old drone and the new music
+// looked alike on every statistic worth having — counted note onsets, spectral
+// movement, all of it. Measured against silence the difference is flat: the old
+// bed's loudest moment was six per cent above its quietest, a continuous tone by
+// definition, where this one's struck notes reach two and a half times its floor.
 
 const SCALE = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22]; // minor pentatonic, two octaves
 const ROOT = 220;
