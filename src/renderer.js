@@ -47,9 +47,6 @@ export function render(g, round, bg, viewW, viewH, time, stageW = viewW) {
 
   g.restore();
 
-  // Names go on after the camera transform is undone, so they stay legible at
-  // a fixed size however far the camera has pushed in.
-  drawLabels(g, round, stageW, viewH);
 
   // Paper on top of everything, so the drawings sit inside the scene rather
   // than floating over it. Grain and vignette are pre-composited into a single
@@ -93,36 +90,6 @@ function finish(g, w, h) {
   g.restore();
 }
 
-function drawLabels(g, round, viewW, viewH) {
-  const { cam, players } = round;
-  const named = players.some((p) => p.name);
-  if (!named) return;
-
-  const light = isLight();
-  g.save();
-  g.font = '600 13px "Shantell Sans", "Comic Sans MS", cursive';
-  g.textAlign = 'center';
-  g.textBaseline = 'top';
-  g.lineJoin = 'round';
-
-  for (const p of players) {
-    if (!p.alive || !p.body || !p.name) continue;
-    const s = worldToScreen(cam, p.body.position.x, p.body.position.y, viewW, viewH);
-    const y = s.y + BODY.radius * cam.zoom + 6;
-    if (s.x < -80 || s.x > viewW + 80 || y < -20 || y > viewH + 20) continue;
-
-    const isWinner = round.winner === p;
-    // Outlined rather than boxed: a chip behind every name would clutter the
-    // arena, but plain text vanishes over a bright nebula.
-    g.globalAlpha = isWinner ? 1 : 0.92;
-    g.lineWidth = 3.5;
-    g.strokeStyle = light ? 'rgba(244, 238, 226, 0.92)' : 'rgba(10, 8, 22, 0.85)';
-    g.strokeText(p.name, s.x, y);
-    g.fillStyle = isWinner ? p.col.glow : (light ? '#312C38' : '#F2EADB');
-    g.fillText(p.name, s.x, y);
-  }
-  g.restore();
-}
 
 function drawTrails(g, players) {
   g.save();

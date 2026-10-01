@@ -10,7 +10,6 @@ import { ROUND } from './config.js';
 import { update as updateCamera } from './camera.js';
 import { setMode, isLight } from './theme.js';
 import { createRoster } from './roster.js';
-import { createUniverses } from './universes.js';
 import { createCameraBox } from './camerabox.js';
 
 const STORE_NAMES = 'cosmos.names';
@@ -53,7 +52,6 @@ let order = [];
 let orderIndex = 0;
 let names = [];
 let roster = null;
-let universes = null;
 let chase = null;
 
 // ── Sizing ──────────────────────────────────────────────────────────────────
@@ -276,7 +274,6 @@ function markActiveMap(id) {
   document.querySelectorAll('#map-picker button').forEach((b) => {
     b.classList.toggle('active', b.dataset.map === id);
   });
-  if (universes) universes.setActive(id);
 }
 
 function buildControls() {
@@ -329,7 +326,7 @@ function buildControls() {
     if (rebuild && round) bg = createBackground(viewW, viewH, round.seed, round.mapDef.theme);
     // The portraits carry their own skies, so they are stale the moment the
     // palette flips.
-    if (rebuild && universes) universes.refresh();
+    if (rebuild) { /* theme rebuild */ }
   }
   themeBtn.addEventListener('click', () => applyTheme(isLight() ? 'dark' : 'light'));
   applyTheme(load(STORE_THEME) === 'light' ? 'light' : 'dark', { rebuild: false });
@@ -388,13 +385,7 @@ function buildControls() {
     document.getElementById('chase-caption'),
   );
 
-  universes = createUniverses(document.getElementById('universe-grid'), (id) => {
-    if (transitioning) return;
-    goToMap(id);
-  });
   const paintPortraits = () => {
-    universes.refresh();
-    if (round) universes.setActive(round.mapDef.id);
   };
   if (typeof requestIdleCallback === 'function') {
     requestIdleCallback(paintPortraits, { timeout: 1200 });
