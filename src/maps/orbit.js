@@ -28,6 +28,7 @@ export default {
   theme: 'orbit',
   population: [20, 28],
   blurb: 'round and round',
+  description: "A planet and its moons, on real orbits. Everything starts on a genuine circular path rather than being thrown in and left to sort itself out, which is why it looks composed instead of chaotic. The planet quietly gains mass as the round goes on, so every orbit decays. Nobody is safe forever; they just do not know it yet.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('orbit', seed));

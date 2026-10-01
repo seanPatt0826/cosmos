@@ -38,6 +38,7 @@ export default {
   theme: 'warp',
   population: [20, 28],
   blurb: 'in one side, out the other',
+  description: "Three pairs of doors. Fall into one and you come out of its twin, still carrying your speed and pointed the way you were already going. A door can rescue an object about to be lost over the edge, or drop it straight into the black hole. Each pair is tethered in its own colour so you can see where it leads.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('warp', seed));

@@ -28,6 +28,7 @@ export default {
   theme: 'bumpers',
   population: [24, 32],
   blurb: 'everything bounces',
+  description: "No gravity, no orbits, nothing to fall down: a field of repulsors and a boundary that closes. Because nothing ever slows down, one good hit keeps paying out for the rest of the round.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('bumpers', seed));

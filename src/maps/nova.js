@@ -49,6 +49,7 @@ export default {
   theme: 'nova',
   population: [20, 28],
   blurb: 'it breathes in',
+  description: "A star that cannot make up its mind. It spends a few seconds inhaling, the pull strengthening and the core visibly swelling, then lets go and throws the huddle it just gathered back out again. The size of the star is the countdown, and the ring is always closing behind you.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('nova', seed));

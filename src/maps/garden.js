@@ -28,6 +28,7 @@ export default {
   theme: 'garden',
   population: [22, 30],
   blurb: 'mind the holes',
+  description: "An open room with a few black holes wandering about in it. Fall into one and you are gone. The nebula patches bleed off the speed you needed to escape, and the pulsars can throw you clear at the last second. The holes creep toward the middle as the round ages, narrowing the safe lanes.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('garden', seed));

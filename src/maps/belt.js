@@ -26,6 +26,7 @@ export default {
   theme: 'belt',
   population: [24, 32],
   blurb: 'watch out',
+  description: "No gravity at all, just a great deal of rock carrying a great deal of momentum. Everything that happens here happens because something hit something else, which makes it the most legible drama on the list: you can always see exactly whose fault it was.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('belt', seed));

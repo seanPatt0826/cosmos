@@ -24,6 +24,14 @@ export function createUniverses(hostEl, onPick) {
   const cards = new Map();   // map id -> { canvas, button }
   let activeId = null;
 
+  /* One shared line under the grid rather than a caption on every card. Seven
+     paragraphs stacked in a 310px column would be a wall; one that follows
+     your pointer answers "what is that one?" without the panel ever growing.
+     It falls back to the universe you are actually in when nothing is hovered,
+     so the line is never empty and never stale. */
+  const about = document.createElement('p');
+  about.className = 'universe-about';
+
   for (const mapDef of MAPS) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -42,9 +50,27 @@ export function createUniverses(hostEl, onPick) {
 
     button.append(canvas, label);
     button.addEventListener('click', () => onPick(mapDef.id));
+    // Pointer and keyboard both, so the explanations are reachable by tabbing.
+    for (const ev of ['mouseenter', 'focus']) {
+      button.addEventListener(ev, () => showAbout(mapDef.id));
+    }
+    for (const ev of ['mouseleave', 'blur']) {
+      button.addEventListener(ev, () => showAbout(activeId));
+    }
     hostEl.appendChild(button);
     cards.set(mapDef.id, { canvas, button, mapDef });
   }
+
+  if (hostEl.parentNode) hostEl.parentNode.appendChild(about);
+
+  function showAbout(id) {
+    const entry = id ? cards.get(id) : null;
+    const def = entry ? entry.mapDef : null;
+    about.textContent = def
+      ? (def.description || def.blurb || '')
+      : 'Hover a universe to read what happens in it.';
+  }
+  showAbout(null);
 
   function paint(entry) {
     const { canvas, mapDef } = entry;
@@ -95,6 +121,7 @@ export function createUniverses(hostEl, onPick) {
     setActive(id) {
       if (id === activeId) return;
       activeId = id;
+      showAbout(id);
       for (const [key, entry] of cards) {
         entry.button.classList.toggle('active', key === id);
         if (key === id) entry.button.setAttribute('aria-current', 'true');
