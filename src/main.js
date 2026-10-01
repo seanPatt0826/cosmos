@@ -220,7 +220,8 @@ function frame(now) {
   if (dt > 0) round.update(dt);
   updateCamera(round.cam, Math.max(1, raw), round.players, stageW, viewH, round.map.bounds);
   // The ring in the wide shot needs to know who the close-up is holding.
-  round.focusId = chase ? chase.lockedOn() : null;
+  // The ring marks whoever the close-up is holding, hovered or locked.
+  round.focusId = chase ? (chase.hoverOn() ?? chase.lockedOn()) : null;
   render(g, round, bg, viewW, viewH, round.time, stageW);
   if (chase) chase.update(round, raw, canvas, stageW, viewH, dpr);
   hud.update(round, raw);
@@ -404,6 +405,7 @@ function buildControls() {
     document.getElementById('chase-caption'),
   );
 
+
   // Click an object to lock the close-up onto it; click past everything, or
   // press Escape, to hand the shot back to the automatic pick. The hit test
   // runs against the live camera, so it stays honest while the view drifts.
@@ -436,7 +438,15 @@ function buildControls() {
     chaseEl.addEventListener('pointermove', (ev) => {
       const r = chaseEl.getBoundingClientRect();
       if (!r.width || !r.height) return;
-      chase.aimAt((ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height);
+      const fx = (ev.clientX - r.left) / r.width;
+      const fy = (ev.clientY - r.top) / r.height;
+      chase.aimAt(fx, fy);
+      // Point at somebody in the box and the shot closes in on them. The box is
+      // magnified, so an object is a far bigger target here than out in the
+      // arena — which is the point of being able to do it from in here at all.
+      const w = round ? chase.worldAtBox(fx, fy) : null;
+      chase.hoverFocus(w ? playerAt(round, w.x, w.y) : null);
+      chaseEl.style.cursor = chase.hoverOn() !== null ? 'pointer' : '';
     });
     chaseEl.addEventListener('pointerleave', () => chase.aimClear());
   }

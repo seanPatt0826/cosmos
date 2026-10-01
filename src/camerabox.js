@@ -16,7 +16,7 @@
 //                 is the story
 //   nobody      — the middle of the arena, waiting
 
-import { worldToScreen } from './camera.js';
+import { worldToScreen, screenToWorld } from './camera.js';
 
 // How much world the close-up holds. Smaller is tighter.
 const WINDOW_W = 620;
@@ -29,7 +29,8 @@ export function createCameraBox(canvasEl, captionEl) {
   if (!canvasEl) {
     return {
       update() {}, reset() {}, lock() {}, lockedOn() { return null; },
-      aimAt() {}, aimClear() {},
+      aimAt() {}, aimClear() {}, worldAtBox() { return null; },
+      hoverFocus() {}, hoverOn() { return null; },
     };
   }
   const g = canvasEl.getContext('2d');
@@ -46,6 +47,13 @@ export function createCameraBox(canvasEl, captionEl) {
   // Where inside the box the pointer is, as an offset from its middle in the
   // range -0.5 to 0.5 on each axis. Null when the pointer is elsewhere.
   let aim = null;
+  // The crop the last frame actually drew, so a pointer over the box can be
+  // turned back into a point in the arena.
+  let crop = null;
+  // Whoever the pointer is resting on inside the box. Beats the lock and the
+  // automatic pick while it lasts, and is forgotten the moment the pointer
+  // leaves.
+  let hoverId = null;
 
   function pickSubject(alive) {
     let best = null;
@@ -96,6 +104,27 @@ export function createCameraBox(canvasEl, captionEl) {
 
     aimClear() {
       aim = null;
+      hoverId = null;
+    },
+
+    // The point in the arena under a pointer sitting at `fx`, `fy` of the box.
+    // Null before the first frame has drawn anything.
+    worldAtBox(fx, fy) {
+      if (!crop) return null;
+      // Box fraction -> device pixels on the main canvas -> CSS pixels -> world.
+      const px = (crop.sx + fx * crop.sw) / crop.dpr;
+      const py = (crop.sy + fy * crop.sh) / crop.dpr;
+      return screenToWorld(crop.cam, px, py, crop.stageW, crop.viewH);
+    },
+
+    // Hold whoever the pointer is resting on. Null means the pointer is over
+    // the box but not over anybody, which still steers via aimAt.
+    hoverFocus(player) {
+      hoverId = player && player.body ? player.body.id : null;
+    },
+
+    hoverOn() {
+      return hoverId;
     },
 
     update(round, dtMs, mainCanvas, stageW, viewH, dpr) {
@@ -116,7 +145,22 @@ export function createCameraBox(canvasEl, captionEl) {
         : alive.find((p) => p.body && p.body.id === lockedId) || null;
       if (lockedId !== null && !locked) lockedId = null;
 
-      if (locked) {
+      // Pointing at somebody in the box beats everything else, including a
+      // lock. It is the most direct statement of intent there is: you are
+      // pointing straight at them.
+      const hovered = hoverId === null
+        ? null
+        : alive.find((p) => p.body && p.body.id === hoverId) || null;
+      if (hoverId !== null && !hovered) hoverId = null;
+
+      if (hovered) {
+        targetX = hovered.body.position.x;
+        targetY = hovered.body.position.y;
+        // Tighter than a lock, so pointing at somebody visibly closes in on
+        // them rather than just nudging the frame across.
+        windowW = MIN_WINDOW * 0.62;
+        caption = hovered.name || 'unnamed';
+      } else if (locked) {
         targetX = locked.body.position.x;
         targetY = locked.body.position.y;
         windowW = MIN_WINDOW;
@@ -156,10 +200,11 @@ export function createCameraBox(canvasEl, captionEl) {
         caption = subject.name || '';
       }
 
-      // Hovering the box slides the shot toward the corner you are pointing at,
-      // up to half a window each way, so the subject ends at the far edge
-      // rather than leaving the frame. Easing is already below, so it glides.
-      if (aim) {
+      // Hovering empty space in the box slides the shot toward the corner you
+      // are pointing at, up to half a window each way. Skipped when the pointer
+      // is on somebody, because then the shot is already centring on them and
+      // an offset would only shove them back out of the middle.
+      if (aim && !hovered) {
         targetX += aim.x * windowW;
         targetY += aim.y * windowW * (H / W);
       }
@@ -188,6 +233,11 @@ export function createCameraBox(canvasEl, captionEl) {
       // show as a black band.
       sx = Math.max(0, Math.min(mainCanvas.width - sw, sx));
       sy = Math.max(0, Math.min(mainCanvas.height - sh, sy));
+
+      // Remembered so a pointer sitting over the box can be turned back into a
+      // place in the arena. Only the finished, clamped crop will do: the
+      // unclamped one lies about what is actually on screen near an edge.
+      crop = { sx, sy, sw, sh, dpr, cam, stageW, viewH };
 
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.clearRect(0, 0, W, H);
