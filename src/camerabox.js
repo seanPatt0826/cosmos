@@ -25,7 +25,8 @@ const SWITCH_MS = 2200;
 const FOLLOW_EASE = 0.12;   // per frame at 60fps; smoothed below for real dt
 
 export function createCameraBox(canvasEl, captionEl) {
-  if (!canvasEl) return { update() {}, reset() {} };
+  // The same shape, so callers never have to check whether the box exists.
+  if (!canvasEl) return { update() {}, reset() {}, lock() {}, lockedOn() { return null; } };
   const g = canvasEl.getContext('2d');
 
   let cx = 0;
@@ -33,6 +34,10 @@ export function createCameraBox(canvasEl, captionEl) {
   let placed = false;        // snap on the first frame, ease after that
   let subjectId = null;
   let sinceSwitch = 0;
+  // Set by clicking an object in the arena. While it holds, it beats both the
+  // automatic pick and the finale framing: having chosen somebody to watch, you
+  // want to keep watching them when it gets interesting, not be panned away.
+  let lockedId = null;
 
   function pickSubject(alive) {
     let best = null;
@@ -51,6 +56,19 @@ export function createCameraBox(canvasEl, captionEl) {
       placed = false;
       subjectId = null;
       sinceSwitch = 0;
+      // A new round is a new cast. Holding the old id would mean holding
+      // nothing, and the first frame would jump.
+      lockedId = null;
+    },
+
+    // Null releases the lock and hands the shot back to the automatic pick.
+    lock(player) {
+      lockedId = player && player.body ? player.body.id : null;
+      sinceSwitch = 0;
+    },
+
+    lockedOn() {
+      return lockedId;
     },
 
     update(round, dtMs, mainCanvas, stageW, viewH, dpr) {
@@ -64,7 +82,19 @@ export function createCameraBox(canvasEl, captionEl) {
       let windowW = WINDOW_W;
       let caption = '';
 
-      if (round.idle || alive.length === 0) {
+      // A locked subject that has been eliminated releases itself, rather than
+      // leaving the shot parked on an empty patch of space.
+      const locked = lockedId === null
+        ? null
+        : alive.find((p) => p.body && p.body.id === lockedId) || null;
+      if (lockedId !== null && !locked) lockedId = null;
+
+      if (locked) {
+        targetX = locked.body.position.x;
+        targetY = locked.body.position.y;
+        windowW = MIN_WINDOW;
+        caption = locked.name || 'unnamed';
+      } else if (round.idle || alive.length === 0) {
         const b = round.map.bounds;
         targetX = b.x + b.w / 2;
         targetY = b.y + b.h / 2;
@@ -137,4 +167,26 @@ export function createCameraBox(canvasEl, captionEl) {
       }
     },
   };
+}
+
+// Which object is under a point in the arena, if any.
+//
+// The grab radius has a floor well above the objects' own radius. They are
+// eighteen units across and can be moving fast; asking someone to land a click
+// inside eighteen units of world space would make the feature feel broken
+// rather than precise. Nearest-within-reach, so a crowd still resolves to the
+// one you actually meant.
+const GRAB_MIN = 30;
+
+export function playerAt(round, wx, wy) {
+  let best = null;
+  let bestD = Infinity;
+  for (const p of round.alivePlayers()) {
+    if (!p.body) continue;
+    const q = p.body.position;
+    const d = Math.hypot(q.x - wx, q.y - wy);
+    const reach = Math.max(GRAB_MIN, (p.body.circleRadius || 0) * 1.6);
+    if (d < reach && d < bestD) { bestD = d; best = p; }
+  }
+  return best;
 }

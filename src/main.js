@@ -7,10 +7,10 @@ import { createBackground } from './background.js';
 import { createAudio } from './audio.js';
 import { createHud } from './hud.js';
 import { ROUND } from './config.js';
-import { update as updateCamera } from './camera.js';
+import { update as updateCamera, screenToWorld } from './camera.js';
 import { setMode, isLight } from './theme.js';
 import { createRoster } from './roster.js';
-import { createCameraBox } from './camerabox.js';
+import { createCameraBox, playerAt } from './camerabox.js';
 import { createUniverses } from './universes.js';
 
 const STORE_NAMES = 'cosmos.names';
@@ -219,6 +219,8 @@ function frame(now) {
 
   if (dt > 0) round.update(dt);
   updateCamera(round.cam, Math.max(1, raw), round.players, stageW, viewH, round.map.bounds);
+  // The ring in the wide shot needs to know who the close-up is holding.
+  round.focusId = chase ? chase.lockedOn() : null;
   render(g, round, bg, viewW, viewH, round.time, stageW);
   if (chase) chase.update(round, raw, canvas, stageW, viewH, dpr);
   hud.update(round, raw);
@@ -401,6 +403,31 @@ function buildControls() {
     document.getElementById('chase-cam'),
     document.getElementById('chase-caption'),
   );
+
+  // Click an object to lock the close-up onto it; click past everything, or
+  // press Escape, to hand the shot back to the automatic pick. The hit test
+  // runs against the live camera, so it stays honest while the view drifts.
+  function worldAt(ev) {
+    const r = canvas.getBoundingClientRect();
+    return screenToWorld(round.cam, ev.clientX - r.left, ev.clientY - r.top, stageW, viewH);
+  }
+
+  canvas.addEventListener('pointerdown', (ev) => {
+    if (!round || transitioning) return;
+    const w = worldAt(ev);
+    chase.lock(playerAt(round, w.x, w.y));
+  });
+
+  // The cursor is the only hint that any of this is clickable.
+  canvas.addEventListener('pointermove', (ev) => {
+    if (!round) return;
+    const w = worldAt(ev);
+    canvas.style.cursor = playerAt(round, w.x, w.y) ? 'pointer' : '';
+  });
+
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') chase.lock(null);
+  });
 
   for (const ev of ['mousemove', 'touchstart', 'keydown']) {
     window.addEventListener(ev, () => hud.wake(), { passive: true });

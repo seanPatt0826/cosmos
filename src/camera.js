@@ -97,6 +97,15 @@ export function worldToScreen(cam, x, y, viewW, viewH) {
   };
 }
 
+// The inverse, for turning a click back into a place in the arena. Kept next to
+// its twin so the two cannot drift apart.
+export function screenToWorld(cam, x, y, viewW, viewH) {
+  return {
+    x: (x - viewW / 2 - cam.ox) / cam.zoom + cam.x,
+    y: (y - viewH / 2 - cam.oy) / cam.zoom + cam.y,
+  };
+}
+
 // Normalised -1..1 pan, for the parallax background.
 export function panOf(cam, bounds) {
   const cx = bounds.x + bounds.w / 2;

@@ -158,6 +158,9 @@ function drawPlayers(g, round, time) {
       }
       softGlow(g, pos.x, y, 46 * (isWinner ? 1.7 : 1), p.col.glow, glowA * intro);
       drawSprite(g, p.sprite, pos.x, y, p.body.angle, scale, intro, frame);
+      // Whoever the close-up has been told to hold. The side panel is small and
+      // easy to lose track of, so the wide shot says who you picked.
+      if (round.focusId !== null && round.focusId === p.body.id) drawFocusRing(g, pos.x, y, p, time);
       continue;
     }
 
@@ -262,3 +265,35 @@ function ease(t) {
 }
 
 export { hexToRgba };
+
+// The ring around whoever the close-up is locked onto.
+//
+// Hand-drawn like everything else, and redrawn from a seed that ticks a few
+// times a second so it wriggles instead of sitting there as a clean circle. It
+// is the one piece of interface that lives inside the arena, so it has to look
+// like it belongs to the drawing rather than to the browser.
+function drawFocusRing(g, x, y, p, time) {
+  const rng = makeRng(hashSeed('focus', p.id, Math.floor(time / 130)));
+  const r = 40 + Math.sin(time * 0.004) * 2.5;
+  const steps = 26;
+  g.save();
+  g.lineCap = 'round';
+  g.strokeStyle = p.col.glow;
+  for (let pass = 0; pass < 2; pass++) {
+    g.globalAlpha = pass === 0 ? 0.85 : 0.35;
+    g.lineWidth = pass === 0 ? 2.2 : 3.6;
+    g.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      // Stops a little short of a full turn, the way a circled word in a
+      // notebook never quite closes.
+      const a = (i / steps) * Math.PI * 1.88 - 0.4;
+      const rr = r * (1 + rng.wobble(0.045));
+      const px = x + Math.cos(a) * rr;
+      const py = y + Math.sin(a) * rr;
+      if (i === 0) g.moveTo(px, py);
+      else g.lineTo(px, py);
+    }
+    g.stroke();
+  }
+  g.restore();
+}
