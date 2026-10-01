@@ -84,12 +84,21 @@ export default {
 
     const fence = createArcFence(sim, {
       radius: ARENA,
-      // Only a sixth of the rim is solid here. Both of these arenas end
-      // every round by something leaving, so a fence that covers the
-      // boundary properly simply stops them ending: measured, it took the
-      // median round from sixteen seconds past two minutes. A couple of
-      // short arcs give the rim something to hit without closing the only
-      // way out.
+      // Only a sixth of the rim is solid here, where every other arena now
+      // has one that goes all the way round.
+      //
+      // This map and Wormholes end essentially every round by something
+      // leaving: 294 of the 315 eliminations in the last fifteen-round run.
+      // Closing the rim removes the only exit, and measured over fifteen
+      // rounds it took the median from 41 seconds to 76, put a third of
+      // rounds past 95, and sent one to the four-minute anti-stall.
+      //
+      // Giving the closed rim a shorter life does not rescue it — a version
+      // gone by seven seconds measured *worse*, at 107. The cost is not the
+      // bouncing. It is the opening detonation, the one event that clears a
+      // crowd here, being absorbed by a wall instead of throwing anybody
+      // out. Two short arcs give the rim something to hit without closing
+      // the only way out.
       arcs: 2,
       openFrac: 0.85,
       openGrowth: 0.6,

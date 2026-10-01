@@ -93,12 +93,16 @@ export default {
 
     const fence = createArcFence(sim, {
       radius: ARENA,
-      // Only a sixth of the rim is solid here. Both of these arenas end
-      // every round by something leaving, so a fence that covers the
-      // boundary properly simply stops them ending: measured, it took the
-      // median round from sixteen seconds past two minutes. A couple of
-      // short arcs give the rim something to hit without closing the only
-      // way out.
+      // Only a sixth of the rim is solid here, where every other arena now
+      // has one that goes all the way round.
+      //
+      // This map and Supernova end essentially every round by something
+      // leaving: 304 of the 315 eliminations in the last fifteen-round run.
+      // A portal spits a body out at speed, and that is what carries it past
+      // the boundary. Close the rim and it is thrown at a wall instead:
+      // measured over fifteen rounds the median went from 50 seconds to 106,
+      // with eight of the fifteen running past 95. Two short arcs give the
+      // rim something to hit without closing the only way out.
       arcs: 2,
       openFrac: 0.85,
       openGrowth: 0.6,

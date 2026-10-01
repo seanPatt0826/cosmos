@@ -75,7 +75,7 @@ export default {
     const fence = createArcFence(sim, {
       radius: ARENA,
       arcs: 4,
-      openFrac: 0.3,
+      openFrac: 0,
       spin: 0.00013,
       colour: '#C8A0D6',
       seed: hashSeed('fence', seed),
