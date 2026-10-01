@@ -149,14 +149,25 @@ function drawPlayers(g, round, time) {
       const isWinner = round.winner === p;
       const glowA = isWinner ? 0.34 + round.winnerBloom * 0.3 : 0.2;
 
+      const big = isWinner ? 1.7 : 1;
       if (isLight()) {
         // On paper a glow cannot make anything stand out — a pale wash on a pale
         // ground just disappears. A soft shadow underneath does the job instead:
         // it lifts the scrap of paper off the page and gives the outline
         // something to sit against.
-        softGlow(g, pos.x + 3, y + 4, 40, '#6A5E52', 0.5 * intro);
+        //
+        // It was not nearly strong enough. Measured against the paper, the
+        // racers were the faintest things in the arena — fainter than the
+        // asteroids drifting past them, which are mere scenery — and once the
+        // framing pulled back to keep the rim in shot they became specks. The
+        // shade is heavier now, and the colour pool under each one uses the
+        // crayon rather than the glow, because the glow is the pale end of the
+        // palette and pale is exactly what does not work here.
+        softGlow(g, pos.x + 3, y + 5, 46 * big, '#6A5E52', 0.9 * intro);
+        softGlow(g, pos.x, y, 44 * big, p.col.crayon, (glowA + 0.26) * intro);
+      } else {
+        softGlow(g, pos.x, y, 46 * big, p.col.glow, glowA * intro);
       }
-      softGlow(g, pos.x, y, 46 * (isWinner ? 1.7 : 1), p.col.glow, glowA * intro);
       drawSprite(g, p.sprite, pos.x, y, p.body.angle, scale, intro, frame);
       // Whoever the close-up has been told to hold. The side panel is small and
       // easy to lose track of, so the wide shot says who you picked.
