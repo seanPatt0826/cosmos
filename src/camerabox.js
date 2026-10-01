@@ -1,3 +1,5 @@
+import { strokeSketch } from './sketch.js';
+import { makeRng } from './rng.js';
 // The chase camera.
 //
 // A close-up in the side column, the way a marble race keeps a second camera
@@ -24,13 +26,42 @@ const MIN_WINDOW = 420;
 const SWITCH_MS = 2200;
 const FOLLOW_EASE = 0.12;   // per frame at 60fps; smoothed below for real dt
 
+// A rounded rectangle as a list of points, wobbled like everything else here so
+// the frame looks drawn rather than placed. Walked as four straight sides, each
+// followed by the quarter turn at its end.
+const VF_SEED = 0x5EEDF00D;
+
+function roundedRectPath(rng, x, y, w, h, r, wob = 0.9) {
+  const pts = [];
+  const push = (px, py) => pts.push({ x: px + rng.wobble(wob), y: py + rng.wobble(wob) });
+  const TURN = 4;
+  const sides = [
+    { ax: x + r, ay: y, bx: x + w - r, by: y, cx: x + w - r, cy: y + r, a0: -Math.PI / 2 },
+    { ax: x + w, ay: y + r, bx: x + w, by: y + h - r, cx: x + w - r, cy: y + h - r, a0: 0 },
+    { ax: x + w - r, ay: y + h, bx: x + r, by: y + h, cx: x + r, cy: y + h - r, a0: Math.PI / 2 },
+    { ax: x, ay: y + h - r, bx: x, by: y + r, cx: x + r, cy: y + r, a0: Math.PI },
+  ];
+  for (const s of sides) {
+    const n = Math.max(2, Math.round(Math.hypot(s.bx - s.ax, s.by - s.ay) / 26));
+    for (let i = 0; i < n; i++) {
+      const t = i / n;
+      push(s.ax + (s.bx - s.ax) * t, s.ay + (s.by - s.ay) * t);
+    }
+    for (let i = 0; i <= TURN; i++) {
+      const a = s.a0 + (Math.PI / 2) * (i / TURN);
+      push(s.cx + Math.cos(a) * r, s.cy + Math.sin(a) * r);
+    }
+  }
+  return pts;
+}
+
 export function createCameraBox(canvasEl, captionEl) {
   // The same shape, so callers never have to check whether the box exists.
   if (!canvasEl) {
     return {
       update() {}, reset() {}, lock() {}, lockedOn() { return null; },
       aimAt() {}, aimClear() {}, worldAtBox() { return null; },
-      hoverFocus() {}, hoverOn() { return null; },
+      hoverFocus() {}, hoverOn() { return null; }, drawViewfinder() {},
     };
   }
   const g = canvasEl.getContext('2d');
@@ -127,6 +158,48 @@ export function createCameraBox(canvasEl, captionEl) {
       return hoverId;
     },
 
+    // The viewfinder: a roundish square on the wide shot marking the patch the
+    // close-up is holding.
+    //
+    // Without it the two views are unrelated pictures. Something happens in the
+    // close-up and there is no way to tell where in the arena it happened, or
+    // to look ahead of it — you cannot see what the subject is about to run
+    // into, because you cannot see where the subject is.
+    //
+    // Drawn after the close-up has taken its crop, never before. The close-up
+    // copies pixels straight off this canvas, so a frame drawn first would be
+    // copied into the very box it describes and sit inside its own view as a
+    // border.
+    drawViewfinder(mainG) {
+      if (!crop) return;
+      const { sx, sy, sw, sh, dpr } = crop;
+      if (!(sw > 0 && sh > 0)) return;
+
+      const x = sx / dpr;
+      const y = sy / dpr;
+      const w = sw / dpr;
+      const h = sh / dpr;
+      // While the close-up is holding the whole arena — between rounds, or with
+      // nobody left — the crop is the screen, and a frame around the screen
+      // says nothing. Only drawn when it is actually framing something.
+      if (w >= crop.stageW * 0.97 || h >= crop.viewH * 0.97) return;
+
+      const r = Math.min(w, h) * 0.17;
+      const pts = roundedRectPath(makeRng(VF_SEED), x, y, w, h, r);
+
+      mainG.save();
+      // Back into CSS pixels, whatever the scene left on the context.
+      mainG.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Two passes: a dark one to lift the line off a pale nebula, a light one
+      // over it for the dark skies. Neither theme can swallow the frame.
+      strokeSketch(mainG, pts, makeRng(VF_SEED), {
+        color: 'rgba(14,12,26,0.45)', width: 4.2, alpha: 0.5, passes: 1,
+      });
+      strokeSketch(mainG, pts, makeRng(VF_SEED), {
+        color: 'rgba(242,240,255,0.78)', width: 1.7, alpha: 0.8, passes: 2,
+      });
+      mainG.restore();
+    },
     update(round, dtMs, mainCanvas, stageW, viewH, dpr) {
       const W = canvasEl.width;
       const H = canvasEl.height;

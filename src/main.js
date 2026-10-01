@@ -225,6 +225,8 @@ function frame(now) {
   round.focusId = chase ? (chase.hoverOn() ?? chase.lockedOn()) : null;
   render(g, round, bg, viewW, viewH, round.time, stageW);
   if (chase) chase.update(round, raw, canvas, stageW, viewH, dpr);
+  // After the close-up, never before: it copies pixels off this canvas.
+  if (chase) chase.drawViewfinder(g);
   hud.update(round, raw);
   sampleFps(raw);
 
