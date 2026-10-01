@@ -119,7 +119,7 @@ export default {
       radius: ARENA,
       arcs: 4,
       openFrac: 0,
-      spin: 0.00011,
+      spin: 0,
       colour: '#6E86C8',
       seed: hashSeed('fence', seed),
     });
@@ -165,7 +165,7 @@ export default {
         // The squeeze: a heavier planet and a closing ring.
         this.mu = baseMu * (1 + p * 1.25);
         planet.mu = this.mu;
-        this.edge = ARENA - p * (ARENA - 560);
+        this.edge = ARENA - p * (ARENA - 380);
         fence.update(dt, this.edge, round.pressure, round.particles);
 
         for (const m of moons) {

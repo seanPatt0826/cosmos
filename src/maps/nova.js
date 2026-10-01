@@ -26,7 +26,8 @@ import {
 } from './hazards.js';
 
 const ARENA = 1320;        // starting radius of the ring
-const ARENA_MIN = 840;     // where it has closed to at full pressure
+const ARENA_MIN = 340;     // where it has closed to at full pressure
+const CLOSE_AT = 1.5;      // the pressure at which it is fully closed
 const CORE_R = 44;         // the physical star; the glow is drawn much larger
 
 // Inhale, then blow. The charge shortens as the round ages, so the last few
@@ -84,27 +85,13 @@ export default {
 
     const fence = createArcFence(sim, {
       radius: ARENA,
-      // Only a sixth of the rim is solid here, where every other arena now
-      // has one that goes all the way round.
-      //
-      // This map and Wormholes end essentially every round by something
-      // leaving: 294 of the 315 eliminations in the last fifteen-round run.
-      // Closing the rim removes the only exit, and measured over fifteen
-      // rounds it took the median from 41 seconds to 76, put a third of
-      // rounds past 95, and sent one to the four-minute anti-stall.
-      //
-      // Giving the closed rim a shorter life does not rescue it — a version
-      // gone by seven seconds measured *worse*, at 107. The cost is not the
-      // bouncing. It is the opening detonation, the one event that clears a
-      // crowd here, being absorbed by a wall instead of throwing anybody
-      // out. Two short arcs give the rim something to hit without closing
-      // the only way out.
-      arcs: 2,
-      openFrac: 0.85,
-      openGrowth: 0.6,
-      openAt: 0.5,
-      retireAt: 0.9,
-      spin: 0.00016,
+      // A complete rim, like every other arena. These two used to keep gaps
+      // because drifting out was the only way their rounds ended; the star
+      // below is lethal now, so the way out is inward rather than past the
+      // boundary.
+      arcs: 4,
+      openFrac: 0,
+      spin: 0,
       colour: '#E0925E',
       seed: hashSeed('fence', seed),
     });
@@ -145,7 +132,14 @@ export default {
         const p = round.pressure;
         const alive = round.alivePlayers();
 
-        this.edge = ARENA - (p / 3.2) * (ARENA - ARENA_MIN);
+        // The ring closes onto the star, and closes early.
+        //
+        // With the rim sealed all the way round there is no way out past it,
+        // so the arena itself has to be the thing that runs out. Tied to the
+        // full 3.2 of the pressure ramp this took nearly three minutes to
+        // matter; finished by 1.5 it squeezes the field onto a lethal core
+        // while the round is still worth watching.
+        this.edge = ARENA - Math.min(1, p / CLOSE_AT) * (ARENA - ARENA_MIN);
 
         fence.update(dt, this.edge, round.pressure, round.particles);
 
@@ -218,13 +212,40 @@ export default {
         }
       },
 
-      // Both eliminations live at the end of update, the way every other map
-      // does it: drift past the closing ring, or sit still long enough that
-      // the stuck watch gives up on you.
+      // The white-hot part of the star — and the lethal part. One number for
+      // both, so the thing that kills you is exactly the thing you can see
+      // swelling. It grows as the star charges and flares on detonation, which
+      // is why the huddle before a blast is the dangerous place to be.
+      coreHeat() {
+        const swell = 1 + this.charge * 0.55 + this.flash * 0.35;
+        return CORE_R * 2.4 * swell;
+      },
+
+      // Three ways out, all at the end of update the way every other map does
+      // it: into the star, past the closing ring, or sitting still long enough
+      // that the stuck watch gives up on you.
       judge(dt, round) {
         for (const pl of round.alivePlayers()) {
           const pos = pl.body.position;
-          if (Math.hypot(pos.x, pos.y) > this.edge) round.kill(pl, 'drift', { at: pos });
+          const d = Math.hypot(pos.x, pos.y);
+
+          // Into the star.
+          //
+          // This is the way out of a sealed arena. The rim used to be the only
+          // exit here and the round ended when the blast threw somebody over
+          // it; with the rim closed all the way round, the blast throws them
+          // at a wall instead and nothing resolves. So the thing the map is
+          // named after does the work: the core is lethal, the inhale drags
+          // everyone onto it, and the detonation is what tears them off again.
+          //
+          // The radius is a little over the physical core so contact reads as
+          // contact rather than a body clipping into the star and surviving.
+          if (d < this.coreHeat()) {
+            round.kill(pl, 'boom', { at: pos });
+            continue;
+          }
+
+          if (d > this.edge) round.kill(pl, 'drift', { at: pos });
         }
         stuckWatch(round.alivePlayers(), dt, (pl) => {
           round.kill(pl, 'boom', { at: pl.body.position });
@@ -249,7 +270,7 @@ export default {
 
         softGlow(g, 0, 0, CORE_R * (5.2 + this.charge * 5) * swell, '#FF9E4A',
           0.10 + this.charge * 0.20 + this.flash * 0.34);
-        softGlow(g, 0, 0, CORE_R * 2.4 * swell, '#FFE7BE', 0.30 + this.flash * 0.5);
+        softGlow(g, 0, 0, this.coreHeat(), '#FFE7BE', 0.30 + this.flash * 0.5);
 
         const rng = makeRng(hashSeed('novacore', Math.round(this.time / 90)));
         const pts = [];

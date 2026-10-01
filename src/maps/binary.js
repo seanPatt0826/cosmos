@@ -76,7 +76,7 @@ export default {
       radius: ARENA,
       arcs: 4,
       openFrac: 0,
-      spin: 0.00013,
+      spin: 0,
       colour: '#C8A0D6',
       seed: hashSeed('fence', seed),
     });

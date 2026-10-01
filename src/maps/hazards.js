@@ -458,7 +458,13 @@ export function createArcFence(sim, {
   // their own fences has the measurements.
   openFrac = 0.3,
   // How much of each arc the tightening eats away by full pressure.
-  openGrowth = 0.5,
+  //
+  // Zero by default: the rim stays complete for as long as it exists. It used
+  // to thin as the round aged, which reopened the very gaps a closed rim is
+  // there to remove — measured, a nominally sealed ring was showing thirty
+  // degrees of hole again by sixty seconds. The maps end their rounds on their
+  // own mechanics now, so the rim no longer has to be the escape valve.
+  openGrowth = 0,
   // The pressure at which that widening is complete. Below 1 it finishes
   // early, for maps that need their rim back sooner than the ramp provides.
   openAt = 1,

@@ -25,7 +25,8 @@ import {
 } from './hazards.js';
 
 const ARENA = 1280;
-const ARENA_MIN = 820;
+const ARENA_MIN = 380;
+const CLOSE_AT = 0.8;      // the pressure at which the ring is fully closed
 const MOUTH_R = 58;        // how close you must pass to be taken
 const COOLDOWN_MS = 560;   // stops a body ping-ponging between the two ends
 const EXIT_CLEAR = 40;     // how far beyond the far mouth you are put down
@@ -93,22 +94,12 @@ export default {
 
     const fence = createArcFence(sim, {
       radius: ARENA,
-      // Only a sixth of the rim is solid here, where every other arena now
-      // has one that goes all the way round.
-      //
-      // This map and Supernova end essentially every round by something
-      // leaving: 304 of the 315 eliminations in the last fifteen-round run.
-      // A portal spits a body out at speed, and that is what carries it past
-      // the boundary. Close the rim and it is thrown at a wall instead:
-      // measured over fifteen rounds the median went from 50 seconds to 106,
-      // with eight of the fifteen running past 95. Two short arcs give the
-      // rim something to hit without closing the only way out.
-      arcs: 2,
-      openFrac: 0.85,
-      openGrowth: 0.6,
-      openAt: 0.5,
-      retireAt: 0.9,
-      spin: -0.00022,
+      // A complete rim, like every other arena. These two used to keep gaps
+      // because drifting out was the only way their rounds ended; the wells
+      // below do that work now.
+      arcs: 4,
+      openFrac: 0,
+      spin: 0,
       colour: '#8FA8D8',
       seed: hashSeed('fence', seed),
     });
@@ -140,12 +131,19 @@ export default {
         const alive = round.alivePlayers();
         const M = sim.Matter;
 
-        this.edge = ARENA - (p / 3.2) * (ARENA - ARENA_MIN);
+        // The ring closes early and closes far.
+        //
+        // With the rim sealed all the way round, nothing leaves, so the arena
+        // has to be what runs out. The well below grows into the shrinking
+        // space at the same time, which is what actually ends the round: the
+        // portals keep working to the last, so the finish is a scramble rather
+        // than a slow squeeze.
+        this.edge = ARENA - (p / CLOSE_AT) * (ARENA - ARENA_MIN);
 
         fence.update(dt, this.edge, round.pressure, round.particles);
         placeMouths(this.time);
 
-        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.22, muGrow: 0.3 });
+        updateHoles(holes, dt, p, bounds, round.particles, { grow: 1.05, muGrow: 0.8 });
 
         for (const [id, left] of cooldown) {
           const next = left - dt;
