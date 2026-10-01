@@ -26,14 +26,21 @@ const DEATH_MS = { hole: 1150, scribble: 620, drift: 1500, boom: 760 };
 const BLAST_RADIUS = 260;
 const BLAST_FORCE = 0.026;
 
-export function createRound(mapDef, seed, audio, names = []) {
+export function createRound(mapDef, seed, audio, names = [], opts = {}) {
   const rng = makeRng(hashSeed('round', seed));
   // No map has ambient gravity any more; the two that fell were deleted.
   const sim = createSim();
 
   const map = mapDef.build({ sim, seed, rng });
-  const [lo, hi] = mapDef.population;
-  const count = rng.int(lo, hi);
+
+  /* The field is exactly the people in the box, and nobody else.
+     It used to be the map that decided the population — a number between its
+     own two bounds — and any object past the end of the roster simply went
+     unnamed. That meant typing three names got you three names and twenty-odd
+     strangers racing alongside them, which is not what anyone asked for.
+     An idle round has no objects at all: the universe is drawn, and waits. */
+  const idle = opts.idle === true;
+  const count = idle ? 0 : names.length;
   const players = createPlayers(count, seed, names);
   sim.players = players;
 
@@ -59,7 +66,9 @@ export function createRound(mapDef, seed, audio, names = []) {
     cam,
     audio,
     seed,
-    phase: PHASE.COUNTDOWN,
+    idle,
+    // Nothing to count in for when there is nobody on the start line.
+    phase: idle ? PHASE.RUNNING : PHASE.COUNTDOWN,
     time: 0,
     elapsed: 0,
     phaseTime: 0,
@@ -208,7 +217,10 @@ export function createRound(mapDef, seed, audio, names = []) {
         round.phaseTime = 0;
       }
     } else if (round.phase === PHASE.RUNNING) {
-      round.elapsed += dtMs;
+      // An idle universe still turns — the star breathes, the doors spin — but
+      // its clock does not run. Letting elapsed climb would wind the pressure
+      // up and close the ring around an arena with nobody in it.
+      if (!round.idle) round.elapsed += dtMs;
 
       // Calm, then a long ramp, then — if two bodies have settled into a
       // stalemate — a sharp escalation until it resolves.

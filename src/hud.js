@@ -41,7 +41,12 @@ export function createHud() {
     update(round, dtMs) {
       const n = round.aliveCount;
 
-      if (round.phase === PHASE.COUNTDOWN) {
+      // An empty universe is waiting, not losing. "0 left" reads like a race
+      // that went badly rather than one that has not been entered.
+      if (round.idle) {
+        setBanner('', '');
+        el.count.textContent = 'waiting for names';
+      } else if (round.phase === PHASE.COUNTDOWN) {
         const left = Math.ceil((ROUND.countdownMs - round.phaseTime) / 1000);
         setBanner(String(Math.max(1, left)), 'count-in');
         el.count.textContent = `${round.startCount} entrants`;

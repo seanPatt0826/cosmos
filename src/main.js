@@ -10,6 +10,7 @@ import { ROUND } from './config.js';
 import { update as updateCamera } from './camera.js';
 import { setMode, isLight } from './theme.js';
 import { createRoster } from './roster.js';
+import { createUniverses } from './universes.js';
 
 const STORE_NAMES = 'cosmos.names';
 const STORE_THEME = 'cosmos.theme';
@@ -51,6 +52,7 @@ let order = [];
 let orderIndex = 0;
 let names = [];
 let roster = null;
+let universes = null;
 
 // ── Sizing ──────────────────────────────────────────────────────────────────
 
@@ -109,10 +111,35 @@ function shuffleOrder(firstId) {
   orderIndex = 0;
 }
 
+// A race needs at least two. Below that there is nobody to run against, so the
+// universe is drawn empty and waits for names rather than inventing entrants.
+const MIN_RACERS = 2;
+
+function racing() {
+  return names.length >= MIN_RACERS;
+}
+
+/* A cast for the example run. Deliberately not real-sounding people: these are
+   obviously placeholders, so nobody mistakes a demo for a roster someone left
+   behind, and nobody has to wonder who "Maya" is. */
+const EXAMPLE_POOL = [
+  'Pebble', 'Thimble', 'Marigold', 'Odd Sock', 'Biscuit', 'Lantern',
+  'Mustard', 'Quibble', 'Tangerine', 'Bramble', 'Doorbell', 'Pocket',
+];
+
+function exampleNames() {
+  const pool = [...EXAMPLE_POOL];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, 8);
+}
+
 function startRound(mapDef) {
   if (round) round.destroy();
   const seed = (Math.random() * 4294967295) >>> 0;
-  round = createRound(mapDef, seed, audio, names);
+  round = createRound(mapDef, seed, audio, names, { idle: !racing() });
   bg = createBackground(viewW, viewH, seed, mapDef.theme);
   hud.setMap(mapDef);
   markActiveMap(mapDef.id);
@@ -125,11 +152,16 @@ function startRound(mapDef) {
 // "Race these" is what commits the roster.
 function refreshHint() {
   const n = roster ? roster.names().length : 0;
-  document.getElementById('names-hint').textContent = n
-    // The population is set by the map, so a roster shorter than the field
-    // leaves some objects unnamed rather than shrinking the race.
-    ? `${n} named. Objects beyond that stay unnamed.`
-    : 'Leave empty for unnamed objects.';
+  // The field is exactly the roster, so the hint counts entrants rather than
+  // explaining what happens to the strangers — there are none any more.
+  document.getElementById('names-hint').textContent =
+    n >= MIN_RACERS ? `${n} racing. One object each.`
+      : n === 1 ? 'One more and they can race.'
+        : 'Add names, or watch an example.';
+
+  const demo = document.getElementById('btn-example');
+  if (demo) demo.hidden = n >= MIN_RACERS;
+
   if (roster) save(STORE_NAMES, JSON.stringify(roster.names()));
 }
 
@@ -240,6 +272,7 @@ function markActiveMap(id) {
   document.querySelectorAll('#map-picker button').forEach((b) => {
     b.classList.toggle('active', b.dataset.map === id);
   });
+  if (universes) universes.setActive(id);
 }
 
 function buildControls() {
@@ -290,6 +323,9 @@ function buildControls() {
     // The background is baked, so a theme change means redrawing it. The
     // sprites are fine either way and never need re-baking.
     if (rebuild && round) bg = createBackground(viewW, viewH, round.seed, round.mapDef.theme);
+    // The portraits carry their own skies, so they are stale the moment the
+    // palette flips.
+    if (rebuild && universes) universes.refresh();
   }
   themeBtn.addEventListener('click', () => applyTheme(isLight() ? 'dark' : 'light'));
   applyTheme(load(STORE_THEME) === 'light' ? 'light' : 'dark', { rebuild: false });
@@ -319,6 +355,16 @@ function buildControls() {
     applyNames();
   });
 
+  // Nothing runs on its own any more, so there has to be a way to see what
+  // this is without typing a roster first: borrow a cast, pick a universe at
+  // random, and run it like any other race.
+  document.getElementById('btn-example').addEventListener('click', () => {
+    roster.setNames(exampleNames());
+    names = roster.names();
+    refreshHint();
+    goToMap(MAPS[Math.floor(Math.random() * MAPS.length)].id);
+  });
+
   document.getElementById('btn-skip').addEventListener('click', () => {
     if (transitioning) return;
     transitioning = true;
@@ -329,6 +375,23 @@ function buildControls() {
       transitioning = false;
     }, ROUND.fadeMs * 0.55);
   });
+
+  // The picker builds seven physics worlds to photograph them, which is not
+  // something to make the first frame wait for. Built now, painted once the
+  // arena is already up.
+  universes = createUniverses(document.getElementById('universe-grid'), (id) => {
+    if (transitioning) return;
+    goToMap(id);
+  });
+  const paintPortraits = () => {
+    universes.refresh();
+    if (round) universes.setActive(round.mapDef.id);
+  };
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(paintPortraits, { timeout: 1200 });
+  } else {
+    setTimeout(paintPortraits, 300);
+  }
 
   for (const ev of ['mousemove', 'touchstart', 'keydown']) {
     window.addEventListener(ev, () => hud.wake(), { passive: true });
