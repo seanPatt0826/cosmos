@@ -17,6 +17,7 @@ import { PALETTE } from '../config.js';
 import {
   createHole, updateHoles, holeCapturing, drawHoles,
   createStuckWatch,
+  createArcFence, drawFence,
 } from './hazards.js';
 import * as Particles from '../particles.js';
 
@@ -71,6 +72,15 @@ export default {
 
     const stuckWatch = createStuckWatch();
 
+    const fence = createArcFence(sim, {
+      radius: ARENA,
+      arcs: 4,
+      openFrac: 0.3,
+      spin: 0.00013,
+      colour: '#C8A0D6',
+      seed: hashSeed('fence', seed),
+    });
+
     return {
       bounds,
       time: 0,
@@ -111,6 +121,7 @@ export default {
         // The pair closes as the round ages, and both grow heavier.
         this.sep = SEP * (1 - p * 0.45);
         this.edge = ARENA - p * (ARENA - 780);
+        fence.update(dt, this.edge, round.pressure);
         const mu = MU * (1 + p * 0.7);
 
         // Each star orbits the barycentre at the speed its partner's mass
@@ -155,6 +166,8 @@ export default {
       },
 
       drawBack(g, cam, time) {
+
+        drawFence(g, fence);
         drawRing(g, 0, 0, this.edge, 31, { color: '#C8A0D6', alpha: 0.4, width: 2.6 });
         // The path the pair sweeps, faint, so the system reads as a system.
         drawRing(g, 0, 0, this.sep, 32, { color: '#8E86C8', alpha: 0.16, width: 1.4, passes: 1 });

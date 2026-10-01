@@ -65,3 +65,30 @@ export function drawRing(g, cx, cy, r, seed, opts = {}) {
   g.restore();
   return pts;
 }
+
+// One stretch of a ring, from a0 to a1. The arc fences are drawn with this: a
+// boundary that is solid in places and open in others has to be drawn in
+// pieces, and a dashed full ring would read as decoration rather than as
+// something you can hit.
+export function drawArc(g, cx, cy, r, a0, a1, seed, opts = {}) {
+  const rng = makeRng(hashSeed('arc', seed, Math.round(r / 24)));
+  const span = a1 - a0;
+  // Enough points that the curve stays a curve at any radius, and no more:
+  // this is redrawn every frame on seven arenas.
+  const steps = Math.max(5, Math.round((Math.abs(span) * r) / 30));
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const a = a0 + span * (i / steps);
+    const rr = r * (1 + rng.wobble(0.006));
+    pts.push({ x: cx + Math.cos(a) * rr, y: cy + Math.sin(a) * rr });
+  }
+  strokeSketch(g, pts, rng, {
+    color: opts.color || '#8C7FB8',
+    width: opts.width ?? 3.4,
+    passes: opts.passes ?? 2,
+    alpha: opts.alpha ?? 0.6,
+    closed: false,
+    spread: 1.3,
+  });
+  return pts;
+}
