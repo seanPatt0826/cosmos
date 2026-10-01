@@ -642,6 +642,60 @@
   /* On a phone a 300px column would eat half the arena, so the rail becomes a
      narrow strip and the entrants box collapses to a tap-to-open panel. The
      stage still fills the screen behind it. */
+
+  /* ── Sponsored ──────────────────────────────────────────────────────── */
+  /*
+     A real slot at a real size, rather than a box that happens to be
+     rectangular. The rail is 340px and a panel eats 12px of padding each
+     side, which leaves exactly 300 — the medium rectangle every ad network
+     ships as its default sidebar unit. Sizing to a standard unit now means
+     whatever goes in later drops in without reflowing the column.
+
+     Placed under the close-up rather than at the foot of the column. The
+     rail already overflows — it held 1219px of panels in 788px before this
+     existed — so last would have meant 400px below the fold and never seen.
+     Third keeps the standings and the close-up whole and still puts the slot
+     on screen; entrants and universes were already a scroll away.
+
+     The aspect-ratio holds the space open before anything loads, so the
+     column does not jump when a creative arrives late.
+  */
+  .ad { padding: 11px 12px 12px; }
+  /* Same heading treatment as the other panels, so it reads as part of the
+     column rather than something injected into it. */
+  .ad label {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--paper);
+    padding-bottom: 7px;
+    margin-bottom: 8px;
+    border-bottom: 1.5px solid var(--edge-soft);
+  }
+  .ad-slot {
+    width: 100%;
+    aspect-ratio: 300 / 250;
+    display: grid;
+    place-items: center;
+    border: 1.5px dashed var(--edge-soft);
+    border-radius: 10px;
+    background: var(--void-2);
+    /* A creative that overshoots gets clipped rather than widening the rail
+       and putting a scrollbar across the bottom of the sidebar. */
+    overflow: hidden;
+  }
+  /* Whatever is dropped in fills the slot. */
+  .ad-slot > :not(.ad-placeholder) { max-width: 100%; max-height: 100%; }
+  .ad-placeholder {
+    margin: 0;
+    text-align: center;
+    color: var(--ink-dim);
+    font-size: 13px;
+    line-height: 1.6;
+    user-select: none;
+  }
+  .ad-placeholder span { display: block; font-size: 11px; opacity: 0.75; }
+
   @media (max-width: 900px) {
     /* No room for two columns of panels; the rail wins. */
     .feed { display: none; }
@@ -652,6 +706,9 @@
       right: 10px;
       gap: 9px;
     }
+    /* The rail is 260px at most here. A medium rectangle does not fit in
+       that, and a squashed slot is worse than none, so it stands down. */
+    .ad { display: none; }
     /* Narrow column: keep the headline and the link, drop the paragraph. */
     /* One column: two name boxes side by side inside a 44vw rail is unusable. */
     #name-list { grid-template-columns: 1fr; max-height: 30vh; }
@@ -687,6 +744,15 @@
         <label>Close-up</label>
         <canvas id="chase-cam" width="336" height="210"></canvas>
         <p class="chase-caption" id="chase-caption"></p>
+      </section>
+
+      <section class="ad panel">
+        <label>Sponsored</label>
+        <!-- The slot. To run a real ad, put the network tag inside this div
+             and delete the placeholder — the box is already a 300x250. -->
+        <div id="ad-slot" class="ad-slot">
+          <p class="ad-placeholder">Ad space<span>300 &times; 250</span></p>
+        </div>
       </section>
 
       <section class="names panel">
