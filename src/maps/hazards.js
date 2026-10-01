@@ -452,6 +452,10 @@ const FENCE_CHORD = 86;
 export function createArcFence(sim, {
   radius,
   arcs = 4,
+  // How much of the rim is gap, 0 to 1. Zero is a complete ring, which is
+  // what every arena uses except Supernova and Wormholes — the two that end
+  // their rounds by something leaving, and so cannot be sealed. The note at
+  // their own fences has the measurements.
   openFrac = 0.3,
   // How much of each arc the tightening eats away by full pressure.
   openGrowth = 0.5,
