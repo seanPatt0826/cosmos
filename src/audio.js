@@ -10,12 +10,30 @@
 const SCALE = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22]; // minor pentatonic, two octaves
 const ROOT = 220;
 
+// A four-chord cycle that goes somewhere and comes back, rather than four
+// unrelated stacks of notes. Semitones from the root: i, VI, III, VII — minor,
+// warm, and it resolves, which is what lets it loop for an hour without
+// nagging. The first number of each is its bass note, an octave down.
 const CHORDS = [
-  [0, 7, 15, 19],
-  [-2, 5, 12, 17],
-  [3, 10, 15, 22],
-  [-4, 3, 8, 15],
+  { bass: -12, notes: [0, 7, 12, 15, 19] },
+  { bass: -4, notes: [-4, 3, 8, 12, 15] },
+  { bass: -9, notes: [-9, 3, 7, 10, 15] },
+  { bass: -2, notes: [-2, 5, 10, 14, 17] },
 ];
+
+// How long each chord is held, and how long it takes to hand over. The
+// crossfade is deliberately a third of the hold: long enough that no edge is
+// audible, short enough that the harmony is unambiguous most of the time.
+const CHORD_MS = 16000;
+const CROSSFADE = 5.2;
+
+// The gaps between struck notes, in seconds. Free time on purpose — a grid
+// would turn the toy into something with a soundtrack.
+const NOTE_MIN = 2.0;
+const NOTE_MAX = 4.5;
+// How often the music-box simply says nothing. Rests are what keep it from
+// becoming a jingle; this is the single most important number in the file.
+const REST_CHANCE = 0.38;
 
 function midiRatio(semitones) {
   return Math.pow(2, semitones / 12);
@@ -27,6 +45,7 @@ export function createAudio() {
     muted: true,
     master: null,
     padGain: null,
+    bellBus: null,
     voices: [],
     chordIndex: 0,
     lastBellAt: 0,
@@ -55,55 +74,137 @@ export function createAudio() {
     comp.connect(a.ctx.destination);
 
     a.padGain = a.ctx.createGain();
-    a.padGain.gain.value = 0.22;
+    a.padGain.gain.value = 0.17;
     const padFilter = a.ctx.createBiquadFilter();
     padFilter.type = 'lowpass';
-    padFilter.frequency.value = 900;
+    // Opened up from 900. Down there the pad was muffled rather than warm, and
+    // muffled plus a wobbling filter is most of what made it a drone.
+    padFilter.frequency.value = 1600;
     padFilter.Q.value = 0.4;
     a.padGain.connect(padFilter);
     padFilter.connect(a.master);
 
-    // A slow wobble on the filter, so the drone breathes instead of sitting.
+    // A very slow breath on the filter. It used to swing three hundred and
+    // twenty hertz at a twentieth of a hertz, which is not breathing, it is a
+    // siren; a sixth of that is movement you feel rather than hear.
     const lfo = a.ctx.createOscillator();
     const lfoGain = a.ctx.createGain();
-    lfo.frequency.value = 0.045;
-    lfoGain.gain.value = 320;
+    lfo.frequency.value = 0.035;
+    lfoGain.gain.value = 55;
     lfo.connect(lfoGain);
     lfoGain.connect(padFilter.frequency);
     lfo.start();
 
-    buildPad();
+    // The music box has its own path to the master, so the pad's filter never
+    // dulls it. Bells want to stay clear.
+    a.bellBus = a.ctx.createGain();
+    a.bellBus.gain.value = 0.5;
+    a.bellBus.connect(a.master);
+
+    playChord(0, a.ctx.currentTime, 0.9);
     return a.ctx;
   }
 
-  function buildPad() {
-    const chord = CHORDS[0];
-    for (let i = 0; i < chord.length; i++) {
+  // One chord, as a set of voices that fade in, hold, and fade out again.
+  //
+  // The old pad never stopped: four oscillators ran for the life of the page
+  // and their *pitch* was slid from chord to chord. A sliding pitch is the
+  // sound of a machine changing its mind, and that slide was the "wirrr".
+  // Striking and releasing notes instead is the whole difference between a
+  // drone and an instrument.
+  function playChord(index, at, gain = 1) {
+    const chord = CHORDS[index];
+    const voices = [];
+    const all = [chord.bass, ...chord.notes];
+    for (let i = 0; i < all.length; i++) {
       const osc = a.ctx.createOscillator();
       const g = a.ctx.createGain();
-      osc.type = i === 0 ? 'sine' : 'triangle';
-      osc.frequency.value = ROOT * midiRatio(chord[i]);
-      // Two cents of detune per voice keeps the pad from sounding synthetic.
-      osc.detune.value = (i - 1.5) * 5;
-      g.gain.value = i === 0 ? 0.5 : 0.22;
+      const isBass = i === 0;
+      osc.type = isBass ? 'sine' : 'triangle';
+      osc.frequency.value = ROOT * midiRatio(all[i]);
+      // A few cents apart, so the voices beat gently against each other rather
+      // than phase-locking into one thin tone.
+      osc.detune.value = (i - all.length / 2) * 4;
+      g.gain.value = 0;
+      g.gain.setTargetAtTime((isBass ? 0.42 : 0.17) * gain, at, CROSSFADE * 0.45);
       osc.connect(g);
       g.connect(a.padGain);
-      osc.start();
-      a.voices.push({ osc, g });
+      osc.start(at);
+      voices.push({ osc, g });
+    }
+    a.voices.push(...voices);
+    return voices;
+  }
+
+  function releaseVoices(voices, at) {
+    for (const v of voices) {
+      v.g.gain.cancelScheduledValues(at);
+      v.g.gain.setTargetAtTime(0, at, CROSSFADE * 0.4);
+      // Stopped well after the fade has run its course, so nothing clicks.
+      v.osc.stop(at + CROSSFADE * 3);
+      const i = a.voices.indexOf(v);
+      if (i >= 0) a.voices.splice(i, 1);
     }
   }
 
+  // A single struck note: quick on, long off. Nothing else in the file sounds
+  // like an instrument being played rather than a synth being held.
+  function pluck(semitone, at, level) {
+    const osc = a.ctx.createOscillator();
+    const g = a.ctx.createGain();
+    const pan = a.ctx.createStereoPanner
+      ? a.ctx.createStereoPanner() : null;
+    osc.type = 'sine';
+    osc.frequency.value = ROOT * midiRatio(semitone);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(level, at + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 2.6);
+    osc.connect(g);
+    if (pan) {
+      pan.pan.value = (Math.random() - 0.5) * 0.55;
+      g.connect(pan);
+      pan.connect(a.bellBus);
+    } else {
+      g.connect(a.bellBus);
+    }
+    osc.start(at);
+    osc.stop(at + 2.8);
+  }
+
+  // Hand the harmony over: the voices in place fade out while the next chord
+  // fades in underneath them. For a few seconds both are sounding, which is
+  // what makes the change feel like weather rather than a switch being thrown.
   function drift() {
     if (!a.ctx || a.muted) return;
-    a.chordIndex = (a.chordIndex + 1) % CHORDS.length;
-    const chord = CHORDS[a.chordIndex];
     const t = a.ctx.currentTime;
-    a.voices.forEach((v, i) => {
-      // Glide, never jump. A stepped chord change would read as an event.
-      v.osc.frequency.setTargetAtTime(ROOT * midiRatio(chord[i % chord.length]), t, 3.5);
-    });
+    const old = a.voices.slice();
+    a.chordIndex = (a.chordIndex + 1) % CHORDS.length;
+    playChord(a.chordIndex, t);
+    releaseVoices(old, t);
   }
-  setInterval(drift, 13000);
+  setInterval(drift, CHORD_MS);
+
+  // The music box. One note at a time, from the chord that is currently
+  // sounding, at an interval that is never the same twice — and often no note
+  // at all, because the silences are what keep this from becoming a tune you
+  // end up waiting for.
+  let noteTimer = null;
+  function scheduleNote() {
+    clearTimeout(noteTimer);
+    const wait = (NOTE_MIN + Math.random() * (NOTE_MAX - NOTE_MIN)) * 1000;
+    noteTimer = setTimeout(() => {
+      scheduleNote();
+      if (!a.ctx || a.muted) return;
+      if (Math.random() < REST_CHANCE) return;
+      const chord = CHORDS[a.chordIndex];
+      const pick = chord.notes[Math.floor(Math.random() * chord.notes.length)];
+      // Mostly an octave up, where a small bell belongs; occasionally two, for
+      // the one note in a while that catches your attention.
+      const octave = Math.random() < 0.22 ? 24 : 12;
+      pluck(pick + octave, a.ctx.currentTime + 0.02, 0.09 + Math.random() * 0.05);
+    }, wait);
+  }
+  scheduleNote();
 
   a.setMuted = (m) => {
     a.muted = m;
