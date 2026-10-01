@@ -10,7 +10,10 @@
 import { makeRng, hashSeed } from '../rng.js';
 import { add, addWell, orbitalSpeed, staticCircle } from '../engine.js';
 import { bakePlanet, bakeAsteroid, drawSprite, boilFrame } from '../sprites.js';
-import { createHole, updateHoles, holeCapturing, drawHoles } from './hazards.js';
+import {
+  createHole, updateHoles, holeCapturing, drawHoles,
+  createArcFence, drawFence,
+} from './hazards.js';
 import { drawRing } from './common.js';
 import { softGlow } from '../sketch.js';
 import { PALETTE } from '../config.js';
@@ -111,6 +114,15 @@ export default {
       holes.push(h);
     }
 
+    const fence = createArcFence(sim, {
+      radius: ARENA,
+      arcs: 4,
+      openFrac: 0.4,
+      spin: 0.00011,
+      colour: '#6E86C8',
+      seed: hashSeed('fence', seed),
+    });
+
     return {
       bounds,
       time: 0,
@@ -153,6 +165,7 @@ export default {
         this.mu = baseMu * (1 + p * 1.25);
         planet.mu = this.mu;
         this.edge = ARENA - p * (ARENA - 560);
+        fence.update(dt, this.edge, round.pressure);
 
         for (const m of moons) {
           m.angle += m.omega * t * 60;
@@ -196,6 +209,8 @@ export default {
       },
 
       drawBack(g, cam, time) {
+
+        drawFence(g, fence);
         softGlow(g, 0, 0, PLANET_R * 5.5, planetCol.glow, 0.16);
         drawRing(g, 0, 0, this.edge, 77, { color: '#6E86C8', alpha: 0.4, width: 2.6 });
         drawRing(g, 0, 0, this.edge - 9, 78, { color: '#6E86C8', alpha: 0.16, width: 1.4, passes: 1 });

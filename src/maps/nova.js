@@ -20,7 +20,10 @@ import { staticCircle, add, addWell } from '../engine.js';
 import { drawRing } from './common.js';
 import { softGlow, strokeSketch } from '../sketch.js';
 import * as Particles from '../particles.js';
-import { createStuckWatch, createNebula, applyNebula, drawNebula } from './hazards.js';
+import {
+  createStuckWatch, createNebula, applyNebula, drawNebula,
+  createArcFence, drawFence,
+} from './hazards.js';
 
 const ARENA = 1320;        // starting radius of the ring
 const ARENA_MIN = 840;     // where it has closed to at full pressure
@@ -78,6 +81,24 @@ export default {
 
     const stuckWatch = createStuckWatch();
 
+    const fence = createArcFence(sim, {
+      radius: ARENA,
+      // Only a sixth of the rim is solid here. Both of these arenas end
+      // every round by something leaving, so a fence that covers the
+      // boundary properly simply stops them ending: measured, it took the
+      // median round from sixteen seconds past two minutes. A couple of
+      // short arcs give the rim something to hit without closing the only
+      // way out.
+      arcs: 2,
+      openFrac: 0.85,
+      openGrowth: 0.6,
+      openAt: 0.5,
+      retireAt: 0.9,
+      spin: 0.00016,
+      colour: '#E0925E',
+      seed: hashSeed('fence', seed),
+    });
+
     return {
       bounds,
       time: 0,
@@ -115,6 +136,8 @@ export default {
         const alive = round.alivePlayers();
 
         this.edge = ARENA - (p / 3.2) * (ARENA - ARENA_MIN);
+
+        fence.update(dt, this.edge, round.pressure);
 
         applyNebula(sim, nebulae, alive, dt);
 
@@ -199,6 +222,8 @@ export default {
       },
 
       drawBack(g) {
+
+        drawFence(g, fence);
         drawRing(g, 0, 0, this.edge, 71, { color: '#E0925E', alpha: 0.42, width: 2.8 });
         drawRing(g, 0, 0, this.edge + 16, 72, {
           color: '#E0925E', alpha: 0.13, width: 1.4, passes: 1,

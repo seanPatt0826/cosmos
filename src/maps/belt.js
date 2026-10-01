@@ -15,6 +15,7 @@ import {
   createNebula, applyNebula, drawNebula,
   createComet, updateComets, drawComets,
   createStuckWatch,
+  createArcFence, drawFence,
 } from './hazards.js';
 
 const ARENA = 1620;
@@ -114,6 +115,15 @@ export default {
     const comets = [createComet(sim, bounds, hashSeed('bcom', seed))];
     const stuckWatch = createStuckWatch();
 
+    const fence = createArcFence(sim, {
+      radius: ARENA,
+      arcs: 4,
+      openFrac: 0.34,
+      spin: -0.00009,
+      colour: '#C8A07E',
+      seed: hashSeed('fence', seed),
+    });
+
     return {
       bounds,
       time: 0,
@@ -139,6 +149,7 @@ export default {
         this.time += dt;
         const p = round.pressure;
         this.edge = ARENA - p * (ARENA - 920);
+        fence.update(dt, this.edge, round.pressure);
 
         // Rocks stay in the ring; players do not. That asymmetry is the map.
         for (const r of rocks.concat(shards.map((s) => ({ body: s.body, r: s.len * 0.4 })))) {
@@ -213,6 +224,8 @@ export default {
       },
 
       drawBack(g, cam, time) {
+
+        drawFence(g, fence);
         drawRing(g, 0, 0, this.edge, 55, { color: '#C8A07E', alpha: 0.42, width: 2.8 });
         drawRing(g, 0, 0, this.edge + 14, 56, { color: '#C8A07E', alpha: 0.14, width: 1.4, passes: 1 });
         drawNebula(g, nebulae, time);

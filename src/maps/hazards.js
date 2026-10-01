@@ -13,7 +13,8 @@ import { makeRng, hashSeed } from '../rng.js';
 import {
   bakeBlackHole, bakeShard, bakeComet, bakePulsar, drawSprite, boilFrame,
 } from '../sprites.js';
-import { staticCircle, add, addWell } from '../engine.js';
+import { staticCircle, staticRect, add, addWell } from '../engine.js';
+import { drawArc } from './common.js';
 import { strokeSketch, softGlow, hexToRgba } from '../sketch.js';
 import * as Particles from '../particles.js';
 
@@ -422,5 +423,162 @@ export function drawComets(g, comets, time) {
       g, c.sprite, c.body.position.x, c.body.position.y,
       Math.atan2(v.y, v.x) + Math.PI, 1, 1, boilFrame(time, c.boil),
     );
+  }
+}
+
+// ── Arc fences ──────────────────────────────────────────────────────────────
+//
+// Six of the seven arenas had no physical boundary at all. Their rim was a
+// drawn ring and a distance check: cross it and you are out. Nothing ever
+// rebounded off the edge, so a body that wandered outward simply left, and the
+// arenas felt oddly soft compared with Black Hole Garden and its hard walls.
+//
+// A fence is a ring of arc segments with gaps between them. Hit a segment and
+// you come back in fast; line up with a gap and you still sail out and are
+// eliminated exactly as before. The gaps are the whole point: a solid ring
+// would make drifting out impossible, and on the maps where drifting out is
+// most of how rounds end, that would mean rounds that never end.
+//
+// The ring turns slowly, so which part of the rim is open keeps changing.
+// Escape stays available without being available in one fixed direction.
+//
+// Matter has no arc body, so each segment is a row of thin rectangles laid
+// tangent to the circle. They are repositioned as the boundary contracts, never
+// rebuilt — a few dozen static bodies moved per frame costs nothing, and
+// rebuilding bodies mid-round would drop collisions on the frame it happened.
+
+const FENCE_CHORD = 86;
+
+export function createArcFence(sim, {
+  radius,
+  arcs = 4,
+  openFrac = 0.3,
+  // How much of each arc the tightening eats away by full pressure.
+  openGrowth = 0.5,
+  // The pressure at which that widening is complete. Below 1 it finishes
+  // early, for maps that need their rim back sooner than the ramp provides.
+  openAt = 1,
+  // The pressure past which the fence is removed from the arena entirely.
+  retireAt = 1.6,
+  spin = 0.00011,
+  thickness = 26,
+  clearance = 8,
+  restitution = 1,
+  colour = '#8C7FB8',
+  seed = 1,
+} = {}) {
+  const pitch = (Math.PI * 2) / arcs;
+  const span = pitch * (1 - openFrac);
+  const segs = Math.max(3, Math.round((radius * span) / FENCE_CHORD));
+  // A touch of overlap, so a body cannot squeeze through the join between two
+  // rectangles of the same arc.
+  const segLen = (radius * span) / segs + 6;
+
+  const pieces = [];
+  for (let a = 0; a < arcs; a++) {
+    for (let s = 0; s < segs; s++) {
+      const body = staticRect(sim, radius, 0, segLen, thickness, {
+        restitution,
+        friction: 0,
+        label: 'fence',
+      });
+      add(sim, body);
+      // `u` is where this rectangle sits along its own arc, 0 to 1. The arc's
+      // width changes during a round, so the angle is worked out per frame
+      // rather than stored.
+      pieces.push({ body, arc: a, u: (s + 0.5) / segs });
+    }
+  }
+
+  // Somewhere no body will ever reach, for the pieces that are not needed while
+  // an arc is short. Parking them beats creating and destroying bodies mid-round.
+  const PARKED = radius * 40;
+
+  return {
+    pieces,
+    arcs,
+    span,
+    pitch,
+    thickness,
+    clearance,
+    colour,
+    seed,
+    angle: 0,
+    radius,
+    liveSpan: span,
+
+    // `edge` is the map's live boundary, which contracts as the round tightens.
+    //
+    // The arcs narrow as the round ages. Measured, this is the difference
+    // between a map that ends and one that does not: on Wormholes every round
+    // used to end by something drifting out, and a fence that stays the same
+    // width all round simply stops that happening — rounds ran past three
+    // minutes. A bounce sends a body back inward, and it then has to cross the
+    // whole arena again before it gets another chance at a gap, so each
+    // rebound is expensive in a way that widening the gaps barely offsets.
+    //
+    // So the fence is at its most solid early, when bounce is what the map
+    // wants, and has thinned to almost nothing by the time the round needs to
+    // be over. Every other pressure in this game works the same way.
+    update(dt, edge, pressure = 0) {
+      const { Body } = sim.Matter;
+      this.angle += spin * dt;
+      this.radius = edge - thickness / 2 - clearance;
+      // Past `retireAt` the fence is gone outright, not merely thin.
+      //
+      // Narrowing the arcs was not enough on its own. A fence that is 90 per
+      // cent open still has something to hit, and on the two maps where
+      // drifting out is the only way a round ends, "something to hit" was
+      // enough to produce a round that never finished at all. With a hard
+      // off-switch the endgame is the arena exactly as it was before any of
+      // this, so the tail of a round can be no worse than it ever was.
+      if (pressure >= retireAt) {
+        this.liveSpan = 0;
+        for (const piece of this.pieces) Body.setPosition(piece.body, { x: PARKED, y: PARKED });
+        return;
+      }
+      this.liveSpan = span * (1 - openGrowth * Math.min(1, pressure / openAt));
+
+      // Only as many rectangles as the arc is now wide enough to hold — and
+      // none at all once it has narrowed past one. Keeping a floor of one here
+      // was quietly wrong: a "fully open" fence still swept three or four
+      // eighty-unit slabs around the rim, which is plenty to keep knocking
+      // bodies back in. Wormholes rounds ran past three minutes because of it.
+      const live = Math.round((this.radius * this.liveSpan) / segLen);
+      for (const piece of this.pieces) {
+        const keep = Math.round(piece.u * segs - 0.5) < live;
+        if (!keep) {
+          Body.setPosition(piece.body, { x: PARKED, y: PARKED });
+          continue;
+        }
+        const along = live > 1 ? (Math.round(piece.u * segs - 0.5) + 0.5) / live : 0.5;
+        const a = this.angle + piece.arc * pitch + this.liveSpan * (along - 0.5);
+        Body.setPosition(piece.body, {
+          x: Math.cos(a) * this.radius,
+          y: Math.sin(a) * this.radius,
+        });
+        Body.setAngle(piece.body, a + Math.PI / 2);
+      }
+    },
+  };
+}
+
+export function drawFence(g, fence) {
+  for (let a = 0; a < fence.arcs; a++) {
+    const mid = fence.angle + a * fence.pitch;
+    drawArc(g, 0, 0, fence.radius, mid - fence.liveSpan / 2, mid + fence.liveSpan / 2, fence.seed + a, {
+      color: fence.colour,
+      width: 4.2,
+      passes: 2,
+      alpha: 0.6,
+    });
+    // A second, fainter line just inside: two strokes read as something solid,
+    // where one reads as the same thin boundary the arena already had.
+    drawArc(g, 0, 0, fence.radius - 7, mid - fence.liveSpan / 2, mid + fence.liveSpan / 2, fence.seed + a + 97, {
+      color: fence.colour,
+      width: 1.8,
+      passes: 1,
+      alpha: 0.26,
+    });
   }
 }

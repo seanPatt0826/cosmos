@@ -21,6 +21,7 @@ import * as Particles from '../particles.js';
 import {
   createHole, updateHoles, holeCapturing, drawHoles,
   createStuckWatch,
+  createArcFence, drawFence,
 } from './hazards.js';
 
 const ARENA = 1280;
@@ -89,6 +90,24 @@ export default {
     }
     placeMouths(0);
 
+    const fence = createArcFence(sim, {
+      radius: ARENA,
+      // Only a sixth of the rim is solid here. Both of these arenas end
+      // every round by something leaving, so a fence that covers the
+      // boundary properly simply stops them ending: measured, it took the
+      // median round from sixteen seconds past two minutes. A couple of
+      // short arcs give the rim something to hit without closing the only
+      // way out.
+      arcs: 2,
+      openFrac: 0.85,
+      openGrowth: 0.6,
+      openAt: 0.5,
+      retireAt: 0.9,
+      spin: -0.00022,
+      colour: '#8FA8D8',
+      seed: hashSeed('fence', seed),
+    });
+
     return {
       bounds,
       time: 0,
@@ -117,6 +136,8 @@ export default {
         const M = sim.Matter;
 
         this.edge = ARENA - (p / 3.2) * (ARENA - ARENA_MIN);
+
+        fence.update(dt, this.edge, round.pressure);
         placeMouths(this.time);
 
         updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.22, muGrow: 0.3 });
@@ -177,6 +198,8 @@ export default {
       },
 
       drawBack(g) {
+
+        drawFence(g, fence);
         drawRing(g, 0, 0, this.edge, 81, { color: '#8FA8D8', alpha: 0.4, width: 2.8 });
         drawRing(g, 0, 0, this.edge + 16, 82, {
           color: '#8FA8D8', alpha: 0.12, width: 1.4, passes: 1,

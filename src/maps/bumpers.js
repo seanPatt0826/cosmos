@@ -17,6 +17,7 @@ import {
   createHole, updateHoles, holeCapturing, drawHoles,
   createPulsar, updatePulsars, drawPulsars,
   createStuckWatch,
+  createArcFence, drawFence,
 } from './hazards.js';
 
 const ARENA = 1680;
@@ -116,6 +117,15 @@ export default {
 
     const stuckWatch = createStuckWatch();
 
+    const fence = createArcFence(sim, {
+      radius: ARENA,
+      arcs: 5,
+      openFrac: 0.40,
+      spin: -0.00012,
+      colour: '#D6A0C8',
+      seed: hashSeed('fence', seed),
+    });
+
     return {
       bounds,
       time: 0,
@@ -141,6 +151,7 @@ export default {
         this.time += dt;
         const p = round.pressure;
         this.edge = ARENA - p * (ARENA - 980);
+        fence.update(dt, this.edge, round.pressure);
 
         for (const b of bumpers) b.flash *= Math.pow(0.86, dt / 16.667);
         const alive = round.alivePlayers();
@@ -174,6 +185,8 @@ export default {
       },
 
       drawBack(g, cam, time) {
+
+        drawFence(g, fence);
         drawRing(g, 0, 0, this.edge, 44, { color: '#D6A0C8', alpha: 0.42, width: 2.8 });
         drawRing(g, 0, 0, this.edge + 14, 45, { color: '#D6A0C8', alpha: 0.14, width: 1.4, passes: 1 });
       },
