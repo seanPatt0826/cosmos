@@ -429,6 +429,18 @@ function buildControls() {
     if (ev.key === 'Escape') chase.lock(null);
   });
 
+  // Hovering the close-up steers it: point at a corner of the box and the shot
+  // slides that way, so you can look around without losing whoever it follows.
+  const chaseEl = document.getElementById('chase-cam');
+  if (chaseEl) {
+    chaseEl.addEventListener('pointermove', (ev) => {
+      const r = chaseEl.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      chase.aimAt((ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height);
+    });
+    chaseEl.addEventListener('pointerleave', () => chase.aimClear());
+  }
+
   for (const ev of ['mousemove', 'touchstart', 'keydown']) {
     window.addEventListener(ev, () => hud.wake(), { passive: true });
   }

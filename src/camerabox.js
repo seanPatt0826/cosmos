@@ -26,7 +26,12 @@ const FOLLOW_EASE = 0.12;   // per frame at 60fps; smoothed below for real dt
 
 export function createCameraBox(canvasEl, captionEl) {
   // The same shape, so callers never have to check whether the box exists.
-  if (!canvasEl) return { update() {}, reset() {}, lock() {}, lockedOn() { return null; } };
+  if (!canvasEl) {
+    return {
+      update() {}, reset() {}, lock() {}, lockedOn() { return null; },
+      aimAt() {}, aimClear() {},
+    };
+  }
   const g = canvasEl.getContext('2d');
 
   let cx = 0;
@@ -38,6 +43,9 @@ export function createCameraBox(canvasEl, captionEl) {
   // automatic pick and the finale framing: having chosen somebody to watch, you
   // want to keep watching them when it gets interesting, not be panned away.
   let lockedId = null;
+  // Where inside the box the pointer is, as an offset from its middle in the
+  // range -0.5 to 0.5 on each axis. Null when the pointer is elsewhere.
+  let aim = null;
 
   function pickSubject(alive) {
     let best = null;
@@ -69,6 +77,25 @@ export function createCameraBox(canvasEl, captionEl) {
 
     lockedOn() {
       return lockedId;
+    },
+
+    // Point the shot at whatever is under the pointer. `fx` and `fy` are the
+    // pointer's position inside the box, 0 to 1.
+    //
+    // Deliberately a fraction of the box rather than the world point under the
+    // cursor. Projecting the cursor back through the live crop would feed back
+    // on itself: the shot re-centres, which moves the crop, which maps the same
+    // cursor position to a new place, and the view slides away on its own. An
+    // offset from whatever is being followed cannot do that.
+    aimAt(fx, fy) {
+      aim = {
+        x: Math.max(-0.5, Math.min(0.5, fx - 0.5)),
+        y: Math.max(-0.5, Math.min(0.5, fy - 0.5)),
+      };
+    },
+
+    aimClear() {
+      aim = null;
     },
 
     update(round, dtMs, mainCanvas, stageW, viewH, dpr) {
@@ -127,6 +154,14 @@ export function createCameraBox(canvasEl, captionEl) {
         targetX = subject.body.position.x;
         targetY = subject.body.position.y;
         caption = subject.name || '';
+      }
+
+      // Hovering the box slides the shot toward the corner you are pointing at,
+      // up to half a window each way, so the subject ends at the far edge
+      // rather than leaving the frame. Easing is already below, so it glides.
+      if (aim) {
+        targetX += aim.x * windowW;
+        targetY += aim.y * windowW * (H / W);
       }
 
       if (!placed) {
