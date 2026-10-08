@@ -13,6 +13,7 @@ import { createRoster } from './roster.js';
 import { createCameraBox, playerAt } from './camerabox.js';
 import { createUniverses } from './universes.js';
 import { installTooltips } from './tooltip.js';
+import { setIcon } from './icons.js';
 
 const STORE_NAMES = 'cosmos.names';
 const STORE_THEME = 'cosmos.theme';
@@ -337,36 +338,55 @@ function buildControls() {
     picker.appendChild(b);
   }
 
+  // Icons, not words; the word lives in each button's tooltip. Each button
+  // shows what clicking it does now: the pause bars while running, the sun
+  // while dark.
   const playBtn = document.getElementById('btn-play');
+  const showPlay = () => setIcon(playBtn, paused ? 'play' : 'pause', paused ? 'Play' : 'Pause');
+  showPlay();
   playBtn.addEventListener('click', () => {
     paused = !paused;
-    playBtn.textContent = paused ? 'play' : 'pause';
+    showPlay();
     playBtn.classList.toggle('active', paused);
   });
 
   const speedBtn = document.getElementById('btn-speed');
   const speeds = [1, 0.5, 2];
   let si = 0;
+  // The badge keeps the current speed readable at a glance; ½ is shorter
+  // than 0.5 and fits beside the icon.
+  const showSpeed = () => {
+    const x = timeScale === 0.5 ? '½' : String(timeScale);
+    setIcon(speedBtn, 'speed', `Speed ${x}×`, `${x}×`);
+  };
+  showSpeed();
   speedBtn.addEventListener('click', () => {
     si = (si + 1) % speeds.length;
     timeScale = speeds[si];
-    speedBtn.textContent = `${timeScale}×`;
+    showSpeed();
     speedBtn.classList.toggle('active', timeScale !== 1);
   });
 
   const muteBtn = document.getElementById('btn-mute');
+  const showSound = () => setIcon(muteBtn, audio.muted ? 'soundOff' : 'soundOn',
+    audio.muted ? 'Sound off' : 'Sound on');
+  showSound();
   muteBtn.addEventListener('click', () => {
     const nowMuted = !audio.muted;
     audio.setMuted(nowMuted);
-    muteBtn.textContent = nowMuted ? 'sound off' : 'sound on';
+    showSound();
     muteBtn.classList.toggle('active', !nowMuted);
   });
 
+  setIcon(document.getElementById('btn-skip'), 'skip', 'Skip to the next universe');
+
   const themeBtn = document.getElementById('btn-theme');
+  const showTheme = () => setIcon(themeBtn, isLight() ? 'moon' : 'sun',
+    isLight() ? 'Switch to dark mode' : 'Switch to light mode');
   function applyTheme(mode, { rebuild = true } = {}) {
     setMode(mode);
     document.body.classList.toggle('light', isLight());
-    themeBtn.textContent = isLight() ? 'dark' : 'light';
+    showTheme();
     document.querySelector('meta[name="theme-color"]')
       .setAttribute('content', isLight() ? '#E9E4D6' : '#07060F');
     save(STORE_THEME, mode);
