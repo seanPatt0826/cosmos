@@ -27,6 +27,10 @@ const ICONS = {
 
   moon: `<path d="M19.5 14.6A7.8 7.8 0 0 1 9.4 4.5a7.8 7.8 0 1 0 10.1 10.1z" ${S}/>`,
 
+  // A loop with its arrowhead: go round again from the start.
+  restart: `<path d="M19 12a7 7 0 1 1-2.05-4.95" ${S}/>`
+    + `<path d="M19.2 4.4v3.4h-3.4" ${S}/>`,
+
   skip: `<path d="M5.5 6.2v11.6a.7.7 0 0 0 1.1.6l8.6-5.8a.7.7 0 0 0 0-1.2L6.6 5.6a.7.7 0 0 0-1.1.6z" fill="currentColor"/>`
     + `<path d="M18.5 5.5v13" ${S} stroke-width="2.4"/>`,
 };

@@ -88,6 +88,7 @@ const KO = {
   'Switch to light mode': '밝은 화면으로',
   'Switch to dark mode': '어두운 화면으로',
   'Skip to the next universe': '다음 우주로 건너뛰기',
+  'Restart this race': '이번 경주 다시 시작',
 
   // Rules card
   'Goal': '목표',

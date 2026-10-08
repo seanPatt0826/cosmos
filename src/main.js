@@ -379,6 +379,8 @@ function buildControls() {
 
   const showSkip = () => setIcon(document.getElementById('btn-skip'), 'skip', t('Skip to the next universe'));
   showSkip();
+  const showRestart = () => setIcon(document.getElementById('btn-restart'), 'restart', t('Restart this race'));
+  showRestart();
 
   const themeBtn = document.getElementById('btn-theme');
   const showTheme = () => setIcon(themeBtn, isLight() ? 'moon' : 'sun',
@@ -402,7 +404,7 @@ function buildControls() {
   themeBtn.addEventListener('click', () => applyTheme(isLight() ? 'dark' : 'light'));
   applyTheme(load(STORE_THEME) === 'light' ? 'light' : 'dark', { rebuild: false });
   // The icons stay put when the language flips; only their tooltips change.
-  onLang(() => { showPlay(); showSpeed(); showSound(); showSkip(); showTheme(); });
+  onLang(() => { showPlay(); showSpeed(); showSound(); showSkip(); showRestart(); showTheme(); });
 
   // The "how this universe works" card on the arena. Open by default so a
   // first visit explains itself; once closed it stays closed, with the round
@@ -474,6 +476,20 @@ function buildControls() {
     if (ev.key !== 's' && ev.key !== 'S') return;
     if (ev.target && /^(INPUT|TEXTAREA)$/.test(ev.target.tagName)) return;
     shuffleField();
+  });
+
+  // Restart: the same universe and the same names, back on the start line.
+  // Like every line-up it waits for Start rather than running off on its own.
+  document.getElementById('btn-restart').addEventListener('click', () => {
+    if (transitioning || !round) return;
+    transitioning = true;
+    hud.fadeOut();
+    setTimeout(() => {
+      names = roster.names();
+      startRound(round.mapDef);
+      hud.fadeIn();
+      transitioning = false;
+    }, ROUND.fadeMs * 0.55);
   });
 
   document.getElementById('btn-skip').addEventListener('click', () => {
