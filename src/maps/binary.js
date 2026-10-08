@@ -32,7 +32,13 @@ export default {
   theme: 'binary',
   population: [22, 30],
   blurb: 'two suns, no rest',
-  description: "Two heavy stars circling a common centre. One fixed mass would give tidy ellipses; two moving ones give genuine chaos, and an object can be slung right across the arena for passing behind a star at the wrong moment. The stars spiral together as the round ages, until there is no stable place left to be.",
+  // The short version, shown above the description: how you go out, and
+  // what to keep an eye on. The goal is the same everywhere.
+  rules: {
+    out: "Touching a star, a black hole, or getting flung past the ring.",
+    watch: "The two stars spiral closer together as the round goes on.",
+  },
+  description: "Two stars circle each other and spiral closer until nowhere is safe.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('binary', seed));

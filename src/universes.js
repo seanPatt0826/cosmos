@@ -11,6 +11,7 @@
 // only if the palette changes under it.
 
 import { MAPS } from './maps/index.js';
+import { t, setTip, onLang } from './i18n.js';
 import { createSim, destroy } from './engine.js';
 import { createBackground } from './background.js';
 import { makeRng, hashSeed } from './rng.js';
@@ -32,7 +33,7 @@ export function createUniverses(hostEl, onPick) {
     button.type = 'button';
     button.className = 'universe';
     button.dataset.map = mapDef.id;
-    button.title = mapDef.blurb;
+    button.title = t(mapDef.blurb);
 
     const canvas = document.createElement('canvas');
     canvas.className = 'universe-shot';
@@ -41,12 +42,12 @@ export function createUniverses(hostEl, onPick) {
 
     const label = document.createElement('span');
     label.className = 'universe-name';
-    label.textContent = mapDef.name;
+    label.textContent = t(mapDef.name);
 
     button.append(canvas, label);
     button.addEventListener('click', () => onPick(mapDef.id));
     hostEl.appendChild(button);
-    cards.set(mapDef.id, { canvas, button, mapDef });
+    cards.set(mapDef.id, { canvas, button, label, mapDef });
   }
 
   function paint(entry) {
@@ -105,6 +106,13 @@ export function createUniverses(hostEl, onPick) {
       }
     },
   };
+
+  onLang(() => {
+    for (const entry of cards.values()) {
+      entry.label.textContent = t(entry.mapDef.name);
+      setTip(entry.button, t(entry.mapDef.blurb));
+    }
+  });
 
   return api;
 }

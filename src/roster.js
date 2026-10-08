@@ -14,6 +14,8 @@
 // boxes. Remove them all and the list says it is waiting instead of going
 // blank.
 
+import { t, setTip, onLang } from './i18n.js';
+
 const MIN_ROWS = 8;
 const MAX_ROWS = 40;
 const MAX_LEN = 22;
@@ -54,7 +56,7 @@ export function createRoster(listEl, onChange) {
 
   function renumber() {
     inputs().forEach((input, i) => {
-      input.placeholder = `Name ${i + 1}`;
+      input.placeholder = t('Name {n}', { n: i + 1 });
     });
     // Every box gone: say so, rather than leaving an empty hole in the panel.
     let empty = listEl.querySelector('.name-empty');
@@ -63,7 +65,7 @@ export function createRoster(listEl, onChange) {
     } else if (!empty) {
       empty = document.createElement('p');
       empty.className = 'name-empty';
-      empty.textContent = 'waiting for names';
+      empty.textContent = t('waiting for names');
       listEl.appendChild(empty);
     }
   }
@@ -82,8 +84,8 @@ export function createRoster(listEl, onChange) {
     del.type = 'button';
     del.className = 'name-del';
     del.tabIndex = -1;
-    del.title = 'Remove';
-    del.setAttribute('aria-label', 'Remove this name');
+    del.title = t('Remove');
+    del.setAttribute('aria-label', t('Remove this name'));
     // Drawn rather than typed: the font's × sits on a text baseline and never
     // lands in the middle of a round button. Same cross as the card's close.
     del.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"'
@@ -141,6 +143,15 @@ export function createRoster(listEl, onChange) {
     listEl.appendChild(row);
     return row;
   }
+
+  // The placeholders and remove buttons are written in the page's language.
+  onLang(() => {
+    renumber();
+    for (const del of listEl.querySelectorAll('.name-del')) {
+      setTip(del, t('Remove'));
+      del.setAttribute('aria-label', t('Remove this name'));
+    }
+  });
 
   return roster;
 }

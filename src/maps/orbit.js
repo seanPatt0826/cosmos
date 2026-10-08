@@ -28,7 +28,13 @@ export default {
   theme: 'orbit',
   population: [20, 28],
   blurb: 'round and round',
-  description: "A planet and its moons, on real orbits. Everything starts on a genuine circular path rather than being thrown in and left to sort itself out, which is why it looks composed instead of chaotic. The planet quietly gains mass as the round goes on, so every orbit decays. Nobody is safe forever; they just do not know it yet.",
+  // The short version, shown above the description: how you go out, and
+  // what to keep an eye on. The goal is the same everywhere.
+  rules: {
+    out: "Crashing into the planet, a black hole, or drifting past the ring.",
+    watch: "The planet keeps getting heavier, so every orbit slowly sinks.",
+  },
+  description: "Everyone starts on a real orbit, but the planet keeps getting heavier, so every orbit sinks.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('orbit', seed));

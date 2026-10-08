@@ -20,7 +20,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:ital,wght@0,300..700;1,300..600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Shantell+Sans:ital,wght@0,300..700;1,300..600&display=swap" rel="stylesheet">
 
 <!-- matter-js 0.19.0 by @liabru, MIT. Inlined rather than fetched from a CDN.
      The request was the only thing the page asked the network for besides the
@@ -50,7 +50,7 @@
     --edge: rgba(242, 234, 219, 0.3);
     --edge-soft: rgba(242, 234, 219, 0.1);
     --rail-w:  340px;   /* one slim column of panels; see the Rail note */
-    --font: "Shantell Sans", "Comic Sans MS", "Segoe Print", cursive;
+    --font: "Shantell Sans", "Gaegu", "Comic Sans MS", "Segoe Print", cursive;
   }
 
   /* Light mode is a daytime sketchbook, not the dark theme turned up. The
@@ -180,6 +180,38 @@
   .rail .panel:nth-child(1) { transform: rotate(-0.35deg); }
   .rail .panel:nth-child(2) { transform: rotate(0.3deg); }
   .rail .panel:nth-child(3) { transform: rotate(-0.22deg); }
+
+  /* Even boxes.
+
+     The column had grown four different boxes: two with a heading and inner
+     padding, two with their label jammed against the border, each tilted a
+     different way with a different freehand corner. Side by side that read as
+     untidy rather than hand-drawn. Every panel now shares one corner, one
+     padding and one heading, and none of them lean, so the column lines up
+     edge to edge. The wobble lives in the outline shadow instead. */
+  .panel,
+  .panel + .panel {
+    border-radius: 14px 12px 15px 12px / 12px 15px 12px 14px;
+  }
+  .rail > .panel:nth-child(n),
+  .left-col > .panel:nth-child(n),
+  .rail > #standings.panel {
+    transform: none;
+    padding: 11px 12px 12px;
+  }
+  .rail .panel > label,
+  .left-col .panel > label,
+  #count {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--paper);
+    padding-bottom: 7px;
+    margin: 0 0 8px;
+    border-bottom: 1.5px solid var(--edge-soft);
+  }
+  #chase-cam, #universe-grid { margin-top: 0; }
 
 
   /* ── Knocked out ────────────────────────────────────────────────────── */
@@ -336,6 +368,31 @@
   }
 
   /* Wordmark and links, tucked into the far corner and out of the way. */
+  /* Korean: one handwritten face for every letter on the page, Latin
+     included, so a line that mixes the two does not switch pens halfway.
+     Gaegu draws small for its size; font-size-adjust scales it up to sit at
+     the same height as Shantell Sans, so no panel needs its own Korean sizes. */
+  body.lang-ko { --font: "Gaegu", "Shantell Sans", "Comic Sans MS", cursive; word-break: keep-all; }
+  body.lang-ko .hud, body.lang-ko .rail, body.lang-ko .left-col,
+  body.lang-ko .corner, body.lang-ko .tip { font-size-adjust: 0.6; }
+
+  .lang-toggle {
+    font-family: inherit;
+    font-size: 12.5px;
+    padding: 2px 10px 3px;
+    margin-left: 2px;
+    border-radius: 999px;
+    border: 1px solid rgba(232, 163, 61, 0.55);
+    background: rgba(232, 163, 61, 0.12);
+    color: var(--accent);
+    cursor: pointer;
+  }
+  /* In English the button says 한국어, which Shantell cannot draw; Gaegu
+     at its own size keeps it as legible as the links beside it. */
+  body:not(.lang-ko) .lang-toggle { font-family: "Gaegu", var(--font); font-size: 15px; font-weight: 700; padding: 0 10px 1px; }
+  .lang-toggle:hover { background: rgba(232, 163, 61, 0.26); }
+  .lang-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
   .corner {
     position: absolute;
     left: 20px;
@@ -350,8 +407,7 @@
     opacity: 0.85;
   }
   .corner nav { display: flex; gap: 13px; font-size: 12.5px; margin-top: 1px; }
-  .corner nav a { color: var(--ink-dim); text-decoration: none; }
-  .corner nav a:hover { color: var(--paper); text-decoration: underline; }
+  .corner nav a { color: var(--ink-dim); text-decoration: none; cursor: pointer; }
 
   /* ── Entrants ───────────────────────────────────────────────────────── */
 
@@ -482,10 +538,14 @@
   .universes { grid-column: 1 / -1; }
   #universe-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     gap: 6px;
     margin-top: 8px;
   }
+  /* Four on top, three centred beneath: each card spans two of eight
+     half-columns, and the fifth starts one half-column in. */
+  #universe-grid > .universe { grid-column: span 2; }
+  #universe-grid > .universe:nth-child(5) { grid-column: 2 / span 2; }
   .universe {
     display: block;
     width: 100%;
@@ -518,10 +578,14 @@
     font-size: 10.5px;
     line-height: 1.15;
     text-align: center;
-    /* Long names must not widen the grid column. */
+    /* Two lines for every card, so long names wrap instead of being cut to
+       "Black Hol…" and every card stays the same height. */
+    height: calc(2 * 1.15em + 7px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
   }
 
 
@@ -535,9 +599,6 @@
     margin-top: 8px;
     border-radius: 9px;
     border: 1px solid var(--line);
-    /* The crop is a magnified bitmap, so it is soft by nature. On artwork that
-       is already pencil and crayon that reads as depth of field rather than as
-       a low-resolution mistake. */
     background: var(--void-2);
   }
   .chase-caption {
@@ -802,8 +863,6 @@
   #btn-start:focus-visible { outline: 2px solid var(--paper); outline-offset: 4px; }
   #btn-start[hidden] { display: none; }
 
-  #map-picker { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
-  .divider { width: 1px; align-self: stretch; background: var(--line); margin: 2px 4px; }
 
   /* ── Transition ─────────────────────────────────────────────────────── */
 
@@ -897,7 +956,10 @@
        that, and a squashed slot is worse than none, so it stands down. */
     .ad { display: none; }
     /* Seven portraits in one row inside a 260px rail would be 33px each. */
-    #universe-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    /* Three, three, then the last one centred. */
+    #universe-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    #universe-grid > .universe:nth-child(5) { grid-column: span 2; }
+    #universe-grid > .universe:nth-child(7) { grid-column: 3 / span 2; }
     /* Narrow column: keep the headline and the link, drop the paragraph. */
     /* One column: two name boxes side by side inside a 44vw rail is unusable. */
     #name-list { grid-template-columns: 1fr; max-height: 30vh; }
@@ -925,40 +987,23 @@
 
     <aside class="rail">
 
-      <div id="standings" class="panel">
-        <div id="count"></div>
-        <ul id="standings-list"></ul>
-      </div>
-
       <section class="chase panel">
-        <label>Close-up</label>
+        <label data-i18n>Map</label>
         <canvas id="chase-cam" width="336" height="210"></canvas>
         <p class="chase-caption" id="chase-caption"></p>
       </section>
 
       <section class="ad panel">
-        <label>Sponsored</label>
+        <label data-i18n>Sponsored</label>
         <!-- The slot. To run a real ad, put the network tag inside this div
              and delete the placeholder — the box is already a 300x250. -->
         <div id="ad-slot" class="ad-slot">
-          <p class="ad-placeholder">Ad space<span>300 &times; 250</span></p>
+          <p class="ad-placeholder"><b data-i18n style="font-weight:inherit">Ad space</b><span>300 &times; 250</span></p>
         </div>
-      </section>
-
-      <section class="names panel">
-        <label>Entrants</label>
-        <div id="name-list"></div>
-        <div class="names-row">
-          <button type="button" id="btn-shuffle" title="Shuffle who stands where (S)">Shuffle</button>
-          <button type="button" id="btn-add" class="ghost">+ Add</button>
-          <button type="button" id="btn-names-clear" class="ghost">Clear</button>
-        </div>
-        <button type="button" id="btn-example" class="example">Watch an example</button>
-        <p class="names-hint" id="names-hint">Add names, or watch an example.</p>
       </section>
 
       <section class="universes panel">
-        <label>Universes</label>
+        <label data-i18n>Universes</label>
         <div id="universe-grid"></div>
       </section>
 
@@ -967,9 +1012,10 @@
     <div class="left-col">
       <section class="map-about panel" id="map-about" aria-labelledby="map-about-title">
         <div class="map-about-head">
-          <span class="map-about-title" id="map-about-title">How it works</span>
+          <span class="map-about-title" id="map-about-title" data-i18n>How it works</span>
           <button type="button" class="about-toggle" id="btn-about-close"
-                  aria-label="Close the description" title="Close">
+                  aria-label="Close the description" title="Close"
+                  data-i18n-aria="Close the description" data-i18n-title="Close">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"
               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </button>
@@ -977,20 +1023,31 @@
         <p class="map-about-text" id="map-about-text"></p>
       </section>
       <button type="button" class="about-toggle" id="btn-about-open" hidden
-              aria-label="What happens in this universe?" title="What happens here?">
+              aria-label="What happens in this universe?" title="What happens here?"
+              data-i18n-aria="What happens in this universe?" data-i18n-title="What happens here?">
         <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="2.7" r="1.4" fill="currentColor"/><path d="M8 6.2v7.6"
           fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
 
       <aside class="feed panel" id="feed" hidden>
-        <label>Knocked out</label>
+        <label data-i18n>Knocked out</label>
         <ul id="feed-list"></ul>
       </aside>
     </div>
 
     <div class="corner">
-      <h1>Cosmos</h1>
-      <nav><a href="./about.html">about</a><a href="./privacy.html">privacy</a></nav>
+      <h1 data-i18n>Cosmos</h1>
+      <!-- No href: a real link makes the browser pop its address bubble up in
+           this same corner, right over the links. They navigate on click. -->
+      <nav><a data-href="./about.html" role="link" tabindex="0" data-i18n>about</a><a data-href="./privacy.html" role="link" tabindex="0" data-i18n>privacy</a>
+        <button type="button" id="btn-lang" class="lang-toggle">한국어</button></nav>
+      <script>
+        document.querySelectorAll('.corner nav a[data-href]').forEach(function (a) {
+          function go() { location.href = a.dataset.href; }
+          a.addEventListener('click', go);
+          a.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(); });
+        });
+      </script>
     </div>
 
     <div class="hud">
@@ -999,11 +1056,9 @@
       <div id="banner"></div>
       <div id="fps" hidden></div>
 
-      <button type="button" id="btn-start" hidden>Start</button>
+      <button type="button" id="btn-start" hidden title="Start the race (Enter)" data-i18n-title="Start the race (Enter)" data-i18n>Start</button>
 
       <div id="controls">
-        <div id="map-picker"></div>
-        <span class="divider"></span>
         <button type="button" id="btn-play">pause</button>
         <button type="button" id="btn-speed">1×</button>
         <button type="button" id="btn-mute">sound off</button>

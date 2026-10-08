@@ -12,6 +12,7 @@ import * as Particles from './particles.js';
 import { PHASE } from './round.js';
 import { ROUND, BODY } from './config.js';
 import { isLight } from './theme.js';
+import { getLang } from './i18n.js';
 
 export function render(g, round, bg, viewW, viewH, time, stageW = viewW) {
   const { cam, map, players } = round;
@@ -74,7 +75,10 @@ export function drawNameTags(g, round, time, stageW, viewH) {
   const light = isLight();
 
   g.save();
-  g.font = '600 12.5px "Shantell Sans", "Comic Sans MS", cursive';
+  // Gaegu draws small, so Korean tags get a larger size to match.
+  g.font = getLang() === 'ko'
+    ? '700 16px "Gaegu", "Shantell Sans", cursive'
+    : '600 12.5px "Shantell Sans", "Gaegu", "Comic Sans MS", cursive';
   g.textAlign = 'center';
   g.textBaseline = 'top';
   g.lineJoin = 'round';

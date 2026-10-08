@@ -28,7 +28,13 @@ export default {
   theme: 'garden',
   population: [22, 30],
   blurb: 'mind the holes',
-  description: "An open room with a few black holes wandering about in it. Fall into one and you are gone. The nebula patches bleed off the speed you needed to escape, and the pulsars can throw you clear at the last second. The holes creep toward the middle as the round ages, narrowing the safe lanes.",
+  // The short version, shown above the description: how you go out, and
+  // what to keep an eye on. The goal is the same everywhere.
+  rules: {
+    out: "Falling into a black hole.",
+    watch: "The holes creep toward the middle. Purple clouds slow you down; pulsars can fling you clear.",
+  },
+  description: "Black holes drift through an open room and creep inward; fall in and you're out.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('garden', seed));

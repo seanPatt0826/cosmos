@@ -9,13 +9,12 @@ import { createHud } from './hud.js';
 import { ROUND } from './config.js';
 import { update as updateCamera, screenToWorld } from './camera.js';
 import { setMode, isLight } from './theme.js';
-import { createRoster } from './roster.js';
-import { createCameraBox, playerAt } from './camerabox.js';
+import { createMiniMap, playerAt } from './minimap.js';
 import { createUniverses } from './universes.js';
 import { installTooltips } from './tooltip.js';
+import { t, installLang, onLang, examplePool } from './i18n.js';
 import { setIcon } from './icons.js';
 
-const STORE_NAMES = 'cosmos.names';
 const STORE_THEME = 'cosmos.theme';
 const STORE_ABOUT = 'cosmos.about';
 
@@ -55,8 +54,11 @@ let last = performance.now();
 let order = [];
 let orderIndex = 0;
 let names = [];
-let roster = null;
-let chase = null;
+let minimap = null;
+// Whoever has been clicked in the arena, and whoever the pointer is resting on
+// in the mini map. Either one gets the ring; the hover wins while it lasts.
+let lockedId = null;
+let hoverId = null;
 let universes = null;
 
 // ── Sizing ──────────────────────────────────────────────────────────────────
@@ -126,14 +128,11 @@ function racing() {
 
 /* A cast for the example run. Deliberately not real-sounding people: these are
    obviously placeholders, so nobody mistakes a demo for a roster someone left
-   behind, and nobody has to wonder who "Maya" is. */
-const EXAMPLE_POOL = [
-  'Pebble', 'Thimble', 'Marigold', 'Odd Sock', 'Biscuit', 'Lantern',
-  'Mustard', 'Quibble', 'Tangerine', 'Bramble', 'Doorbell', 'Pocket',
-];
+   behind, and nobody has to wonder who "Maya" is. Written in whichever
+   language the page is showing; the lists live in i18n.js. */
 
 function exampleNames() {
-  const pool = [...EXAMPLE_POOL];
+  const pool = examplePool();
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -154,67 +153,19 @@ function startRound(mapDef, { seed = (Math.random() * 4294967295) >>> 0 } = {}) 
     round.phaseTime = prev.phaseTime;
   }
   hud.setMap(mapDef);
-  if (chase) chase.reset();
+  if (minimap) minimap.reset();
+  // A new round is a new cast; an old id would ring nobody.
+  lockedId = null;
+  hoverId = null;
   markActiveMap(mapDef.id);
 }
 
 // ── Entrants ────────────────────────────────────────────────────────────────
 
-// Reflects the boxes into the hint line, and onto the map. While the field is
-// still waiting on the line (or there is no field yet), the names go straight
-// into the universe as they are typed, in the same universe with the same
-// sky. It never starts anything: Start is still the only way a race begins.
-// Mid-race, edits wait and join at the next line-up.
-function refreshHint() {
-  const n = roster ? roster.names().length : 0;
-  // The field is exactly the roster, so the hint counts entrants rather than
-  // explaining what happens to the strangers — there are none any more.
-  document.getElementById('names-hint').textContent =
-    n >= MIN_RACERS ? `${n} entrants on the line. Shuffle, then press Start.`
-      : n === 1 ? 'One more and they can race.'
-        : 'Add names, or watch an example.';
-
-  const demo = document.getElementById('btn-example');
-  if (demo) demo.hidden = n >= MIN_RACERS;
-
-  if (roster) save(STORE_NAMES, JSON.stringify(roster.names()));
-  scheduleLineUp();
-  refreshShuffle();
-}
-
-function onTheLine() {
-  return round && (round.idle || round.phase === PHASE.READY);
-}
-
-// A short pause after the last keystroke, so typing "Bramble" does not line up
-// seven different fields on the way.
-let lineUpTimer = null;
-function scheduleLineUp() {
-  clearTimeout(lineUpTimer);
-  lineUpTimer = setTimeout(lineUp, 260);
-}
-
-function sameNames(a, b) {
-  return a.length === b.length && a.every((x, i) => x === b[i]);
-}
-
-function lineUp() {
-  clearTimeout(lineUpTimer);
-  if (!roster || !onTheLine() || transitioning) return;
-  const next = roster.names();
-  if (sameNames(next, names)) return;
-  names = next;
-  startRound(round.mapDef, { seed: round.seed });
-}
-
-function refreshShuffle() {
-  const b = document.getElementById('btn-shuffle');
-  if (b) b.disabled = !(round && round.phase === PHASE.READY && round.players.length >= MIN_RACERS);
-}
-
+// There is no entrants panel: every race is the example cast, lined up and
+// waiting for Start. S still reshuffles who stands where.
 function shuffleField() {
-  lineUp();
-  if (round && !transitioning) round.shuffle();
+  if (round && !transitioning && round.phase === PHASE.READY) round.shuffle();
 }
 
 function nextRound() {
@@ -252,18 +203,13 @@ function frame(now) {
   if (dt > 0) round.update(dt);
   updateCamera(round.cam, Math.max(1, raw), round.players, stageW, viewH, round.map.bounds,
     { edge: round.map.edge });
-  // The ring in the wide shot needs to know who the close-up is holding.
-  // The ring marks whoever the close-up is holding, hovered or locked.
-  round.focusId = chase ? (chase.hoverOn() ?? chase.lockedOn()) : null;
+  // A ringed racer who has gone out releases the ring.
+  if (lockedId !== null && !round.alivePlayers().some((p) => p.body.id === lockedId)) lockedId = null;
+  round.focusId = hoverId ?? lockedId;
   render(g, round, bg, viewW, viewH, round.time, stageW);
-  if (chase) chase.update(round, raw, canvas, stageW, viewH, dpr);
-  // After the close-up, never before: it copies pixels off this canvas.
-  if (chase) chase.drawViewfinder(g);
-  // Names too: copied into the close-up they came out enormous and buried
-  // the very drawing they were labelling. The caption names it there.
   drawNameTags(g, round, round.time, stageW, viewH);
+  if (minimap) minimap.update(round, stageW, viewH, dpr, round.focusId);
   hud.update(round, raw);
-  refreshShuffle();
   sampleFps(raw);
 
   // A finished race lines the same field up again on the same map and waits.
@@ -273,8 +219,6 @@ function frame(now) {
     transitioning = true;
     hud.fadeOut();
     setTimeout(() => {
-      // Anything typed during the race joins this line-up.
-      names = roster.names();
       startRound(round.mapDef);
       hud.fadeIn();
       transitioning = false;
@@ -320,29 +264,15 @@ window.addEventListener('keydown', (e) => {
 // ── Controls ────────────────────────────────────────────────────────────────
 
 function markActiveMap(id) {
-  document.querySelectorAll('#map-picker button').forEach((b) => {
-    b.classList.toggle('active', b.dataset.map === id);
-  });
   if (universes) universes.setActive(id);
 }
 
 function buildControls() {
-  const picker = document.getElementById('map-picker');
-  for (const m of MAPS) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.dataset.map = m.id;
-    b.textContent = m.name;
-    b.title = m.blurb;
-    b.addEventListener('click', () => goToMap(m.id));
-    picker.appendChild(b);
-  }
-
   // Icons, not words; the word lives in each button's tooltip. Each button
   // shows what clicking it does now: the pause bars while running, the sun
   // while dark.
   const playBtn = document.getElementById('btn-play');
-  const showPlay = () => setIcon(playBtn, paused ? 'play' : 'pause', paused ? 'Play' : 'Pause');
+  const showPlay = () => setIcon(playBtn, paused ? 'play' : 'pause', t(paused ? 'Play' : 'Pause'));
   showPlay();
   playBtn.addEventListener('click', () => {
     paused = !paused;
@@ -357,7 +287,7 @@ function buildControls() {
   // than 0.5 and fits beside the icon.
   const showSpeed = () => {
     const x = timeScale === 0.5 ? '½' : String(timeScale);
-    setIcon(speedBtn, 'speed', `Speed ${x}×`, `${x}×`);
+    setIcon(speedBtn, 'speed', t('Speed {n}×', { n: x }), `${x}×`);
   };
   showSpeed();
   speedBtn.addEventListener('click', () => {
@@ -369,7 +299,7 @@ function buildControls() {
 
   const muteBtn = document.getElementById('btn-mute');
   const showSound = () => setIcon(muteBtn, audio.muted ? 'soundOff' : 'soundOn',
-    audio.muted ? 'Sound off' : 'Sound on');
+    t(audio.muted ? 'Sound off' : 'Sound on'));
   showSound();
   muteBtn.addEventListener('click', () => {
     const nowMuted = !audio.muted;
@@ -378,11 +308,12 @@ function buildControls() {
     muteBtn.classList.toggle('active', !nowMuted);
   });
 
-  setIcon(document.getElementById('btn-skip'), 'skip', 'Skip to the next universe');
+  const showSkip = () => setIcon(document.getElementById('btn-skip'), 'skip', t('Skip to the next universe'));
+  showSkip();
 
   const themeBtn = document.getElementById('btn-theme');
   const showTheme = () => setIcon(themeBtn, isLight() ? 'moon' : 'sun',
-    isLight() ? 'Switch to dark mode' : 'Switch to light mode');
+    t(isLight() ? 'Switch to dark mode' : 'Switch to light mode'));
   function applyTheme(mode, { rebuild = true } = {}) {
     setMode(mode);
     document.body.classList.toggle('light', isLight());
@@ -401,6 +332,8 @@ function buildControls() {
   }
   themeBtn.addEventListener('click', () => applyTheme(isLight() ? 'dark' : 'light'));
   applyTheme(load(STORE_THEME) === 'light' ? 'light' : 'dark', { rebuild: false });
+  // The icons stay put when the language flips; only their tooltips change.
+  onLang(() => { showPlay(); showSpeed(); showSound(); showSkip(); showTheme(); });
 
   // The "how this universe works" card on the arena. Open by default so a
   // first visit explains itself; once closed it stays closed, with the round
@@ -418,46 +351,10 @@ function buildControls() {
   aboutOpen.addEventListener('click', () => showAboutCard(true, { focus: true }));
   showAboutCard(load(STORE_ABOUT) !== 'closed');
 
-  roster = createRoster(document.getElementById('name-list'), refreshHint);
-
-  // Restore a saved roster. The old build stored the raw textarea contents, so
-  // accept either shape rather than throwing away someone's list on upgrade.
-  let saved = [];
-  const raw = load(STORE_NAMES);
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw);
-      saved = Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      saved = String(raw).split('\n').map((s) => s.trim()).filter(Boolean);
-    }
-  }
-  roster.setNames(saved);
-  names = roster.names();
-  refreshHint();
-
-  document.getElementById('btn-shuffle').addEventListener('click', shuffleField);
-  document.getElementById('btn-add').addEventListener('click', () => roster.addAndFocus());
-  document.getElementById('btn-names-clear').addEventListener('click', () => {
-    roster.clear();
-    lineUp();
-  });
-
-  // Nothing runs on its own any more, so there has to be a way to see what
-  // this is without typing a roster first: borrow a cast and line it up in
-  // whichever universe is showing. Start still waits for a click.
-  document.getElementById('btn-example').addEventListener('click', () => {
-    roster.setNames(exampleNames());
-    refreshHint();
-    lineUp();
-  });
-
   // Rounds never begin by themselves; this is the only way a race starts.
   const startBtn = document.getElementById('btn-start');
   function pressStart() {
     if (!round || transitioning) return;
-    // A name typed a moment ago should be in the race, not left behind.
-    lineUp();
     if (round.start()) startBtn.hidden = true;
   }
   startBtn.addEventListener('click', pressStart);
@@ -499,15 +396,14 @@ function buildControls() {
   if (typeof requestIdleCallback === 'function') requestIdleCallback(paintPortraits, { timeout: 1200 });
   else setTimeout(paintPortraits, 300);
 
-  chase = createCameraBox(
+  minimap = createMiniMap(
     document.getElementById('chase-cam'),
     document.getElementById('chase-caption'),
   );
 
-
-  // Click an object to lock the close-up onto it; click past everything, or
-  // press Escape, to hand the shot back to the automatic pick. The hit test
-  // runs against the live camera, so it stays honest while the view drifts.
+  // Click an object in the arena to ring it, in the arena and on the mini map;
+  // click past everything, or press Escape, to let go. The hit test runs
+  // against the live camera, so it stays honest while the view drifts.
   function worldAt(ev) {
     const r = canvas.getBoundingClientRect();
     return screenToWorld(round.cam, ev.clientX - r.left, ev.clientY - r.top, stageW, viewH);
@@ -516,49 +412,40 @@ function buildControls() {
   canvas.addEventListener('pointerdown', (ev) => {
     if (!round || transitioning) return;
     const w = worldAt(ev);
-    chase.lock(playerAt(round, w.x, w.y));
+    const p = playerAt(round, w.x, w.y);
+    lockedId = p ? p.body.id : null;
   });
 
   // The cursor is the only hint that any of this is clickable.
-  //
-  // A mouse over the arena also carries the viewfinder: the white box sits
-  // under the cursor and the close-up shows what is inside it. Touch is left
-  // out, since a finger only moves while dragging and tapping already locks.
   canvas.addEventListener('pointermove', (ev) => {
     if (!round) return;
     const w = worldAt(ev);
     canvas.style.cursor = playerAt(round, w.x, w.y) ? 'pointer' : '';
-    if (ev.pointerType !== 'mouse') return;
-    const r = canvas.getBoundingClientRect();
-    const px = ev.clientX - r.left;
-    // The strip of canvas under the rail is drawn but never seen.
-    if (px > stageW) chase.pointClear();
-    else chase.pointAt(px, ev.clientY - r.top);
   });
-  canvas.addEventListener('pointerleave', () => chase.pointClear());
 
   window.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape') chase.lock(null);
+    if (ev.key === 'Escape') lockedId = null;
   });
 
-  // Hovering the close-up steers it: point at a corner of the box and the shot
-  // slides that way, so you can look around without losing whoever it follows.
-  const chaseEl = document.getElementById('chase-cam');
-  if (chaseEl) {
-    chaseEl.addEventListener('pointermove', (ev) => {
-      const r = chaseEl.getBoundingClientRect();
-      if (!r.width || !r.height) return;
+  // Resting the pointer on a dot in the mini map rings that racer in the arena,
+  // so you can find the big drawing from the little one. Dots are tiny, so the
+  // reach is measured in panel pixels and turned into world units here.
+  const miniEl = document.getElementById('chase-cam');
+  if (miniEl) {
+    miniEl.addEventListener('pointermove', (ev) => {
+      const r = miniEl.getBoundingClientRect();
+      if (!round || !r.width || !r.height) return;
       const fx = (ev.clientX - r.left) / r.width;
       const fy = (ev.clientY - r.top) / r.height;
-      chase.aimAt(fx, fy);
-      // Point at somebody in the box and the shot closes in on them. The box is
-      // magnified, so an object is a far bigger target here than out in the
-      // arena — which is the point of being able to do it from in here at all.
-      const w = round ? chase.worldAtBox(fx, fy) : null;
-      chase.hoverFocus(w ? playerAt(round, w.x, w.y) : null);
-      chaseEl.style.cursor = chase.hoverOn() !== null ? 'pointer' : '';
+      const w = minimap.worldAt(fx, fy);
+      const reach = minimap.worldPerPx(r.width) * 10;
+      const p = w ? playerAt(round, w.x, w.y, reach) : null;
+      hoverId = p ? p.body.id : null;
+      miniEl.style.cursor = p ? 'pointer' : '';
     });
-    chaseEl.addEventListener('pointerleave', () => chase.aimClear());
+    miniEl.addEventListener('pointerleave', () => { hoverId = null; });
+    // A click on a dot keeps the ring after the pointer moves away.
+    miniEl.addEventListener('pointerdown', () => { if (hoverId !== null) lockedId = hoverId; });
   }
 
   for (const ev of ['mousemove', 'touchstart', 'keydown']) {
@@ -571,15 +458,28 @@ function buildControls() {
 
 function boot() {
   if (!window.Matter) {
-    document.getElementById('banner').textContent = 'physics failed to load';
+    document.getElementById('banner').textContent = t('physics failed to load');
     document.getElementById('banner').className = 'on final';
     return;
   }
   installTooltips();
+  installLang(document.getElementById('btn-lang'));
   buildControls();
   resize();
   shuffleOrder();
+  names = exampleNames();
   startRound(mapById(order[0]));
+  // A language switch rewrites the universe's name and card, and a field still
+  // waiting on the line is recast in that language. A race already running is
+  // left alone; the next line-up picks the new names up.
+  onLang(() => {
+    if (!round) return;
+    hud.setMap(round.mapDef);
+    if (round.phase === PHASE.READY && !transitioning) {
+      names = exampleNames();
+      startRound(round.mapDef, { seed: round.seed });
+    }
+  });
   document.body.classList.add('ready');
   requestAnimationFrame(frame);
 }

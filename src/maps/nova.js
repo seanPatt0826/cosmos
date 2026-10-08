@@ -50,7 +50,13 @@ export default {
   theme: 'nova',
   population: [20, 28],
   blurb: 'it breathes in',
-  description: "A star that cannot make up its mind. It spends a few seconds inhaling, the pull strengthening and the core visibly swelling, then lets go and throws the huddle it just gathered back out again. The size of the star is the countdown, and the ring is always closing behind you.",
+  // The short version, shown above the description: how you go out, and
+  // what to keep an eye on. The goal is the same everywhere.
+  rules: {
+    out: "Touching the star's core, or getting thrown past the ring.",
+    watch: "When the star swells it pulls everyone in, then it blasts them back out.",
+  },
+  description: "The star swells and pulls everyone in, then blasts them back out.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('nova', seed));

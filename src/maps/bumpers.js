@@ -28,7 +28,13 @@ export default {
   theme: 'bumpers',
   population: [24, 32],
   blurb: 'everything bounces',
-  description: "No gravity, no orbits, nothing to fall down: a field of repulsors and a boundary that closes. Because nothing ever slows down, one good hit keeps paying out for the rest of the round.",
+  // The short version, shown above the description: how you go out, and
+  // what to keep an eye on. The goal is the same everywhere.
+  rules: {
+    out: "Bouncing past the shrinking ring, or into a black hole.",
+    watch: "Nothing ever slows down, so one big hit keeps you flying.",
+  },
+  description: "Repulsors and a closing ring, and nothing ever slows down.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('bumpers', seed));

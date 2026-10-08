@@ -26,7 +26,13 @@ export default {
   theme: 'belt',
   population: [24, 32],
   blurb: 'watch out',
-  description: "No gravity at all, just a great deal of rock carrying a great deal of momentum. Everything that happens here happens because something hit something else, which makes it the most legible drama on the list: you can always see exactly whose fault it was.",
+  // The short version, shown above the description: how you go out, and
+  // what to keep an eye on. The goal is the same everywhere.
+  rules: {
+    out: "Getting knocked past the closing ring, or into a black hole.",
+    watch: "No gravity here. Only collisions move you, and the ring keeps shrinking.",
+  },
+  description: "No gravity, just rocks with momentum: every knockout is a collision you can see coming.",
 
   build({ sim, seed }) {
     const rng = makeRng(hashSeed('belt', seed));
