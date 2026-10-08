@@ -9,12 +9,14 @@ import { createHud } from './hud.js';
 import { ROUND } from './config.js';
 import { update as updateCamera, screenToWorld } from './camera.js';
 import { setMode, isLight } from './theme.js';
+import { createRoster } from './roster.js';
 import { createMiniMap, playerAt } from './minimap.js';
 import { createUniverses } from './universes.js';
 import { installTooltips } from './tooltip.js';
 import { t, installLang, onLang, examplePool } from './i18n.js';
 import { setIcon } from './icons.js';
 
+const STORE_NAMES = 'cosmos.names';
 const STORE_THEME = 'cosmos.theme';
 const STORE_ABOUT = 'cosmos.about';
 
@@ -54,6 +56,7 @@ let last = performance.now();
 let order = [];
 let orderIndex = 0;
 let names = [];
+let roster = null;
 let minimap = null;
 // Whoever has been clicked in the arena, and whoever the pointer is resting on
 // in the mini map. Either one gets the ring; the hover wins while it lasts.
@@ -162,9 +165,58 @@ function startRound(mapDef, { seed = (Math.random() * 4294967295) >>> 0 } = {}) 
 
 // ── Entrants ────────────────────────────────────────────────────────────────
 
-// There is no entrants panel: every race is the example cast, lined up and
-// waiting for Start. S still reshuffles who stands where.
+// Reflects the boxes into the hint line, and onto the map. While the field is
+// still waiting on the line (or there is no field yet), the names go straight
+// into the universe as they are typed, in the same universe with the same
+// sky. It never starts anything: Start is still the only way a race begins.
+// Mid-race, edits wait and join at the next line-up.
+function refreshHint() {
+  const n = roster ? roster.names().length : 0;
+  document.getElementById('names-hint').textContent =
+    n >= MIN_RACERS ? t('{n} entrants on the line. Shuffle, then press Start.', { n })
+      : n === 1 ? t('One more and they can race.')
+        : t('Add names, or watch an example.');
+
+  const demo = document.getElementById('btn-example');
+  if (demo) demo.hidden = n >= MIN_RACERS;
+
+  if (roster) save(STORE_NAMES, JSON.stringify(roster.names()));
+  scheduleLineUp();
+  refreshShuffle();
+}
+
+function onTheLine() {
+  return round && (round.idle || round.phase === PHASE.READY);
+}
+
+// A short pause after the last keystroke, so typing "Bramble" does not line up
+// seven different fields on the way.
+let lineUpTimer = null;
+function scheduleLineUp() {
+  clearTimeout(lineUpTimer);
+  lineUpTimer = setTimeout(lineUp, 260);
+}
+
+function sameNames(a, b) {
+  return a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
+function lineUp() {
+  clearTimeout(lineUpTimer);
+  if (!roster || !onTheLine() || transitioning) return;
+  const next = roster.names();
+  if (sameNames(next, names)) return;
+  names = next;
+  startRound(round.mapDef, { seed: round.seed });
+}
+
+function refreshShuffle() {
+  const b = document.getElementById('btn-shuffle');
+  if (b) b.disabled = !(round && round.phase === PHASE.READY && round.players.length >= MIN_RACERS);
+}
+
 function shuffleField() {
+  lineUp();
   if (round && !transitioning && round.phase === PHASE.READY) round.shuffle();
 }
 
@@ -210,6 +262,7 @@ function frame(now) {
   drawNameTags(g, round, round.time, stageW, viewH);
   if (minimap) minimap.update(round, stageW, viewH, dpr, round.focusId);
   hud.update(round, raw);
+  refreshShuffle();
   sampleFps(raw);
 
   // A finished race lines the same field up again on the same map and waits.
@@ -219,6 +272,8 @@ function frame(now) {
     transitioning = true;
     hud.fadeOut();
     setTimeout(() => {
+      // Anything typed during the race joins this line-up.
+      names = roster.names();
       startRound(round.mapDef);
       hud.fadeIn();
       transitioning = false;
@@ -351,10 +406,46 @@ function buildControls() {
   aboutOpen.addEventListener('click', () => showAboutCard(true, { focus: true }));
   showAboutCard(load(STORE_ABOUT) !== 'closed');
 
+  roster = createRoster(document.getElementById('name-list'), refreshHint);
+
+  // Restore a saved roster. The old build stored the raw textarea contents, so
+  // accept either shape rather than throwing away someone's list on upgrade.
+  let saved = [];
+  const raw = load(STORE_NAMES);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      saved = Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      saved = String(raw).split('\n').map((s) => s.trim()).filter(Boolean);
+    }
+  }
+  roster.setNames(saved);
+  names = roster.names();
+  refreshHint();
+  onLang(refreshHint);
+
+  document.getElementById('btn-shuffle').addEventListener('click', shuffleField);
+  document.getElementById('btn-add').addEventListener('click', () => roster.addAndFocus());
+  document.getElementById('btn-names-clear').addEventListener('click', () => {
+    roster.clear();
+    lineUp();
+  });
+
+  // A way to see what this is without typing a roster first: borrow a cast
+  // and line it up in whichever universe is showing. Start still waits.
+  document.getElementById('btn-example').addEventListener('click', () => {
+    roster.setNames(exampleNames());
+    refreshHint();
+    lineUp();
+  });
+
   // Rounds never begin by themselves; this is the only way a race starts.
   const startBtn = document.getElementById('btn-start');
   function pressStart() {
     if (!round || transitioning) return;
+    // A name typed a moment ago should be in the race, not left behind.
+    lineUp();
     if (round.start()) startBtn.hidden = true;
   }
   startBtn.addEventListener('click', pressStart);
@@ -467,18 +558,11 @@ function boot() {
   buildControls();
   resize();
   shuffleOrder();
-  names = exampleNames();
   startRound(mapById(order[0]));
-  // A language switch rewrites the universe's name and card, and a field still
-  // waiting on the line is recast in that language. A race already running is
-  // left alone; the next line-up picks the new names up.
+  // A language switch rewrites the universe's name and card. The field is
+  // whoever is in the boxes, so it is never recast.
   onLang(() => {
-    if (!round) return;
-    hud.setMap(round.mapDef);
-    if (round.phase === PHASE.READY && !transitioning) {
-      names = exampleNames();
-      startRound(round.mapDef, { seed: round.seed });
-    }
+    if (round) hud.setMap(round.mapDef);
   });
   document.body.classList.add('ready');
   requestAnimationFrame(frame);
