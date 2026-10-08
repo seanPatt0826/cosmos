@@ -25,6 +25,13 @@ import { t } from './i18n.js';
 const FIT = 0.94;
 const DOT = 3.2;
 const VF_SEED = 0x5EEDF00D;
+// Under the mouse the box stops tracing the arena's view and becomes a little
+// viewfinder held under the cursor: this much world wide, in the stage's own
+// proportions. It eases quickly enough to keep up with a moving hand, and
+// drifts back more gently when the mouse leaves.
+const POINTER_WINDOW = 340;
+const POINTER_EASE = 0.45;
+const RETURN_EASE = 0.18;
 
 // A rounded rectangle as a list of points, wobbled like everything else here so
 // the frame looks drawn rather than placed.
@@ -59,6 +66,8 @@ export function createMiniMap(canvasEl, captionEl) {
   let bg = null;
   let bgKey = '';
   let last = null;   // the fit the last frame used, for pointer lookups
+  let box = null;    // the white box as drawn last frame, in panel pixels
+  let boxKey = '';   // a new round or a resized panel snaps rather than eases
 
   // Backing store follows the box's real size, so the map is drawn at the
   // resolution it is shown at rather than stretched from a fixed bitmap.
@@ -75,6 +84,7 @@ export function createMiniMap(canvasEl, captionEl) {
     reset() {
       bg = null;
       bgKey = '';
+      box = null;
     },
 
     // World units per CSS pixel of the panel, for sizing a pointer's reach.
@@ -91,7 +101,9 @@ export function createMiniMap(canvasEl, captionEl) {
       };
     },
 
-    update(round, stageW, viewH, dpr, focusId = null) {
+    // `aim` is the world point under the mouse while it is over the arena, or
+    // null; with it, the white box follows the cursor instead of the view.
+    update(round, stageW, viewH, dpr, focusId = null, aim = null) {
       const { w: W, h: H } = size(Math.min(2, dpr || 1));
       const b = round.map.bounds;
       const s = Math.min(W / b.w, H / b.h) * FIT;
@@ -147,14 +159,31 @@ export function createMiniMap(canvasEl, captionEl) {
         g.stroke();
       }
 
-      // The white box: the patch of the universe the arena is showing right
-      // now. Its corners are the stage's corners, run back through the camera.
-      const a = screenToWorld(round.cam, 0, 0, stageW, viewH);
-      const c = screenToWorld(round.cam, stageW, viewH, stageW, viewH);
-      let x0 = a.x * s + ox;
-      let y0 = a.y * s + oy;
-      let x1 = c.x * s + ox;
-      let y1 = c.y * s + oy;
+      // The white box. With the mouse over the arena it sits under the cursor;
+      // otherwise it is the patch of the universe the arena is showing right
+      // now, its corners the stage's corners run back through the camera.
+      let tx0, ty0, tx1, ty1;
+      if (aim) {
+        const hw = POINTER_WINDOW / 2;
+        const hh = hw * (viewH / Math.max(1, stageW));
+        tx0 = (aim.x - hw) * s + ox; ty0 = (aim.y - hh) * s + oy;
+        tx1 = (aim.x + hw) * s + ox; ty1 = (aim.y + hh) * s + oy;
+      } else {
+        const a = screenToWorld(round.cam, 0, 0, stageW, viewH);
+        const c = screenToWorld(round.cam, stageW, viewH, stageW, viewH);
+        tx0 = a.x * s + ox; ty0 = a.y * s + oy;
+        tx1 = c.x * s + ox; ty1 = c.y * s + oy;
+      }
+      const bk = `${round.seed}|${round.mapDef.id}|${W}x${H}`;
+      if (!box || boxKey !== bk) {
+        box = { x0: tx0, y0: ty0, x1: tx1, y1: ty1 };
+        boxKey = bk;
+      } else {
+        const e = aim ? POINTER_EASE : RETURN_EASE;
+        box.x0 += (tx0 - box.x0) * e; box.y0 += (ty0 - box.y0) * e;
+        box.x1 += (tx1 - box.x1) * e; box.y1 += (ty1 - box.y1) * e;
+      }
+      let { x0, y0, x1, y1 } = box;
       // Kept inside the panel, so a view wider than the map still has a
       // visible frame rather than one drawn off the edge.
       const inset = 2 * k;

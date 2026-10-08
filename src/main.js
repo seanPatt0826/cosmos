@@ -62,6 +62,9 @@ let minimap = null;
 // in the mini map. Either one gets the ring; the hover wins while it lasts.
 let lockedId = null;
 let hoverId = null;
+// Where the mouse is over the arena, in stage pixels, or null. Turned into a
+// world point every frame, since the camera keeps moving under a still mouse.
+let pointerAt = null;
 let universes = null;
 
 // ── Sizing ──────────────────────────────────────────────────────────────────
@@ -260,7 +263,10 @@ function frame(now) {
   round.focusId = hoverId ?? lockedId;
   render(g, round, bg, viewW, viewH, round.time, stageW);
   drawNameTags(g, round, round.time, stageW, viewH);
-  if (minimap) minimap.update(round, stageW, viewH, dpr, round.focusId);
+  if (minimap) {
+    const aim = pointerAt && screenToWorld(round.cam, pointerAt.x, pointerAt.y, stageW, viewH);
+    minimap.update(round, stageW, viewH, dpr, round.focusId, aim);
+  }
   hud.update(round, raw);
   refreshShuffle();
   sampleFps(raw);
@@ -508,11 +514,18 @@ function buildControls() {
   });
 
   // The cursor is the only hint that any of this is clickable.
+  // A mouse over the arena also carries the white box in the mini map.
   canvas.addEventListener('pointermove', (ev) => {
     if (!round) return;
     const w = worldAt(ev);
     canvas.style.cursor = playerAt(round, w.x, w.y) ? 'pointer' : '';
+    if (ev.pointerType !== 'mouse') return;
+    const r = canvas.getBoundingClientRect();
+    const px = ev.clientX - r.left;
+    // The canvas runs under the rail; past the stage's edge is not the arena.
+    pointerAt = px > stageW ? null : { x: px, y: ev.clientY - r.top };
   });
+  canvas.addEventListener('pointerleave', () => { pointerAt = null; });
 
   window.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape') lockedId = null;
