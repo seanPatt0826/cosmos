@@ -57,6 +57,9 @@ export function update(cam, dtMs, players, viewW, viewH, bounds, opts = {}) {
   const pad = CAMERA.padding;
   let w = Math.max(220, maxX - minX) + pad * 2;
   let h = Math.max(220, maxY - minY) + pad * 2;
+  // The tightest the shot may ever be while still holding everyone left in the
+  // race, with room for their name tags. Kept before the rim floor widens w/h.
+  const fitZ = Math.min(viewW / w, viewH / h);
 
   // Keep the arena wall in shot.
   //
@@ -109,7 +112,14 @@ export function update(cam, dtMs, players, viewW, viewH, bounds, opts = {}) {
   // so to speak, not on the empty arena around them.
   if (finale) z *= CAMERA.finaleZoom;
   if (opts.zoomBias) z *= opts.zoomBias;
-  cam.tz = Math.max(CAMERA.minZoom, Math.min(CAMERA.maxZoom, z));
+  // But never so far that someone still in the race leaves the shot. The
+  // push-in used to be a flat 1.55x on top of a fit that already had the last
+  // three at its edges, so whoever was furthest out was cut off: measured
+  // over a race on every map, a racer was off-screen in one frame in five,
+  // nearly all of them in the finale. The floor gives way too, for a field
+  // spread wider than minZoom can hold.
+  z = Math.min(z, fitZ);
+  cam.tz = Math.max(Math.min(CAMERA.minZoom, fitZ), Math.min(CAMERA.maxZoom, z));
 
   // Someone is steering. With the pointer over the mini map, the white box sits
   // under it and the arena shows what is inside the box, the way a marble race
@@ -123,9 +133,22 @@ export function update(cam, dtMs, players, viewW, viewH, bounds, opts = {}) {
 
   // Frame-rate independent easing: the same feel at 30fps as at 144. A hand on
   // the mini map wants the arena to keep up with it, so steering eases faster.
+  //
+  // The slow, drifting ease is right while everyone is comfortably in shot,
+  // but a racer flung hard outruns it and leaves the frame before the camera
+  // catches up. So when anyone still in the race is outside, or nearly
+  // outside, what is on screen right now, the camera hurries.
   const f = Math.min(3, dtMs / 16.667);
-  const ke = 1 - Math.pow(1 - (aim ? CAMERA.aimEase : CAMERA.ease), f);
-  const kz = 1 - Math.pow(1 - (aim ? CAMERA.aimEase : CAMERA.zoomEase), f);
+  const escaping = !aim && alive.some((p) => {
+    const q = p.body.position;
+    const mx = viewW / 2 / cam.zoom - CAMERA.catchUpMargin / cam.zoom;
+    const my = viewH / 2 / cam.zoom - CAMERA.catchUpMargin / cam.zoom;
+    return Math.abs(q.x - cam.x) > mx || Math.abs(q.y - cam.y) > my;
+  });
+  const ease = aim ? CAMERA.aimEase : escaping ? CAMERA.catchUpEase : CAMERA.ease;
+  const zEase = aim ? CAMERA.aimEase : escaping ? CAMERA.catchUpEase : CAMERA.zoomEase;
+  const ke = 1 - Math.pow(1 - ease, f);
+  const kz = 1 - Math.pow(1 - zEase, f);
   cam.x += (cam.tx - cam.x) * ke;
   cam.y += (cam.ty - cam.y) * ke;
   cam.zoom += (cam.tz - cam.zoom) * kz;

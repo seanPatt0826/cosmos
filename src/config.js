@@ -107,6 +107,10 @@ export const CAMERA = {
   aimEase: 0.3,
   // How much world the arena holds while it is being steered from the mini map.
   aimSpan: 1100,
+  // When someone still in the race is within this many screen pixels of the
+  // edge (or past it), the camera eases this much faster to keep them in.
+  catchUpMargin: 40,
+  catchUpEase: 0.16,
   padding: 155,
   // Low enough that the whole arena fits the stage.
   //
