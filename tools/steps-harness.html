@@ -1,0 +1,133 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Step pictures</title>
+<!-- Served by tools/shoot-steps.js, which supplies /__matter.js (the copy of
+     matter-js inlined in index.html) and drives window.shoot(). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght@700&display=swap">
+<script src="/__matter.js"></script>
+<script type="module">
+  import { MAPS } from '/src/maps/index.js';
+  import { createRound, PHASE } from '/src/round.js';
+  import { render } from '/src/renderer.js';
+  import { createBackground } from '/src/background.js';
+  import { setMode } from '/src/theme.js';
+
+  const STEP = 1000 / 60;
+  const NAMES = ['Pebble', 'Thimble', 'Marigold', 'Odd Sock', 'Biscuit', 'Lantern', 'Mustard', 'Quibble'];
+  // Every sound is a no-op; nothing here is heard.
+  const audio = new Proxy({}, { get: () => () => {} });
+
+  // Three real moments from one real race: on the line, somebody going out,
+  // and the winner. Returns three image data URLs.
+  window.shoot = (mapId, mode, seed, W, H) => {
+    setMode(mode);
+    const mapDef = MAPS.find((m) => m.id === mapId);
+    const round = createRound(mapDef, seed, audio, NAMES);
+    const b = round.map.bounds;
+    const bg = createBackground(W, H, seed, mapDef.theme);
+
+    // Remember where the latest knockout happened, to circle it.
+    let lastOut = null;
+    const kill = round.kill.bind(round);
+    round.kill = (p, kind, opts = {}) => {
+      const pos = p.body ? { x: p.body.position.x, y: p.body.position.y } : null;
+      const ok = kill(p, kind, opts);
+      if (ok && pos) lastOut = { pos, col: p.col, at: round.time };
+      return ok;
+    };
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const g = canvas.getContext('2d');
+
+    function frame(opts = {}) {
+      // The whole arena, every time: a still has no camera work to follow.
+      const cam = round.cam;
+      cam.x = b.x + b.w / 2;
+      cam.y = b.y + b.h / 2;
+      cam.zoom = Math.min(W / b.w, H / b.h) * 0.96;
+      cam.ox = 0; cam.oy = 0; cam.shake = 0;
+      render(g, round, bg, W, H, round.time, W);
+
+      // Seen whole, the racers are a few pixels across, so each gets a
+      // coloured dot the way the mini map shows them.
+      const toScreen = (x, y) => ({ x: (x - cam.x) * cam.zoom + W / 2, y: (y - cam.y) * cam.zoom + H / 2 });
+      for (const p of round.alivePlayers()) {
+        const s = toScreen(p.body.position.x, p.body.position.y);
+        g.beginPath();
+        g.arc(s.x, s.y, opts.big ? 9 : 6, 0, Math.PI * 2);
+        g.fillStyle = p.col.crayon;
+        g.fill();
+        g.lineWidth = 2;
+        g.strokeStyle = mode === 'light' ? '#2E2934' : '#F2EADB';
+        g.stroke();
+      }
+      if (opts.out && lastOut) {
+        const s = toScreen(lastOut.pos.x, lastOut.pos.y);
+        g.save();
+        g.lineWidth = 3;
+        g.strokeStyle = '#E8584A';
+        g.setLineDash([6, 5]);
+        g.beginPath();
+        g.arc(s.x, s.y, 20, 0, Math.PI * 2);
+        g.stroke();
+        g.setLineDash([]);
+        g.lineCap = 'round';
+        g.beginPath();
+        g.moveTo(s.x - 7, s.y - 7); g.lineTo(s.x + 7, s.y + 7);
+        g.moveTo(s.x + 7, s.y - 7); g.lineTo(s.x - 7, s.y + 7);
+        g.stroke();
+        g.restore();
+      }
+      // The winner's name, kept inside the frame: a winner near the edge would
+      // otherwise have it cut off.
+      if (opts.names) {
+        const w = round.winner || round.alivePlayers()[0];
+        if (w && w.body && w.name) {
+          const s = toScreen(w.body.position.x, w.body.position.y);
+          g.save();
+          g.font = '700 22px "Shantell Sans", "Comic Sans MS", cursive';
+          g.textAlign = 'center';
+          g.textBaseline = 'middle';
+          const tw = g.measureText(w.name).width;
+          const x = Math.max(tw / 2 + 8, Math.min(W - tw / 2 - 8, s.x));
+          // Under the dot, unless that would fall off the bottom.
+          const y = s.y + 26 > H - 14 ? s.y - 26 : s.y + 26;
+          g.lineJoin = 'round';
+          g.lineWidth = 5;
+          g.strokeStyle = mode === 'light' ? 'rgba(250, 246, 237, 0.95)' : 'rgba(7, 6, 15, 0.9)';
+          g.fillStyle = mode === 'light' ? '#2E2934' : '#F2EADB';
+          g.strokeText(w.name, x, y);
+          g.fillText(w.name, x, y);
+          g.restore();
+        }
+      }
+      return canvas.toDataURL('image/webp', 0.86);
+    }
+
+    const shots = [];
+    // 1. On the line, faded all the way up.
+    for (let t = 0; t < 1800; t += STEP) round.update(STEP);
+    shots.push(frame());
+
+    // 2. The first time the field is down to half: a moment after the
+    //    knockout, so the circle marks something that just happened.
+    round.start();
+    const half = Math.ceil(round.startCount / 2);
+    let guard = 0;
+    while (round.aliveCount > half && round.phase !== PHASE.WINNER && guard++ < 60 * 300) round.update(STEP);
+    for (let t = 0; t < 120; t += STEP) round.update(STEP);
+    shots.push(frame({ out: true }));
+
+    // 3. The winner, with the bloom under way and their name on.
+    while (round.phase !== PHASE.WINNER && guard++ < 60 * 300) round.update(STEP);
+    for (let t = 0; t < 700; t += STEP) round.update(STEP);
+    const won = round.phase === PHASE.WINNER || round.phase === PHASE.DONE;
+    shots.push(frame({ big: true, names: true }));
+
+    round.destroy();
+    return { shots, won, seconds: Math.round(round.elapsed / 1000) };
+  };
+  window.ready = true;
+</script>

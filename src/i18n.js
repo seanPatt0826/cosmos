@@ -94,6 +94,17 @@ const KO = {
   'Last one left wins.': '마지막까지 남으면 우승!',
   'Out if': '탈락 조건',
   'Watch for': '주의할 점',
+
+  // Step-by-step pictures in the How it works card
+  'Line up': '출발 준비',
+  'Everyone waits on the line. Press Start to go.': '모두 출발선에서 기다려요. 시작을 누르면 출발!',
+  'Knocked off the map.': '맵 밖으로 밀려나면 탈락.',
+  'Step {n} of {total}': '{total}단계 중 {n}단계',
+  'Previous step': '이전 단계',
+  'Next step': '다음 단계',
+  'Step 1': '1단계',
+  'Step 2': '2단계',
+  'Step 3': '3단계',
   'Falling into a black hole.': '블랙홀에 빠지면 탈락.',
   'Crashing into the planet, a black hole, or drifting past the ring.': '행성이나 블랙홀에 부딪히거나, 고리 밖으로 떠내려가면 탈락.',
   'Getting knocked past the closing ring, or into a black hole.': '좁혀지는 고리 밖으로 밀려나거나, 블랙홀에 빠지면 탈락.',
