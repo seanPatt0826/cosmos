@@ -54,6 +54,53 @@ export function render(g, round, bg, viewW, viewH, time, stageW = viewW) {
   finish(g, viewW, viewH);
 }
 
+// Each entrant's name, written just under its drawing, so whoever typed it in
+// can find themselves in the crowd.
+//
+// Drawn in screen space rather than in the arena. The camera pulls out as far
+// as 0.2× to fit a whole ring, and lettering scaled with it would shrink to a
+// smudge exactly when the field is biggest and hardest to search.
+//
+// Not part of render(): main.js calls it after the close-up has copied the
+// frame, and after the paper, so neither magnifies nor muddies the lettering.
+export function drawNameTags(g, round, time, stageW, viewH) {
+  const { players, phase, phaseTime, cam } = round;
+  if (!players.some((p) => p.name)) return;
+
+  const waiting = phase === PHASE.READY || phase === PHASE.COUNTDOWN;
+  const intro = phase === PHASE.READY
+    ? Math.min(1, phaseTime / (ROUND.countdownMs * 0.55))
+    : 1;
+  const light = isLight();
+
+  g.save();
+  g.font = '600 12.5px "Shantell Sans", "Comic Sans MS", cursive';
+  g.textAlign = 'center';
+  g.textBaseline = 'top';
+  g.lineJoin = 'round';
+  g.lineWidth = 3.5;
+  g.strokeStyle = light ? 'rgba(250, 246, 237, 0.92)' : 'rgba(7, 6, 15, 0.85)';
+  g.fillStyle = light ? '#2E2934' : '#F2EADB';
+
+  for (const p of players) {
+    if (!p.name || !p.alive || !p.body) continue;
+    const pos = p.body.position;
+    // Follows the same bob as the drawing, or the tag swims under it.
+    let y = pos.y;
+    let scale = 1;
+    if (waiting) {
+      y += Math.sin(time * 0.0022 + p.id * 0.9) * 7;
+      scale = 0.62 + 0.38 * ease(intro);
+    }
+    const s = worldToScreen(cam, pos.x, y, stageW, viewH);
+    const below = BODY.radius * scale * cam.zoom + 5;
+    g.globalAlpha = intro;
+    g.strokeText(p.name, s.x, s.y + below);
+    g.fillText(p.name, s.x, s.y + below);
+  }
+  g.restore();
+}
+
 // The paper-and-vignette pass, built once per size and theme.
 //
 // This used to be a full-screen `overlay` composite (for the grain) plus a

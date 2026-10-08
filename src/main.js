@@ -2,7 +2,7 @@
 
 import { MAPS, mapById } from './maps/index.js';
 import { createRound, PHASE } from './round.js';
-import { render } from './renderer.js';
+import { render, drawNameTags } from './renderer.js';
 import { createBackground } from './background.js';
 import { createAudio } from './audio.js';
 import { createHud } from './hud.js';
@@ -228,6 +228,9 @@ function frame(now) {
   if (chase) chase.update(round, raw, canvas, stageW, viewH, dpr);
   // After the close-up, never before: it copies pixels off this canvas.
   if (chase) chase.drawViewfinder(g);
+  // Names too: copied into the close-up they came out enormous and buried
+  // the very drawing they were labelling. The caption names it there.
+  drawNameTags(g, round, round.time, stageW, viewH);
   hud.update(round, raw);
   sampleFps(raw);
 
