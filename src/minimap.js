@@ -6,6 +6,10 @@
 // the white box sits on the panel, marking the part of it the big arena is
 // showing. When the arena pulls in for the finale, the box shrinks.
 //
+// Move the mouse over the arena and the panel follows it instead: it flies in
+// on the cursor as a close-up, racers at their real size with their names, and
+// pulls back out to the whole map when the mouse leaves.
+//
 // It draws the live map rather than a copy of the arena's pixels, because the
 // arena is not always showing all of it. The scenery is the real thing, drawn
 // with each map's own drawBack and drawFront exactly the way the universe
@@ -25,11 +29,11 @@ import { t } from './i18n.js';
 const FIT = 0.94;
 const DOT = 3.2;
 const VF_SEED = 0x5EEDF00D;
-// Under the mouse the box stops tracing the arena's view and becomes a little
-// viewfinder held under the cursor: this much world wide, in the stage's own
-// proportions. It eases quickly enough to keep up with a moving hand, and
-// drifts back more gently when the mouse leaves.
-const POINTER_WINDOW = 340;
+// With the mouse over the arena the panel becomes a close-up that follows the
+// cursor, this much world across. It eases quickly enough to keep up with a
+// moving hand, and pulls back out to the whole map more gently when the mouse
+// leaves.
+const POINTER_WINDOW = 520;
 const POINTER_EASE = 0.45;
 const RETURN_EASE = 0.18;
 
@@ -66,8 +70,12 @@ export function createMiniMap(canvasEl, captionEl) {
   let bg = null;
   let bgKey = '';
   let last = null;   // the fit the last frame used, for pointer lookups
-  let box = null;    // the white box as drawn last frame, in panel pixels
-  let boxKey = '';   // a new round or a resized panel snaps rather than eases
+  let view = null;   // the panel's camera: world centre and scale, eased
+  let viewKey = '';  // a new round or a resized panel snaps rather than eases
+  let font = '';
+  // The page's own handwriting, read once, so names here match the arena's.
+  const labelFont = () => font
+    || (font = getComputedStyle(document.body).fontFamily || 'cursive');
 
   // Backing store follows the box's real size, so the map is drawn at the
   // resolution it is shown at rather than stretched from a fixed bitmap.
@@ -84,7 +92,7 @@ export function createMiniMap(canvasEl, captionEl) {
     reset() {
       bg = null;
       bgKey = '';
-      box = null;
+      view = null;
     },
 
     // World units per CSS pixel of the panel, for sizing a pointer's reach.
@@ -102,14 +110,35 @@ export function createMiniMap(canvasEl, captionEl) {
     },
 
     // `aim` is the world point under the mouse while it is over the arena, or
-    // null; with it, the white box follows the cursor instead of the view.
+    // null; with it, the panel zooms in on that point and follows it.
     update(round, stageW, viewH, dpr, focusId = null, aim = null) {
       const { w: W, h: H } = size(Math.min(2, dpr || 1));
       const b = round.map.bounds;
-      const s = Math.min(W / b.w, H / b.h) * FIT;
+      // The panel's own camera. At rest it holds the whole universe; with the
+      // mouse over the arena it flies in on the cursor and follows it, and
+      // when the mouse leaves it pulls back out to the whole map again.
+      const fitS = Math.min(W / b.w, H / b.h) * FIT;
+      const want = aim
+        ? { x: aim.x, y: aim.y, s: W / POINTER_WINDOW }
+        : { x: b.x + b.w / 2, y: b.y + b.h / 2, s: fitS };
+      const vk = `${round.seed}|${round.mapDef.id}|${W}x${H}`;
+      if (!view || viewKey !== vk) {
+        view = { ...want };
+        viewKey = vk;
+      } else {
+        const e = aim ? POINTER_EASE : RETURN_EASE;
+        view.x += (want.x - view.x) * e;
+        view.y += (want.y - view.y) * e;
+        // Zoom eases in log space, so going in and coming out feel the same.
+        view.s = Math.exp(Math.log(view.s) + (Math.log(want.s) - Math.log(view.s)) * e);
+      }
+      const s = view.s;
+      // 0 at the whole map, 1 fully zoomed in on the cursor.
+      const zoom = Math.max(0, Math.min(1,
+        Math.log(s / fitS) / Math.log(Math.max(1.0001, (W / POINTER_WINDOW) / fitS))));
       // World -> panel: p * s + o.
-      const ox = W / 2 - (b.x + b.w / 2) * s;
-      const oy = H / 2 - (b.y + b.h / 2) * s;
+      const ox = W / 2 - view.x * s;
+      const oy = H / 2 - view.y * s;
       last = { s, ox, oy, w: W, h: H };
 
       const key = `${round.seed}|${round.mapDef.id}|${W}x${H}|${isLight() ? 'l' : 'd'}`;
@@ -142,7 +171,9 @@ export function createMiniMap(canvasEl, captionEl) {
         const x = p.body.position.x * s + ox;
         const y = p.body.position.y * s + oy;
         const focus = focusId !== null && p.body.id === focusId;
-        const r = DOT * k * (focus ? 1.6 : 1);
+        // Zoomed in, a dot grows to the racer's real size, so the close-up
+        // reads as the objects themselves rather than as pins.
+        const r = Math.max(DOT * k, (p.body.circleRadius || 0) * s) * (focus ? 1.6 : 1);
         if (focus) {
           g.beginPath();
           g.arc(x, y, r + 3.5 * k, 0, Math.PI * 2);
@@ -157,33 +188,32 @@ export function createMiniMap(canvasEl, captionEl) {
         g.lineWidth = 1 * k;
         g.strokeStyle = light ? 'rgba(46,41,52,0.55)' : 'rgba(7,6,15,0.7)';
         g.stroke();
+        // Close enough in to read, the name goes under the drawing.
+        if (zoom > 0.6 && p.name) {
+          g.font = `600 ${11 * k}px ${labelFont()}`;
+          g.textAlign = 'center';
+          g.textBaseline = 'top';
+          g.globalAlpha = Math.min(1, (zoom - 0.6) / 0.3);
+          g.lineWidth = 3 * k;
+          g.strokeStyle = light ? 'rgba(242,238,228,0.9)' : 'rgba(7,6,15,0.85)';
+          g.strokeText(p.name, x, y + r + 3 * k);
+          g.fillStyle = light ? 'rgba(46,41,52,0.95)' : 'rgba(242,240,255,0.95)';
+          g.fillText(p.name, x, y + r + 3 * k);
+          g.globalAlpha = 1;
+        }
       }
 
-      // The white box. With the mouse over the arena it sits under the cursor;
-      // otherwise it is the patch of the universe the arena is showing right
+      // The white box: the patch of the universe the arena is showing right
       // now, its corners the stage's corners run back through the camera.
-      let tx0, ty0, tx1, ty1;
-      if (aim) {
-        const hw = POINTER_WINDOW / 2;
-        const hh = hw * (viewH / Math.max(1, stageW));
-        tx0 = (aim.x - hw) * s + ox; ty0 = (aim.y - hh) * s + oy;
-        tx1 = (aim.x + hw) * s + ox; ty1 = (aim.y + hh) * s + oy;
-      } else {
-        const a = screenToWorld(round.cam, 0, 0, stageW, viewH);
-        const c = screenToWorld(round.cam, stageW, viewH, stageW, viewH);
-        tx0 = a.x * s + ox; ty0 = a.y * s + oy;
-        tx1 = c.x * s + ox; ty1 = c.y * s + oy;
-      }
-      const bk = `${round.seed}|${round.mapDef.id}|${W}x${H}`;
-      if (!box || boxKey !== bk) {
-        box = { x0: tx0, y0: ty0, x1: tx1, y1: ty1 };
-        boxKey = bk;
-      } else {
-        const e = aim ? POINTER_EASE : RETURN_EASE;
-        box.x0 += (tx0 - box.x0) * e; box.y0 += (ty0 - box.y0) * e;
-        box.x1 += (tx1 - box.x1) * e; box.y1 += (ty1 - box.y1) * e;
-      }
-      let { x0, y0, x1, y1 } = box;
+      // Only while the panel holds the whole map; zoomed in on the cursor the
+      // panel is a close-up, and the arena's frame would be far off its edges.
+      const a = screenToWorld(round.cam, 0, 0, stageW, viewH);
+      const c = screenToWorld(round.cam, stageW, viewH, stageW, viewH);
+      let x0 = a.x * s + ox;
+      let y0 = a.y * s + oy;
+      let x1 = c.x * s + ox;
+      let y1 = c.y * s + oy;
+      const boxAlpha = 1 - Math.min(1, zoom / 0.25);
       // Kept inside the panel, so a view wider than the map still has a
       // visible frame rather than one drawn off the edge.
       const inset = 2 * k;
@@ -191,7 +221,8 @@ export function createMiniMap(canvasEl, captionEl) {
       x1 = Math.min(W - inset, x1); y1 = Math.min(H - inset, y1);
       const bw = x1 - x0;
       const bh = y1 - y0;
-      if (bw > 4 && bh > 4) {
+      if (bw > 4 && bh > 4 && boxAlpha > 0.01) {
+        g.globalAlpha = boxAlpha;
         const pts = roundedRectPath(makeRng(VF_SEED), x0, y0, bw, bh, Math.min(bw, bh) * 0.12, 0.5 * k);
         // Dark under light, so neither theme can swallow it.
         strokeSketch(g, pts, makeRng(VF_SEED), {
@@ -200,6 +231,7 @@ export function createMiniMap(canvasEl, captionEl) {
         strokeSketch(g, pts, makeRng(VF_SEED), {
           color: 'rgba(242,240,255,0.9)', width: 1.4 * k, alpha: 0.85, passes: 2,
         });
+        g.globalAlpha = 1;
       }
 
       const alive = round.alivePlayers().length;
