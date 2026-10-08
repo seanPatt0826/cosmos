@@ -100,7 +100,7 @@ const KO = {
   'Touching a star, a black hole, or getting flung past the ring.': '별이나 블랙홀에 닿거나, 고리 밖으로 튕겨 나가면 탈락.',
   'Bouncing past the shrinking ring, or into a black hole.': '줄어드는 고리 밖으로 튕겨 나가거나, 블랙홀에 빠지면 탈락.',
   "Touching the star's core, or getting thrown past the ring.": '별의 중심에 닿거나, 고리 밖으로 내던져지면 탈락.',
-  'Falling into the black hole, or drifting past the ring.': '블랙홀에 빠지거나, 고리 밖으로 떠내려가면 탈락.',
+  'Falling into a black hole, or drifting past the ring.': '블랙홀에 빠지거나, 고리 밖으로 떠내려가면 탈락.',
   'The holes creep toward the middle. Purple clouds slow you down; pulsars can fling you clear.': '블랙홀이 점점 가운데로 다가와요. 보라색 구름은 속도를 늦추고, 펄서는 멀리 튕겨 줄 수 있어요.',
   'The planet keeps getting heavier, so every orbit slowly sinks.': '행성이 계속 무거워져서 모든 궤도가 조금씩 가라앉아요.',
   'No gravity here. Only collisions move you, and the ring keeps shrinking.': '여기엔 중력이 없어요. 부딪혀야만 움직이고, 고리는 계속 줄어들어요.',

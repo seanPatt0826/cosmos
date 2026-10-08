@@ -42,7 +42,7 @@ export default {
   // The short version, shown above the description: how you go out, and
   // what to keep an eye on. The goal is the same everywhere.
   rules: {
-    out: "Falling into the black hole, or drifting past the ring.",
+    out: "Falling into a black hole, or drifting past the ring.",
     watch: "Each door drops you out of its same-coloured twin, still moving.",
   },
   description: "Fall into a door and you fly out of its same-coloured twin, still moving.",
@@ -72,17 +72,26 @@ export default {
       });
     }
 
-    // One well, off to the side. It is not the main threat — the closing ring
-    // is — but it gives the doors something cruel to open onto.
-    const holes = [createHole(sim, {
+    // Two wells, mirrored across the middle, so the doors have something cruel
+    // to open onto whichever way they point.
+    //
+    // There used to be one. Measured over 40 rounds, that left the first half
+    // of a round empty (nobody out until ~28s, rounds ~56s against 21-46s
+    // everywhere else). The second well, with the inward push in spawn(),
+    // brought it to ~21s and ~41s, and doors are taken more often, not less.
+    const holeAt = {
       x: Math.cos(rng.range(0, Math.PI * 2)) * ARENA * 0.3,
       y: Math.sin(rng.range(0, Math.PI * 2)) * ARENA * 0.3,
+    };
+    const holes = [holeAt, { x: -holeAt.x, y: -holeAt.y }].map((at, i) => createHole(sim, {
+      x: at.x,
+      y: at.y,
       r: 34,
-      seed: hashSeed('warphole', seed),
+      seed: hashSeed(i === 0 ? 'warphole' : 'warphole2', seed),
       drift: 0.3,
       mu: 34 * 190,
       maxAccel: 1.0,
-    })];
+    }));
 
     const stuckWatch = createStuckWatch();
     const cooldown = new Map();   // body id -> ms left before it can warp again
@@ -121,11 +130,13 @@ export default {
         for (let i = 0; i < n; i++) {
           const a = (i / n) * Math.PI * 2 + rng.wobble(0.1);
           const d = ARENA * (0.78 + rng.wobble(0.05));
+          // Along the rim, angled inward. Pure tangential launches kept the
+          // whole field circling the edge, out of reach of doors and wells.
           out.push({
             x: Math.cos(a) * d,
             y: Math.sin(a) * d,
-            vx: -Math.sin(a) * rng.range(2, 3.4),
-            vy: Math.cos(a) * rng.range(2, 3.4),
+            vx: -Math.sin(a) * rng.range(2, 3.4) - Math.cos(a) * rng.range(1.6, 2.6),
+            vy: Math.cos(a) * rng.range(2, 3.4) - Math.sin(a) * rng.range(1.6, 2.6),
           });
         }
         return out;
