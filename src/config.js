@@ -103,6 +103,10 @@ export const ROUND = {
 export const CAMERA = {
   ease: 0.055,
   zoomEase: 0.035,
+  // While the mini map is steering the camera; see camera.js.
+  aimEase: 0.3,
+  // How much world the arena holds while it is being steered from the mini map.
+  aimSpan: 1100,
   padding: 155,
   // Low enough that the whole arena fits the stage.
   //

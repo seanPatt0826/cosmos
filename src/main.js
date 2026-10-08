@@ -6,7 +6,7 @@ import { render, drawNameTags } from './renderer.js';
 import { createBackground } from './background.js';
 import { createAudio } from './audio.js';
 import { createHud } from './hud.js';
-import { ROUND } from './config.js';
+import { ROUND, CAMERA } from './config.js';
 import { update as updateCamera, screenToWorld } from './camera.js';
 import { setMode, isLight } from './theme.js';
 import { createRoster } from './roster.js';
@@ -62,9 +62,9 @@ let minimap = null;
 // in the mini map. Either one gets the ring; the hover wins while it lasts.
 let lockedId = null;
 let hoverId = null;
-// Where the mouse is over the arena, in stage pixels, or null. Turned into a
-// world point every frame, since the camera keeps moving under a still mouse.
-let pointerAt = null;
+// The world point under the pointer while it is over the mini map, or null.
+// While it is set, the arena camera goes there instead of following the race.
+let steerAt = null;
 let universes = null;
 
 // ── Sizing ──────────────────────────────────────────────────────────────────
@@ -266,16 +266,13 @@ function frame(now) {
 
   if (dt > 0) round.update(dt);
   updateCamera(round.cam, Math.max(1, raw), round.players, stageW, viewH, round.map.bounds,
-    { edge: round.map.edge, waiting: round.phase === PHASE.READY || round.phase === PHASE.COUNTDOWN });
+    { edge: round.map.edge, waiting: round.phase === PHASE.READY || round.phase === PHASE.COUNTDOWN, aim: steerAt });
   // A ringed racer who has gone out releases the ring.
   if (lockedId !== null && !round.alivePlayers().some((p) => p.body.id === lockedId)) lockedId = null;
   round.focusId = hoverId ?? lockedId;
   render(g, round, bg, viewW, viewH, round.time, stageW);
   drawNameTags(g, round, round.time, stageW, viewH);
-  if (minimap) {
-    const aim = pointerAt && screenToWorld(round.cam, pointerAt.x, pointerAt.y, stageW, viewH);
-    minimap.update(round, stageW, viewH, dpr, round.focusId, aim);
-  }
+  if (minimap) minimap.update(round, stageW, viewH, dpr, round.focusId);
   hud.update(round, raw);
   // One name stands on the line but cannot race alone.
   if (!racing()) document.getElementById('btn-start').hidden = true;
@@ -526,18 +523,11 @@ function buildControls() {
   });
 
   // The cursor is the only hint that any of this is clickable.
-  // A mouse over the arena also carries the white box in the mini map.
   canvas.addEventListener('pointermove', (ev) => {
     if (!round) return;
     const w = worldAt(ev);
     canvas.style.cursor = playerAt(round, w.x, w.y) ? 'pointer' : '';
-    if (ev.pointerType !== 'mouse') return;
-    const r = canvas.getBoundingClientRect();
-    const px = ev.clientX - r.left;
-    // The canvas runs under the rail; past the stage's edge is not the arena.
-    pointerAt = px > stageW ? null : { x: px, y: ev.clientY - r.top };
   });
-  canvas.addEventListener('pointerleave', () => { pointerAt = null; });
 
   window.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape') lockedId = null;
@@ -557,9 +547,11 @@ function buildControls() {
       const reach = minimap.worldPerPx(r.width) * 10;
       const p = w ? playerAt(round, w.x, w.y, reach) : null;
       hoverId = p ? p.body.id : null;
-      miniEl.style.cursor = p ? 'pointer' : '';
+      miniEl.style.cursor = p ? 'pointer' : 'crosshair';
+      // The white box follows the pointer, and the arena goes where it goes.
+      steerAt = w ? { x: w.x, y: w.y, span: CAMERA.aimSpan } : null;
     });
-    miniEl.addEventListener('pointerleave', () => { hoverId = null; });
+    miniEl.addEventListener('pointerleave', () => { hoverId = null; steerAt = null; });
     // A click on a dot keeps the ring after the pointer moves away.
     miniEl.addEventListener('pointerdown', () => { if (hoverId !== null) lockedId = hoverId; });
   }

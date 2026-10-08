@@ -111,10 +111,21 @@ export function update(cam, dtMs, players, viewW, viewH, bounds, opts = {}) {
   if (opts.zoomBias) z *= opts.zoomBias;
   cam.tz = Math.max(CAMERA.minZoom, Math.min(CAMERA.maxZoom, z));
 
-  // Frame-rate independent easing: the same feel at 30fps as at 144.
+  // Someone is steering. With the pointer over the mini map, the white box sits
+  // under it and the arena shows what is inside the box, the way a marble race
+  // lets you drag its camera around the track. The commentator waits.
+  const aim = opts.aim;
+  if (aim) {
+    cam.tx = aim.x;
+    cam.ty = aim.y;
+    cam.tz = Math.max(CAMERA.minZoom, Math.min(CAMERA.maxZoom, viewW / aim.span));
+  }
+
+  // Frame-rate independent easing: the same feel at 30fps as at 144. A hand on
+  // the mini map wants the arena to keep up with it, so steering eases faster.
   const f = Math.min(3, dtMs / 16.667);
-  const ke = 1 - Math.pow(1 - CAMERA.ease, f);
-  const kz = 1 - Math.pow(1 - CAMERA.zoomEase, f);
+  const ke = 1 - Math.pow(1 - (aim ? CAMERA.aimEase : CAMERA.ease), f);
+  const kz = 1 - Math.pow(1 - (aim ? CAMERA.aimEase : CAMERA.zoomEase), f);
   cam.x += (cam.tx - cam.x) * ke;
   cam.y += (cam.ty - cam.y) * ke;
   cam.zoom += (cam.tz - cam.zoom) * kz;
