@@ -12,6 +12,7 @@ import { setMode, isLight } from './theme.js';
 import { createRoster } from './roster.js';
 import { createCameraBox, playerAt } from './camerabox.js';
 import { createUniverses } from './universes.js';
+import { installTooltips } from './tooltip.js';
 
 const STORE_NAMES = 'cosmos.names';
 const STORE_THEME = 'cosmos.theme';
@@ -503,6 +504,7 @@ function boot() {
     document.getElementById('banner').className = 'on final';
     return;
   }
+  installTooltips();
   buildControls();
   resize();
   shuffleOrder();

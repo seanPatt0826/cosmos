@@ -67,7 +67,11 @@ export function createRoster(listEl, onChange) {
     del.className = 'name-del';
     del.tabIndex = -1;
     del.title = 'Remove';
-    del.textContent = '×';
+    del.setAttribute('aria-label', 'Remove this name');
+    // Drawn rather than typed: the font's × sits on a text baseline and never
+    // lands in the middle of a round button. Same cross as the card's close.
+    del.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"'
+      + ' fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 
     del.addEventListener('click', () => {
       if (inputs().length <= MIN_ROWS) {
