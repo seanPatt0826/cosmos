@@ -104,7 +104,14 @@ export const CAMERA = {
   ease: 0.055,
   zoomEase: 0.035,
   padding: 155,
-  minZoom: 0.35,
+  // Low enough that the whole arena fits the stage.
+  //
+  // This was 0.35, which is above the zoom every arena needs to fit beside a
+  // two-column rail — 0.23 for Bumper Field, 0.31 for the tightest. The floor
+  // won, so the ring was drawn wider than the stage and its right-hand arc
+  // passed behind the panels. A rim that goes all the way round is no use if
+  // a third of it is underneath something.
+  minZoom: 0.2,
   maxZoom: 2.1,
   // Extra push-in once the population is small, so the finale reads close.
   finaleZoom: 1.55,

@@ -16,9 +16,12 @@ export function createHud() {
     standings: document.getElementById('standings'),
     mapName: document.getElementById('map-name'),
     mapBlurb: document.getElementById('map-blurb'),
+    aboutTitle: document.getElementById('map-about-title'),
+    aboutText: document.getElementById('map-about-text'),
     banner: document.getElementById('banner'),
     fade: document.getElementById('fade'),
     controls: document.getElementById('controls'),
+    start: document.getElementById('btn-start'),
     feed: document.getElementById('feed'),
     feedList: document.getElementById('feed-list'),
   };
@@ -34,6 +37,12 @@ export function createHud() {
     setMap(mapDef) {
       el.mapName.textContent = mapDef.name;
       el.mapBlurb.textContent = mapDef.blurb;
+      // The long explanation lives on the arena, so you can read what the
+      // universe does while watching it do it.
+      // The name is already written just above the card, so the heading
+      // does not repeat it (and long names would only be clipped).
+      if (el.aboutTitle) el.aboutTitle.setAttribute('aria-label', `How ${mapDef.name} works`);
+      if (el.aboutText) el.aboutText.textContent = mapDef.description || mapDef.blurb || '';
       el.mapName.classList.remove('intro');
       // Restart the CSS animation by forcing a reflow.
       void el.mapName.offsetWidth;
@@ -49,6 +58,9 @@ export function createHud() {
       if (round.idle) {
         setBanner('', '');
         el.count.textContent = 'waiting for names';
+      } else if (round.phase === PHASE.READY) {
+        setBanner('', '');
+        el.count.textContent = `${round.startCount} entrants`;
       } else if (round.phase === PHASE.COUNTDOWN) {
         const left = Math.ceil((ROUND.countdownMs - round.phaseTime) / 1000);
         setBanner(String(Math.max(1, left)), 'count-in');
@@ -64,6 +76,10 @@ export function createHud() {
         setBanner('', '');
         el.count.textContent = `${n} left`;
       }
+
+      // Only offered while a field is on the line. Kept out of the controls
+      // bar's auto-hide: nobody should have to wiggle the mouse to find it.
+      if (el.start) el.start.hidden = round.phase !== PHASE.READY;
 
       renderStandings(round);
       drawFeed(round);

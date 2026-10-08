@@ -14,6 +14,8 @@ import { createCamera, nudge } from './camera.js';
 import { makeRng, hashSeed } from './rng.js';
 
 export const PHASE = {
+  // Lined up and waiting for somebody to press start. Nothing moves until then.
+  READY: 'ready',
   COUNTDOWN: 'countdown',
   RUNNING: 'running',
   WINNER: 'winner',
@@ -70,8 +72,9 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
     audio,
     seed,
     idle,
-    // Nothing to count in for when there is nobody on the start line.
-    phase: idle ? PHASE.RUNNING : PHASE.COUNTDOWN,
+    // Nothing to count in for when there is nobody on the start line. With a
+    // field, the round waits on the line until someone presses start.
+    phase: idle ? PHASE.RUNNING : PHASE.READY,
     time: 0,
     elapsed: 0,
     phaseTime: 0,
@@ -217,10 +220,21 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
     if (stillest) round.kill(stillest, 'drift', { at: stillest.body.position });
   }
 
+  // The only way out of READY. Returns false if there was nothing to start.
+  round.start = () => {
+    if (round.phase !== PHASE.READY) return false;
+    round.phase = PHASE.COUNTDOWN;
+    round.phaseTime = 0;
+    return true;
+  };
+
   round.update = function update(dtMs) {
     round.time += dtMs;
 
-    if (round.phase === PHASE.COUNTDOWN) {
+    if (round.phase === PHASE.READY) {
+      // Only drives the fade-in on the line; the countdown keeps its own clock.
+      round.phaseTime += dtMs;
+    } else if (round.phase === PHASE.COUNTDOWN) {
       round.phaseTime += dtMs;
       if (round.phaseTime >= ROUND.countdownMs) {
         for (const p of players) {

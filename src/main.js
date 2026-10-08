@@ -1,4 +1,4 @@
-// Boot, the master loop, and the controls nobody has to touch.
+// Boot, the master loop, and the controls.
 
 import { MAPS, mapById } from './maps/index.js';
 import { createRound, PHASE } from './round.js';
@@ -15,6 +15,7 @@ import { createUniverses } from './universes.js';
 
 const STORE_NAMES = 'cosmos.names';
 const STORE_THEME = 'cosmos.theme';
+const STORE_ABOUT = 'cosmos.about';
 
 // Storage is a convenience, never a requirement. A private window, blocked site
 // data or a quota error must all degrade to "no saved roster", not to a broken
@@ -152,13 +153,13 @@ function startRound(mapDef) {
 
 // Reflects the boxes into the hint line. Deliberately does NOT restart the
 // round: you would not want the race resetting under you on every keystroke.
-// "Race these" is what commits the roster.
+// "Line them up" is what commits the roster; Start is what runs it.
 function refreshHint() {
   const n = roster ? roster.names().length : 0;
   // The field is exactly the roster, so the hint counts entrants rather than
   // explaining what happens to the strangers — there are none any more.
   document.getElementById('names-hint').textContent =
-    n >= MIN_RACERS ? `${n} racing. One object each.`
+    n >= MIN_RACERS ? `${n} entrants. Line them up, then press Start.`
       : n === 1 ? 'One more and they can race.'
         : 'Add names, or watch an example.';
 
@@ -230,11 +231,14 @@ function frame(now) {
   hud.update(round, raw);
   sampleFps(raw);
 
+  // A finished race lines the same field up again on the same map and waits.
+  // It used to move on to the next universe by itself; which map comes next is
+  // for the people watching to pick.
   if (round.phase === PHASE.DONE && !transitioning) {
     transitioning = true;
     hud.fadeOut();
     setTimeout(() => {
-      nextRound();
+      startRound(round.mapDef);
       hud.fadeIn();
       transitioning = false;
     }, ROUND.fadeMs * 0.55);
@@ -342,6 +346,22 @@ function buildControls() {
   themeBtn.addEventListener('click', () => applyTheme(isLight() ? 'dark' : 'light'));
   applyTheme(load(STORE_THEME) === 'light' ? 'light' : 'dark', { rebuild: false });
 
+  // The "how this universe works" card on the arena. Open by default so a
+  // first visit explains itself; once closed it stays closed, with the round
+  // button left in its place to bring it back.
+  const aboutCard = document.getElementById('map-about');
+  const aboutOpen = document.getElementById('btn-about-open');
+  const aboutClose = document.getElementById('btn-about-close');
+  function showAboutCard(open, { focus = false } = {}) {
+    aboutCard.hidden = !open;
+    aboutOpen.hidden = open;
+    save(STORE_ABOUT, open ? 'open' : 'closed');
+    if (focus) (open ? aboutClose : aboutOpen).focus();
+  }
+  aboutClose.addEventListener('click', () => showAboutCard(false, { focus: true }));
+  aboutOpen.addEventListener('click', () => showAboutCard(true, { focus: true }));
+  showAboutCard(load(STORE_ABOUT) !== 'closed');
+
   roster = createRoster(document.getElementById('name-list'), refreshHint);
 
   // Restore a saved roster. The old build stored the raw textarea contents, so
@@ -368,13 +388,25 @@ function buildControls() {
   });
 
   // Nothing runs on its own any more, so there has to be a way to see what
-  // this is without typing a roster first: borrow a cast, pick a universe at
-  // random, and run it like any other race.
+  // this is without typing a roster first: borrow a cast and line it up in
+  // whichever universe is showing. Start still waits for a click.
   document.getElementById('btn-example').addEventListener('click', () => {
     roster.setNames(exampleNames());
-    names = roster.names();
-    refreshHint();
-    goToMap(MAPS[Math.floor(Math.random() * MAPS.length)].id);
+    applyNames();
+  });
+
+  // Rounds never begin by themselves; this is the only way a race starts.
+  const startBtn = document.getElementById('btn-start');
+  function pressStart() {
+    if (!round || transitioning) return;
+    if (round.start()) startBtn.hidden = true;
+  }
+  startBtn.addEventListener('click', pressStart);
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    if (ev.target && /^(INPUT|TEXTAREA|BUTTON)$/.test(ev.target.tagName)) return;
+    ev.preventDefault();
+    pressStart();
   });
 
   document.getElementById('btn-skip').addEventListener('click', () => {

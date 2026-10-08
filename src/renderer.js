@@ -126,8 +126,11 @@ function drawTrails(g, players) {
 function drawPlayers(g, round, time) {
   const { players, phase, phaseTime } = round;
 
-  // During the countdown everything hangs suspended, fading up with a slow bob.
-  const intro = phase === PHASE.COUNTDOWN
+  // On the line and through the countdown everything hangs suspended with a
+  // slow bob. The fade-up happens while waiting for start, so the countdown
+  // begins at full size instead of popping back down when start is pressed.
+  const waiting = phase === PHASE.READY || phase === PHASE.COUNTDOWN;
+  const intro = phase === PHASE.READY
     ? Math.min(1, phaseTime / (ROUND.countdownMs * 0.55))
     : 1;
 
@@ -142,7 +145,7 @@ function drawPlayers(g, round, time) {
 
       let y = pos.y;
       let scale = 1;
-      if (phase === PHASE.COUNTDOWN) {
+      if (waiting) {
         y += Math.sin(time * 0.0022 + p.id * 0.9) * 7;
         scale = 0.62 + 0.38 * ease(intro);
       }

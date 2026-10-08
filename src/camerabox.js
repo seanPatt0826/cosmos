@@ -295,16 +295,26 @@ export function createCameraBox(canvasEl, captionEl) {
       const centre = worldToScreen(cam, cx, cy, stageW, viewH);
       let sw = windowW * cam.zoom * dpr;
       let sh = sw * (H / W);
+      // The arena is only the part of the canvas the rail does not cover.
+      //
+      // The canvas runs the full width of the window and the panels sit on
+      // top of it, so its right-hand strip is drawn but never seen. Clamping
+      // to the canvas let the close-up — and the viewfinder that marks it —
+      // wander into that strip, showing a slice of arena that is behind the
+      // panels from the viewer's side. Clamped to the stage instead, both stay
+      // in the part of the world somebody is actually looking at.
+      const liveW = Math.min(mainCanvas.width, Math.round(stageW * dpr));
+
       // Never ask for more than exists, or the crop comes back letterboxed in
       // transparent black.
-      if (sw > mainCanvas.width) { sw = mainCanvas.width; sh = sw * (H / W); }
+      if (sw > liveW) { sw = liveW; sh = sw * (H / W); }
       if (sh > mainCanvas.height) { sh = mainCanvas.height; sw = sh * (W / H); }
 
       let sx = centre.x * dpr - sw / 2;
       let sy = centre.y * dpr - sh / 2;
       // Slide the crop back inside rather than letting the edge of the world
       // show as a black band.
-      sx = Math.max(0, Math.min(mainCanvas.width - sw, sx));
+      sx = Math.max(0, Math.min(liveW - sw, sx));
       sy = Math.max(0, Math.min(mainCanvas.height - sh, sy));
 
       // Remembered so a pointer sitting over the box can be turned back into a

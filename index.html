@@ -49,7 +49,7 @@
     --panel-bg: rgba(13, 10, 27, 0.9);
     --edge: rgba(242, 234, 219, 0.3);
     --edge-soft: rgba(242, 234, 219, 0.1);
-    --rail-w:  340px;
+    --rail-w:  690px;   /* two columns of panels; see the Rail note */
     --font: "Shantell Sans", "Comic Sans MS", "Segoe Print", cursive;
   }
 
@@ -114,8 +114,20 @@
     right: 9px;
     width: var(--rail-w);
     max-height: calc(100% - 20px);
-    display: flex;
-    flex-direction: column;
+    /* Two columns, not one.
+
+       One column could not hold the panels. Measured, it carried 1547px of
+       them in a 788px window, so everything below the close-up was a scroll
+       away — which, for boxes you are meant to glance at, is the same as not
+       being there. Meanwhile the entire left half of the screen was empty.
+
+       A second column halves the height and costs the arena almost nothing.
+       The stage is sized from this rail's left edge, and the view was already
+       limited by height rather than width, so the arena gives up about six
+       per cent and the column stops scrolling altogether. */
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
     gap: 12px;
     /* Above the canvas, and clickable — the entrants box lives in here. */
     z-index: 3;
@@ -180,11 +192,79 @@
      other half of the story the standings tell: the list on the right says who
      is still in, this says who just went and what got them.
   */
-  .feed {
+  /* The left-hand column: what this universe is, then who just went out.
+     Stacked in one flow so the explanation can open and close without the
+     feed underneath it needing to know how tall it is. */
+  .left-col {
     position: absolute;
     left: 18px;
-    top: 92px;
-    width: 212px;
+    top: 72px;
+    width: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    z-index: 3;
+  }
+
+  /* ── What this universe is ──────────────────────────────────────────── */
+
+  .map-about {
+    width: 100%;
+    padding: 9px 10px 11px 12px;
+    transform: rotate(-0.3deg);
+  }
+  .map-about[hidden] { display: none; }
+  .map-about-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 6px;
+    margin-bottom: 7px;
+    border-bottom: 1.5px solid var(--edge-soft);
+  }
+  .map-about-title {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--paper);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .map-about-text {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+
+  /* Both toggles are fixed squares with the icon centred on both axes, so
+     the glyph sits in the middle of its space rather than riding on a text
+     baseline. The SVGs are drawn on a 16-unit grid centred at (8, 8). */
+  .about-toggle {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    margin: 0;
+    border: 1.5px solid var(--edge);
+    border-radius: 50%;
+    background: var(--panel-bg);
+    color: var(--ink);
+    cursor: pointer;
+    line-height: 0;
+    transition: color 160ms ease, border-color 160ms ease;
+  }
+  .about-toggle:hover { color: var(--accent); border-color: var(--accent); }
+  .about-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .about-toggle svg { display: block; width: 50%; height: 50%; }
+  .about-toggle[hidden] { display: none; }
+  #btn-about-close { width: 24px; height: 24px; border-color: var(--edge-soft); background: transparent; }
+  #btn-about-open { width: 32px; height: 32px; box-shadow: 2px 2.5px 0 var(--edge-soft); }
+
+  .feed {
+    width: 100%;
     /* Matches the Entrants panel, so the two sides of the screen are padded
        the same. Without it the text sat hard against the border. */
     padding: 11px 12px 12px;
@@ -351,9 +431,12 @@
 
   /* ── Universe picker ────────────────────────────────────────────────── */
 
+  /* Full width along the foot of the rail, so seven portraits sit in a single
+     row instead of stacking three rows deep. */
+  .universes { grid-column: 1 / -1; }
   #universe-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 6px;
     margin-top: 8px;
   }
@@ -382,15 +465,6 @@
     width: 100%;
     height: auto;
     aspect-ratio: 132 / 84;
-  }
-  .universe-about {
-    margin: 9px 0 0;
-    font-size: 12px;
-    line-height: 1.45;
-    color: var(--ink-dim);
-    /* Reserves room for the longest explanation so the panel does not jump
-       as the pointer moves across the grid. */
-    min-height: 5.8em;
   }
   .universe-name {
     display: block;
@@ -513,6 +587,11 @@
     scrollbar-color: var(--edge-soft) transparent;
     /* Scrolls rather than clips. Hidden overflow sliced the last row in half,
        which looked like a rendering fault rather than a full list. */
+    /* hud.js shows up to fourteen rows plus a 'more' line. Unbounded, a full
+       roster made this panel half again as tall as the close-up beside it and
+       pushed the grid row past the bottom of the window. It already scrolls
+       and already fades its last few pixels, so a cap costs nothing. */
+    max-height: 200px;
     overflow-y: auto;
     scrollbar-width: thin;
     font-size: 13px;
@@ -589,7 +668,9 @@
 
   #controls {
     position: absolute;
-    left: 50%;
+    /* Centred on the arena, not on the window. The rail is 690px of that
+       window now, so a bar centred on the window sat half underneath it. */
+    left: calc((100% - var(--rail-w) - 9px) / 2);
     bottom: 16px;
     transform: translateX(-50%);
     display: flex;
@@ -603,7 +684,7 @@
     border: 1px solid var(--line);
     pointer-events: auto;
     transition: opacity 520ms ease, transform 520ms ease;
-    max-width: calc(100% - 32px);
+    max-width: calc(100% - var(--rail-w) - 41px);
   }
   #controls.hidden { opacity: 0; transform: translateX(-50%) translateY(9px); pointer-events: none; }
 
@@ -621,6 +702,35 @@
   }
   #controls button:hover { background: rgba(242, 234, 219, 0.09); color: var(--paper); }
   #controls button.active { border-color: rgba(232, 163, 61, 0.5); color: var(--accent); }
+
+  /* Start. Rounds no longer begin by themselves, so this is the one control
+     that has to be found without looking: big, accent-coloured, centred on the
+     arena like the bar below it, and lifted well clear of that bar so the two
+     never crowd each other. Low in the arena rather than dead centre, where
+     the field is lined up waiting. */
+  #btn-start {
+    position: absolute;
+    left: calc((100% - var(--rail-w) - 9px) / 2);
+    bottom: 92px;
+    transform: translateX(-50%) rotate(-0.6deg);
+    pointer-events: auto;
+    font-family: inherit;
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 12px 46px 13px;
+    color: var(--void);
+    background: var(--accent);
+    border: 2px solid var(--accent);
+    border-radius: 22px 15px 24px 17px / 17px 24px 15px 22px;
+    box-shadow: 3px 4px 0 var(--edge-soft), 0 0 38px rgba(232, 163, 61, 0.35);
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+  }
+  #btn-start:hover { transform: translateX(-50%) rotate(-0.6deg) scale(1.05); }
+  #btn-start:active { transform: translateX(-50%) rotate(-0.6deg) scale(0.97); }
+  #btn-start:focus-visible { outline: 2px solid var(--paper); outline-offset: 4px; }
+  #btn-start[hidden] { display: none; }
 
   #map-picker { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
   .divider { width: 1px; align-self: stretch; background: var(--line); margin: 2px 4px; }
@@ -697,11 +807,19 @@
   .ad-placeholder span { display: block; font-size: 11px; opacity: 0.75; }
 
   @media (max-width: 900px) {
+    /* One variable, so the controls bar below stays centred on the arena. */
+    :root { --rail-w: min(260px, 46vw); }
     /* No room for two columns of panels; the rail wins. */
     .feed { display: none; }
+    /* Whatever is left of the arena beside the rail, so the card never slides
+       underneath it. */
+    .left-col { width: min(220px, calc(100vw - var(--rail-w) - 46px)); }
 
     .rail {
-      width: min(260px, 46vw);
+      width: var(--rail-w);
+      /* No room for two columns of panels beside the arena. */
+      display: flex;
+      flex-direction: column;
       top: 10px;
       right: 10px;
       gap: 9px;
@@ -709,6 +827,8 @@
     /* The rail is 260px at most here. A medium rectangle does not fit in
        that, and a squashed slot is worse than none, so it stands down. */
     .ad { display: none; }
+    /* Seven portraits in one row inside a 260px rail would be 33px each. */
+    #universe-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     /* Narrow column: keep the headline and the link, drop the paragraph. */
     /* One column: two name boxes side by side inside a 44vw rail is unusable. */
     #name-list { grid-template-columns: 1fr; max-height: 30vh; }
@@ -719,6 +839,7 @@
 
   @media (max-width: 560px) {
     .rail { width: 44vw; }
+    .left-col { width: calc(56vw - 46px); }
     .names label, .names-hint { display: none; }
   }
 
@@ -759,7 +880,7 @@
         <label>Entrants</label>
         <div id="name-list"></div>
         <div class="names-row">
-          <button type="button" id="btn-names">Race these</button>
+          <button type="button" id="btn-names">Line them up</button>
           <button type="button" id="btn-add" class="ghost">+ Add</button>
           <button type="button" id="btn-names-clear" class="ghost">Clear</button>
         </div>
@@ -774,10 +895,29 @@
 
     </aside>
 
-    <aside class="feed panel" id="feed" hidden>
-      <label>Knocked out</label>
-      <ul id="feed-list"></ul>
-    </aside>
+    <div class="left-col">
+      <section class="map-about panel" id="map-about" aria-labelledby="map-about-title">
+        <div class="map-about-head">
+          <span class="map-about-title" id="map-about-title">How it works</span>
+          <button type="button" class="about-toggle" id="btn-about-close"
+                  aria-label="Close the description" title="Close">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <p class="map-about-text" id="map-about-text"></p>
+      </section>
+      <button type="button" class="about-toggle" id="btn-about-open" hidden
+              aria-label="What happens in this universe?" title="What happens here?">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="2.7" r="1.4" fill="currentColor"/><path d="M8 6.2v7.6"
+          fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+
+      <aside class="feed panel" id="feed" hidden>
+        <label>Knocked out</label>
+        <ul id="feed-list"></ul>
+      </aside>
+    </div>
 
     <div class="corner">
       <h1>Cosmos</h1>
@@ -789,6 +929,8 @@
       <div id="map-blurb"></div>
       <div id="banner"></div>
       <div id="fps" hidden></div>
+
+      <button type="button" id="btn-start" hidden>Start</button>
 
       <div id="controls">
         <div id="map-picker"></div>
