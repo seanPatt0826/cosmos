@@ -266,6 +266,25 @@
     line-height: 1.5;
     color: var(--ink);
   }
+  /* The rules come first and read louder than the paragraph under them: what
+     you are playing for, how you go out, what to keep an eye on. */
+  .map-rules {
+    margin: 0 0 8px;
+    padding-bottom: 8px;
+    border-bottom: 1.5px dashed var(--edge-soft);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .map-rules:empty { display: none; }
+  .map-rules dt {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .map-rules dd { margin: 0 0 5px; color: var(--paper); }
+  .map-rules dd:last-child { margin-bottom: 0; }
 
   /* Both toggles are fixed squares with the icon centred on both axes, so
      the glyph sits in the middle of its space rather than riding on a text
@@ -370,11 +389,31 @@
   /* Wordmark and links, tucked into the far corner and out of the way. */
   /* Korean: one handwritten face for every letter on the page, Latin
      included, so a line that mixes the two does not switch pens halfway.
-     Gaegu draws small for its size; font-size-adjust scales it up to sit at
-     the same height as Shantell Sans, so no panel needs its own Korean sizes. */
+     Gaegu draws small for its size, so it is scaled up with font-size-adjust,
+     but only by about a fifth. At 0.6 (half again as big) the Hangul, which
+     fills the whole em box where Latin letters do not, overran its own lines:
+     the universe name sat on its tagline and the card's lines touched. The
+     letter spacing that suits Shantell's capitals also reads as gaps between
+     Hangul syllables, so it goes, and lines get a little more air. */
   body.lang-ko { --font: "Gaegu", "Shantell Sans", "Comic Sans MS", cursive; word-break: keep-all; }
+  /* Gaegu also draws each syllable narrow inside a wide cell, so even at zero
+     spacing a word reads as separate letters (코 스 모 스). A small negative
+     tracking pulls the syllables of a word back together. */
   body.lang-ko .hud, body.lang-ko .rail, body.lang-ko .left-col,
-  body.lang-ko .corner, body.lang-ko .tip { font-size-adjust: 0.6; }
+  body.lang-ko .corner, body.lang-ko .tip { font-size-adjust: 0.5; letter-spacing: -0.04em; }
+  body.lang-ko .hud *, body.lang-ko .rail *, body.lang-ko .left-col *,
+  body.lang-ko .corner * { letter-spacing: inherit; }
+  /* font-size-adjust only measures Latin letters; Hangul in the tiny portrait
+     labels stayed tiny, so those get a real size of their own. */
+  body.lang-ko .universe-name { font-size: 12.5px; }
+  body.lang-ko #btn-start { font-size: 34px; padding-top: 8px; padding-bottom: 9px; }
+  body.lang-ko .map-about-text,
+  body.lang-ko .map-rules,
+  body.lang-ko .chase-caption,
+  body.lang-ko .names-hint { line-height: 1.55; }
+  body.lang-ko #map-name { line-height: 1.15; }
+  body.lang-ko #map-blurb { top: 44px; font-style: normal; }
+  body.lang-ko .universe-name { line-height: 1.25; }
 
   .lang-toggle {
     font-family: inherit;
@@ -392,6 +431,19 @@
   body:not(.lang-ko) .lang-toggle { font-family: "Gaegu", var(--font); font-size: 15px; font-weight: 700; padding: 0 10px 1px; }
   .lang-toggle:hover { background: rgba(232, 163, 61, 0.26); }
   .lang-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Globe and word side by side, centred on each other. The pill gets a fixed
+     height and the globe a fixed size, because the two languages set the word
+     in different fonts and sizes and the pill must not change height when the
+     language flips. */
+  .lang-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    vertical-align: middle;
+  }
+  .lang-toggle span { line-height: 1; }
+  .lang-icon { flex: 0 0 auto; display: block; width: 14px; height: 14px; }
 
   .corner {
     position: absolute;
@@ -972,6 +1024,36 @@
     .rail { width: 44vw; }
     .left-col { width: calc(56vw - 46px); }
     .names label, .names-hint { display: none; }
+
+    /* Three bottom layers that all wanted the same strip: the controls bar,
+       the wordmark in the corner and Start. On a phone the arena is the full
+       width, so they stack instead: controls along the bottom, the wordmark
+       just above it on the left, Start above that, all clear of each other. */
+    /* One row, always: wrapped onto two it was twice as tall and covered the
+       corner links. */
+    #controls { left: 50%; bottom: 12px; padding: 5px 7px; gap: 2px; flex-wrap: nowrap; }
+    .corner { bottom: 70px; left: 16px; }
+    #btn-start {
+      left: 50%;
+      bottom: 128px;
+      font-size: 22px;
+      padding: 10px 38px 11px;
+    }
+
+    /* Two portraits to a row, not three. At three, each card was narrower than
+       "Supernova", so names broke mid-word ("Orbit / al / Arena") or were cut
+       off at any size still readable. */
+    #universe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #universe-grid > .universe:nth-child(n) { grid-column: auto; }
+    #universe-grid > .universe:nth-child(7) { grid-column: 1 / -1; justify-self: center; width: calc(50% - 4px); }
+    .universe-name {
+      font-size: 10px;
+      padding: 3px 2px 4px;
+      word-break: keep-all;
+      overflow-wrap: normal;
+    }
+    /* The card heading wraps rather than being cut to "이렇게 진…". */
+    .map-about-title { white-space: normal; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1033,6 +1115,7 @@
               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           </button>
         </div>
+        <dl class="map-rules" id="map-rules"></dl>
         <p class="map-about-text" id="map-about-text"></p>
       </section>
       <button type="button" class="about-toggle" id="btn-about-open" hidden

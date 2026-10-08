@@ -219,7 +219,16 @@ export function installLang(button) {
   if (!button) return;
   const label = () => {
     // Each language is offered in its own words, so whoever needs it can read it.
-    button.textContent = lang === 'ko' ? 'English' : '한국어';
+    // A small globe before the word, in the controls bar's pen: a circle, the
+    // equator and one meridian on the same 24-unit grid as src/icons.js.
+    button.innerHTML = '<svg class="lang-icon" viewBox="0 0 24 24" aria-hidden="true">'
+      + '<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+      + '<circle cx="12" cy="12" r="8.6"/><path d="M3.6 12h16.8"/>'
+      + '<path d="M12 3.4c2.5 2.4 3.7 5.3 3.7 8.6s-1.2 6.2-3.7 8.6c-2.5-2.4-3.7-5.3-3.7-8.6s1.2-6.2 3.7-8.6z"/>'
+      + '</g></svg>';
+    const word = document.createElement('span');
+    word.textContent = lang === 'ko' ? 'English' : '한국어';
+    button.appendChild(word);
     button.setAttribute('aria-label', lang === 'ko' ? 'Switch to English' : '한국어로 보기');
   };
   label();

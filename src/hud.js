@@ -14,6 +14,7 @@ export function createHud() {
     mapBlurb: document.getElementById('map-blurb'),
     aboutTitle: document.getElementById('map-about-title'),
     aboutText: document.getElementById('map-about-text'),
+    rules: document.getElementById('map-rules'),
     banner: document.getElementById('banner'),
     fade: document.getElementById('fade'),
     controls: document.getElementById('controls'),
@@ -39,6 +40,22 @@ export function createHud() {
       // does not repeat it (and long names would only be clipped).
       if (el.aboutTitle) el.aboutTitle.setAttribute('aria-label', t('How {name} works', { name: t(mapDef.name) }));
       if (el.aboutText) el.aboutText.textContent = t(mapDef.description || mapDef.blurb || '');
+      // The short version above it: the goal, how you go out, what to watch.
+      // Built from text nodes, never innerHTML, like everything else here.
+      if (el.rules) {
+        el.rules.textContent = '';
+        const r = mapDef.rules;
+        const rows = [['Goal', 'Last one left wins.']];
+        if (r && r.out) rows.push(['Out if', r.out]);
+        if (r && r.watch) rows.push(['Watch for', r.watch]);
+        for (const [label, text] of rows) {
+          const dt = document.createElement('dt');
+          dt.textContent = t(label);
+          const dd = document.createElement('dd');
+          dd.textContent = t(text);
+          el.rules.append(dt, dd);
+        }
+      }
       el.mapName.classList.remove('intro');
       // Restart the CSS animation by forcing a reflow.
       void el.mapName.offsetWidth;
