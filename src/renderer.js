@@ -64,6 +64,18 @@ export function render(g, round, bg, viewW, viewH, time, stageW = viewW) {
 //
 // Not part of render(): main.js calls it after the close-up has copied the
 // frame, and after the paper, so neither magnifies nor muddies the lettering.
+// A name typed onto the line pops in: up from nothing, a little past full
+// size, and settles. Everyone else returns 1.
+const POP_MS = 460;
+function popScale(p, round) {
+  if (p.popAt === undefined) return 1;
+  const k = (round.time - p.popAt) / POP_MS;
+  if (k >= 1) return 1;
+  const c = 1.9; // overshoot
+  const u = k - 1;
+  return Math.max(0, 1 + (c + 1) * u * u * u + c * u * u);
+}
+
 export function drawNameTags(g, round, time, stageW, viewH) {
   const { players, phase, phaseTime, cam } = round;
   if (!players.some((p) => p.name)) return;
@@ -96,9 +108,11 @@ export function drawNameTags(g, round, time, stageW, viewH) {
       y += Math.sin(time * 0.0022 + p.id * 0.9) * 7;
       scale = 0.62 + 0.38 * ease(intro);
     }
+    const pop = popScale(p, round);
+    scale *= pop;
     const s = worldToScreen(cam, pos.x, y, stageW, viewH);
     const below = BODY.radius * scale * cam.zoom + 5;
-    g.globalAlpha = intro;
+    g.globalAlpha = intro * Math.min(1, pop);
     g.strokeText(p.name, s.x, s.y + below);
     g.fillText(p.name, s.x, s.y + below);
   }
@@ -200,6 +214,7 @@ function drawPlayers(g, round, time) {
         y += Math.sin(time * 0.0022 + p.id * 0.9) * 7;
         scale = 0.62 + 0.38 * ease(intro);
       }
+      scale *= popScale(p, round);
       const isWinner = round.winner === p;
       const glowA = isWinner ? 0.34 + round.winnerBloom * 0.3 : 0.2;
 

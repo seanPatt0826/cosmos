@@ -149,14 +149,23 @@ function exampleNames() {
 function startRound(mapDef, { seed = (Math.random() * 4294967295) >>> 0 } = {}) {
   const prev = round;
   if (round) round.destroy();
-  round = createRound(mapDef, seed, audio, names, { idle: !racing() });
+  // Empty only when nobody is typed in. A lone name still stands on the line,
+  // so typing it shows it straight away; Start waits for a second (below).
+  round = createRound(mapDef, seed, audio, names, { idle: names.length === 0 });
   // Re-lining the same universe keeps its baked sky; only the field changed.
   const sameSky = prev && prev.seed === seed && prev.mapDef === mapDef;
   if (!sameSky) bg = createBackground(viewW, viewH, seed, mapDef.theme);
+  // Same universe, same seat. A fresh camera starts zoomed in on the middle
+  // and swoops back out, which hid everyone each time a name was typed.
+  if (sameSky) Object.assign(round.cam, prev.cam);
   // Already faded up on the line: do not shrink everyone and grow them again
   // just because a name was added beside them.
   if (sameSky && prev.phase === PHASE.READY && round.phase === PHASE.READY) {
     round.phaseTime = prev.phaseTime;
+    // Whoever was just typed in pops onto the line, so you can see your name
+    // arrive; everyone already standing there stays still.
+    const before = new Set(prev.players.map((p) => p.name));
+    for (const p of round.players) if (!before.has(p.name)) p.popAt = round.time;
   }
   hud.setMap(mapDef);
   if (minimap) minimap.reset();
@@ -257,7 +266,7 @@ function frame(now) {
 
   if (dt > 0) round.update(dt);
   updateCamera(round.cam, Math.max(1, raw), round.players, stageW, viewH, round.map.bounds,
-    { edge: round.map.edge });
+    { edge: round.map.edge, waiting: round.phase === PHASE.READY || round.phase === PHASE.COUNTDOWN });
   // A ringed racer who has gone out releases the ring.
   if (lockedId !== null && !round.alivePlayers().some((p) => p.body.id === lockedId)) lockedId = null;
   round.focusId = hoverId ?? lockedId;
@@ -268,6 +277,8 @@ function frame(now) {
     minimap.update(round, stageW, viewH, dpr, round.focusId, aim);
   }
   hud.update(round, raw);
+  // One name stands on the line but cannot race alone.
+  if (!racing()) document.getElementById('btn-start').hidden = true;
   refreshShuffle();
   sampleFps(raw);
 
@@ -452,6 +463,7 @@ function buildControls() {
     if (!round || transitioning) return;
     // A name typed a moment ago should be in the race, not left behind.
     lineUp();
+    if (!racing()) return;
     if (round.start()) startBtn.hidden = true;
   }
   startBtn.addEventListener('click', pressStart);

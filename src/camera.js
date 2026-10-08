@@ -76,7 +76,12 @@ export function update(cam, dtMs, players, viewW, viewH, bounds, opts = {}) {
   // Deliberately not applied to the finale. Once it is down to the last few
   // the close-up matters more than the wall, and `finaleZoom` below should be
   // free to push past this.
-  const finale = alive.length > 0 && alive.length <= ROUND.finalCallout;
+  //
+  // Nor to a field still waiting on the line. Two or three entrants stand
+  // far apart near the rim, and the close-up pushed in past every one of
+  // them: names were typed and nothing appeared on screen. On the line the
+  // whole field is the point, so it is framed wide.
+  const finale = !opts.waiting && alive.length > 0 && alive.length <= ROUND.finalCallout;
   if (!finale) {
     // Circular arenas carry a live `edge`; Nebula Garden is a walled box and
     // carries none, so its own bounds stand in.
@@ -88,11 +93,21 @@ export function update(cam, dtMs, players, viewW, viewH, bounds, opts = {}) {
 
   cam.tx = (minX + maxX) / 2;
   cam.ty = (minY + maxY) / 2;
+  // On the line the whole arena is in shot, so centre on the arena itself.
+  // Centred on the field, one entrant pulled the ring half off the screen.
+  if (opts.waiting && bounds) {
+    const cx = bounds.x + bounds.w / 2;
+    const cy = bounds.y + bounds.h / 2;
+    w = Math.max(w, 2 * Math.max(maxX - cx, cx - minX) + pad * 2);
+    h = Math.max(h, 2 * Math.max(maxY - cy, cy - minY) + pad * 2);
+    cam.tx = cx;
+    cam.ty = cy;
+  }
 
   let z = Math.min(viewW / w, viewH / h);
   // Once it is down to the last few, push in. The tension is on their faces,
   // so to speak, not on the empty arena around them.
-  if (alive.length && alive.length <= ROUND.finalCallout) z *= CAMERA.finaleZoom;
+  if (finale) z *= CAMERA.finaleZoom;
   if (opts.zoomBias) z *= opts.zoomBias;
   cam.tz = Math.max(CAMERA.minZoom, Math.min(CAMERA.maxZoom, z));
 
