@@ -9,6 +9,10 @@
 // nothing. And pasting several lines into any box splits them across boxes —
 // which is what keeps the old "paste a list of names" workflow alive now that
 // there is no textarea to paste into.
+//
+// Every box can be removed, so a race of two or three is just two or three
+// boxes. Remove them all and the list says it is waiting instead of going
+// blank.
 
 const MIN_ROWS = 8;
 const MAX_ROWS = 40;
@@ -31,11 +35,13 @@ export function createRoster(listEl, onChange) {
     },
 
     clear() {
-      roster.setNames([]);
+      listEl.textContent = '';
+      renumber();
       onChange();
     },
 
     addAndFocus() {
+      if (inputs().length >= MAX_ROWS) return;
       const row = addRow('');
       renumber();
       row.querySelector('input').focus();
@@ -50,6 +56,16 @@ export function createRoster(listEl, onChange) {
     inputs().forEach((input, i) => {
       input.placeholder = `Name ${i + 1}`;
     });
+    // Every box gone: say so, rather than leaving an empty hole in the panel.
+    let empty = listEl.querySelector('.name-empty');
+    if (inputs().length) {
+      if (empty) empty.remove();
+    } else if (!empty) {
+      empty = document.createElement('p');
+      empty.className = 'name-empty';
+      empty.textContent = 'waiting for names';
+      listEl.appendChild(empty);
+    }
   }
 
   function addRow(value) {
@@ -74,11 +90,7 @@ export function createRoster(listEl, onChange) {
       + ' fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 
     del.addEventListener('click', () => {
-      if (inputs().length <= MIN_ROWS) {
-        input.value = '';
-      } else {
-        row.remove();
-      }
+      row.remove();
       renumber();
       onChange();
     });

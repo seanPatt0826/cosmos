@@ -49,7 +49,7 @@
     --panel-bg: rgba(13, 10, 27, 0.9);
     --edge: rgba(242, 234, 219, 0.3);
     --edge-soft: rgba(242, 234, 219, 0.1);
-    --rail-w:  690px;   /* two columns of panels; see the Rail note */
+    --rail-w:  340px;   /* one slim column of panels; see the Rail note */
     --font: "Shantell Sans", "Comic Sans MS", "Segoe Print", cursive;
   }
 
@@ -114,19 +114,15 @@
     right: 9px;
     width: var(--rail-w);
     max-height: calc(100% - 20px);
-    /* Two columns, not one.
+    /* One slim column against the right edge, so the arena gets most of the
+       screen and the field is big enough to pick people out of.
 
-       One column could not hold the panels. Measured, it carried 1547px of
-       them in a 788px window, so everything below the close-up was a scroll
-       away — which, for boxes you are meant to glance at, is the same as not
-       being there. Meanwhile the entire left half of the screen was empty.
-
-       A second column halves the height and costs the arena almost nothing.
-       The stage is sized from this rail's left edge, and the view was already
-       limited by height rather than width, so the arena gives up about six
-       per cent and the column stops scrolling altogether. */
+       Two columns took 690px, nearly half a laptop screen. One column is
+       taller than the window, so the panels are kept compact (a shorter
+       standings list, four portraits to a row) and the sponsored slot goes
+       last, where scrolling to it costs nobody the race. */
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     align-content: start;
     gap: 12px;
     /* Above the canvas, and clickable — the entrants box lives in here. */
@@ -404,8 +400,8 @@
   }
   .name-row input::placeholder { color: var(--ink-dim); opacity: 0.65; }
 
-  /* The remove button only appears once there is something to remove, so eight
-     empty boxes do not look like eight things to dismiss. */
+  /* The remove button shows on hover or focus, so eight boxes do not look like
+     eight things to dismiss. Any box can go, empty or not. */
   /* Scoped under .names on purpose. A bare .name-del lost to `.names button`
      further down, which gave it pill padding and an orange border: the box
      came out 28x16 with the glyph riding low and to the right. Now it is a
@@ -436,6 +432,17 @@
   .name-row input:focus + .name-del { opacity: 1; }
   .names .name-del:hover { color: var(--accent); border-color: var(--accent); background: transparent; }
 
+  .name-empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 9px;
+    font-size: 13px;
+    text-align: center;
+    color: var(--ink-dim);
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+  }
+
   .names-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
   .names button {
     font-family: inherit;
@@ -449,6 +456,7 @@
     transition: background 160ms ease;
   }
   .names button:hover { background: rgba(232, 163, 61, 0.26); }
+  .names button:disabled { opacity: 0.4; cursor: default; background: transparent; }
   .names button.ghost {
     border-color: var(--line);
     background: transparent;
@@ -470,12 +478,11 @@
 
   /* ── Universe picker ────────────────────────────────────────────────── */
 
-  /* Full width along the foot of the rail, so seven portraits sit in a single
-     row instead of stacking three rows deep. */
+  /* Four to a row: seven in one row of a slim column would be thumbnails. */
   .universes { grid-column: 1 / -1; }
   #universe-grid {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
     margin-top: 8px;
   }
@@ -630,7 +637,7 @@
        roster made this panel half again as tall as the close-up beside it and
        pushed the grid row past the bottom of the window. It already scrolls
        and already fades its last few pixels, so a cap costs nothing. */
-    max-height: 200px;
+    max-height: 128px;
     overflow-y: auto;
     scrollbar-width: thin;
     font-size: 13px;
@@ -800,16 +807,15 @@
      ships as its default sidebar unit. Sizing to a standard unit now means
      whatever goes in later drops in without reflowing the column.
 
-     Placed under the close-up rather than at the foot of the column. The
-     rail already overflows — it held 1219px of panels in 788px before this
-     existed — so last would have meant 400px below the fold and never seen.
-     Third keeps the standings and the close-up whole and still puts the slot
-     on screen; entrants and universes were already a scroll away.
+     Placed at the foot of the single column, below entrants and universes.
+     Those are what people reach for while a race is set up; the slot is a
+     scroll away rather than in front of them.
 
      The aspect-ratio holds the space open before anything loads, so the
      column does not jump when a creative arrives late.
   */
-  .ad { padding: 11px 12px 12px; }
+  /* Last in the column now; see the Rail note. */
+  .ad { padding: 11px 12px 12px; order: 9; }
   /* Same heading treatment as the other panels, so it reads as part of the
      column rather than something injected into it. */
   .ad label {
@@ -919,7 +925,7 @@
         <label>Entrants</label>
         <div id="name-list"></div>
         <div class="names-row">
-          <button type="button" id="btn-names">Line them up</button>
+          <button type="button" id="btn-shuffle" title="Shuffle who stands where (S)">Shuffle</button>
           <button type="button" id="btn-add" class="ghost">+ Add</button>
           <button type="button" id="btn-names-clear" class="ghost">Clear</button>
         </div>

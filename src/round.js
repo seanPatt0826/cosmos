@@ -220,9 +220,101 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
     if (stillest) round.kill(stillest, 'drift', { at: stillest.body.position });
   }
 
+  // Shuffling on the line, like cups in a shell game. The spots stay where the
+  // map put them; who stands on which one changes. It plays as a few passes of
+  // pairs trading places along little arcs, so you can watch it happen rather
+  // than just seeing the field blink into a new order. Each spot keeps its own
+  // launch velocity, because that belongs to the place, not the person.
+  const SHUFFLE_PASSES = 4;
+  const SHUFFLE_PASS_MS = 420;
+  let shuffle = null;
+
+  function slots() {
+    return players.filter((p) => p.body).map((p) => ({
+      p,
+      x: p.body.position.x,
+      y: p.body.position.y,
+      vel: p.spawnVel,
+    }));
+  }
+
+  function planPass(field) {
+    // Pair people off at random; an odd one out sits this pass out.
+    const idx = field.map((_, i) => i);
+    for (let i = idx.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [idx[i], idx[j]] = [idx[j], idx[i]];
+    }
+    const moves = field.map((s) => ({ p: s.p, from: s, to: s }));
+    for (let k = 0; k + 1 < idx.length; k += 2) {
+      const a = idx[k];
+      const b = idx[k + 1];
+      moves[a].to = field[b];
+      moves[b].to = field[a];
+    }
+    return moves;
+  }
+
+  function land(moves) {
+    // Snap everyone onto their new spot and hand the spot its velocity.
+    const next = [];
+    for (const m of moves) {
+      sim.Matter.Body.setPosition(m.p.body, { x: m.to.x, y: m.to.y });
+      m.p.spawnVel = m.to.vel;
+      next.push({ p: m.p, x: m.to.x, y: m.to.y, vel: m.to.vel });
+    }
+    return next;
+  }
+
+  round.shuffle = () => {
+    if (round.phase !== PHASE.READY || shuffle) return false;
+    const field = slots();
+    if (field.length < 2) return false;
+    shuffle = { pass: 0, t: 0, moves: planPass(field) };
+    audio.poof();
+    return true;
+  };
+
+  round.shuffling = () => shuffle !== null;
+
+  function updateShuffle(dtMs) {
+    shuffle.t += dtMs / SHUFFLE_PASS_MS;
+    if (shuffle.t >= 1) {
+      const field = land(shuffle.moves);
+      shuffle.pass++;
+      if (shuffle.pass >= SHUFFLE_PASSES) {
+        shuffle = null;
+        return;
+      }
+      shuffle.t = 0;
+      shuffle.moves = planPass(field);
+      audio.poof();
+      return;
+    }
+    // Eased slide along a bowed path, so two people trading places pass each
+    // other side by side instead of meeting head-on in the middle.
+    const t = shuffle.t;
+    const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+    const bow = Math.sin(Math.PI * t) * 0.22;
+    for (const m of shuffle.moves) {
+      if (m.to === m.from) continue;
+      const dx = m.to.x - m.from.x;
+      const dy = m.to.y - m.from.y;
+      sim.Matter.Body.setPosition(m.p.body, {
+        x: m.from.x + dx * e - dy * bow,
+        y: m.from.y + dy * e + dx * bow,
+      });
+    }
+  }
+
   // The only way out of READY. Returns false if there was nothing to start.
   round.start = () => {
     if (round.phase !== PHASE.READY) return false;
+    // Pressing start mid-shuffle finishes it on the spot.
+    if (shuffle) {
+      land(shuffle.moves);
+      shuffle = null;
+    }
     round.phase = PHASE.COUNTDOWN;
     round.phaseTime = 0;
     return true;
@@ -234,6 +326,7 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
     if (round.phase === PHASE.READY) {
       // Only drives the fade-in on the line; the countdown keeps its own clock.
       round.phaseTime += dtMs;
+      if (shuffle) updateShuffle(dtMs);
     } else if (round.phase === PHASE.COUNTDOWN) {
       round.phaseTime += dtMs;
       if (round.phaseTime >= ROUND.countdownMs) {

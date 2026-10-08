@@ -17,6 +17,10 @@ import { makeRng } from './rng.js';
 //   final few   — all of them, framed together, because by then the whole board
 //                 is the story
 //   nobody      — the middle of the arena, waiting
+//
+// And above all of those, the mouse. Over the arena, the viewfinder sits under
+// the cursor and the close-up shows whatever is inside it, the way a marble
+// race lets you move its little camera box around the track.
 
 import { worldToScreen, screenToWorld } from './camera.js';
 
@@ -25,6 +29,11 @@ const WINDOW_W = 620;
 const MIN_WINDOW = 420;
 const SWITCH_MS = 2200;
 const FOLLOW_EASE = 0.12;   // per frame at 60fps; smoothed below for real dt
+// Under the mouse: a smaller box than the automatic shot, so it reads as a
+// magnifier being moved about, and a much quicker ease so it keeps up with
+// the cursor instead of trailing behind it.
+const POINTER_WINDOW = 340;
+const POINTER_EASE = 0.45;
 
 // A rounded rectangle as a list of points, wobbled like everything else here so
 // the frame looks drawn rather than placed. Walked as four straight sides, each
@@ -61,6 +70,7 @@ export function createCameraBox(canvasEl, captionEl) {
     return {
       update() {}, reset() {}, lock() {}, lockedOn() { return null; },
       aimAt() {}, aimClear() {}, worldAtBox() { return null; },
+      pointAt() {}, pointClear() {},
       hoverFocus() {}, hoverOn() { return null; }, drawViewfinder() {},
     };
   }
@@ -85,6 +95,10 @@ export function createCameraBox(canvasEl, captionEl) {
   // automatic pick while it lasts, and is forgotten the moment the pointer
   // leaves.
   let hoverId = null;
+  // Where the mouse is over the arena, in CSS pixels on the main canvas. Kept
+  // as a screen point and turned into a world point every frame, so the box
+  // stays under the cursor while the wide shot pans and zooms beneath it.
+  let pointer = null;
 
   function pickSubject(alive) {
     let best = null;
@@ -158,6 +172,14 @@ export function createCameraBox(canvasEl, captionEl) {
       return hoverId;
     },
 
+    pointAt(px, py) {
+      pointer = { x: px, y: py };
+    },
+
+    pointClear() {
+      pointer = null;
+    },
+
     // The viewfinder: a roundish square on the wide shot marking the patch the
     // close-up is holding.
     //
@@ -226,7 +248,16 @@ export function createCameraBox(canvasEl, captionEl) {
         : alive.find((p) => p.body && p.body.id === hoverId) || null;
       if (hoverId !== null && !hovered) hoverId = null;
 
-      if (hovered) {
+      if (pointer) {
+        // The mouse is over the arena: the box goes where it goes. Beats a
+        // lock too; moving off the arena hands the shot back to it.
+        const w = screenToWorld(cam, pointer.x, pointer.y, stageW, viewH);
+        targetX = w.x;
+        targetY = w.y;
+        windowW = POINTER_WINDOW;
+        const under = playerAt(round, w.x, w.y);
+        caption = under ? (under.name || 'unnamed') : '';
+      } else if (hovered) {
         targetX = hovered.body.position.x;
         targetY = hovered.body.position.y;
         // Tighter than a lock, so pointing at somebody visibly closes in on
@@ -277,7 +308,7 @@ export function createCameraBox(canvasEl, captionEl) {
       // are pointing at, up to half a window each way. Skipped when the pointer
       // is on somebody, because then the shot is already centring on them and
       // an offset would only shove them back out of the middle.
-      if (aim && !hovered) {
+      if (aim && !hovered && !pointer) {
         targetX += aim.x * windowW;
         targetY += aim.y * windowW * (H / W);
       }
@@ -286,7 +317,8 @@ export function createCameraBox(canvasEl, captionEl) {
         cx = targetX; cy = targetY; placed = true;
       } else {
         // Framerate-independent easing, so a slow frame does not jerk the shot.
-        const k = 1 - Math.pow(1 - FOLLOW_EASE, Math.max(0.1, dtMs / 16.667));
+        const ease = pointer ? POINTER_EASE : FOLLOW_EASE;
+        const k = 1 - Math.pow(1 - ease, Math.max(0.1, dtMs / 16.667));
         cx += (targetX - cx) * k;
         cy += (targetY - cy) * k;
       }

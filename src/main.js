@@ -140,11 +140,18 @@ function exampleNames() {
   return pool.slice(0, 8);
 }
 
-function startRound(mapDef) {
+function startRound(mapDef, { seed = (Math.random() * 4294967295) >>> 0 } = {}) {
+  const prev = round;
   if (round) round.destroy();
-  const seed = (Math.random() * 4294967295) >>> 0;
   round = createRound(mapDef, seed, audio, names, { idle: !racing() });
-  bg = createBackground(viewW, viewH, seed, mapDef.theme);
+  // Re-lining the same universe keeps its baked sky; only the field changed.
+  const sameSky = prev && prev.seed === seed && prev.mapDef === mapDef;
+  if (!sameSky) bg = createBackground(viewW, viewH, seed, mapDef.theme);
+  // Already faded up on the line: do not shrink everyone and grow them again
+  // just because a name was added beside them.
+  if (sameSky && prev.phase === PHASE.READY && round.phase === PHASE.READY) {
+    round.phaseTime = prev.phaseTime;
+  }
   hud.setMap(mapDef);
   if (chase) chase.reset();
   markActiveMap(mapDef.id);
@@ -152,15 +159,17 @@ function startRound(mapDef) {
 
 // ── Entrants ────────────────────────────────────────────────────────────────
 
-// Reflects the boxes into the hint line. Deliberately does NOT restart the
-// round: you would not want the race resetting under you on every keystroke.
-// "Line them up" is what commits the roster; Start is what runs it.
+// Reflects the boxes into the hint line, and onto the map. While the field is
+// still waiting on the line (or there is no field yet), the names go straight
+// into the universe as they are typed, in the same universe with the same
+// sky. It never starts anything: Start is still the only way a race begins.
+// Mid-race, edits wait and join at the next line-up.
 function refreshHint() {
   const n = roster ? roster.names().length : 0;
   // The field is exactly the roster, so the hint counts entrants rather than
   // explaining what happens to the strangers — there are none any more.
   document.getElementById('names-hint').textContent =
-    n >= MIN_RACERS ? `${n} entrants. Line them up, then press Start.`
+    n >= MIN_RACERS ? `${n} entrants on the line. Shuffle, then press Start.`
       : n === 1 ? 'One more and they can race.'
         : 'Add names, or watch an example.';
 
@@ -168,23 +177,43 @@ function refreshHint() {
   if (demo) demo.hidden = n >= MIN_RACERS;
 
   if (roster) save(STORE_NAMES, JSON.stringify(roster.names()));
+  scheduleLineUp();
+  refreshShuffle();
 }
 
-function applyNames({ restart = true } = {}) {
-  names = roster.names();
-  refreshHint();
-  if (restart) restartRound();
+function onTheLine() {
+  return round && (round.idle || round.phase === PHASE.READY);
 }
 
-function restartRound() {
-  if (transitioning) return;
-  transitioning = true;
-  hud.fadeOut();
-  setTimeout(() => {
-    startRound(mapById(order[orderIndex % order.length]));
-    hud.fadeIn();
-    transitioning = false;
-  }, ROUND.fadeMs * 0.55);
+// A short pause after the last keystroke, so typing "Bramble" does not line up
+// seven different fields on the way.
+let lineUpTimer = null;
+function scheduleLineUp() {
+  clearTimeout(lineUpTimer);
+  lineUpTimer = setTimeout(lineUp, 260);
+}
+
+function sameNames(a, b) {
+  return a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
+function lineUp() {
+  clearTimeout(lineUpTimer);
+  if (!roster || !onTheLine() || transitioning) return;
+  const next = roster.names();
+  if (sameNames(next, names)) return;
+  names = next;
+  startRound(round.mapDef, { seed: round.seed });
+}
+
+function refreshShuffle() {
+  const b = document.getElementById('btn-shuffle');
+  if (b) b.disabled = !(round && round.phase === PHASE.READY && round.players.length >= MIN_RACERS);
+}
+
+function shuffleField() {
+  lineUp();
+  if (round && !transitioning) round.shuffle();
 }
 
 function nextRound() {
@@ -233,6 +262,7 @@ function frame(now) {
   // the very drawing they were labelling. The caption names it there.
   drawNameTags(g, round, round.time, stageW, viewH);
   hud.update(round, raw);
+  refreshShuffle();
   sampleFps(raw);
 
   // A finished race lines the same field up again on the same map and waits.
@@ -242,6 +272,8 @@ function frame(now) {
     transitioning = true;
     hud.fadeOut();
     setTimeout(() => {
+      // Anything typed during the race joins this line-up.
+      names = roster.names();
       startRound(round.mapDef);
       hud.fadeIn();
       transitioning = false;
@@ -384,11 +416,11 @@ function buildControls() {
   names = roster.names();
   refreshHint();
 
-  document.getElementById('btn-names').addEventListener('click', () => applyNames());
+  document.getElementById('btn-shuffle').addEventListener('click', shuffleField);
   document.getElementById('btn-add').addEventListener('click', () => roster.addAndFocus());
   document.getElementById('btn-names-clear').addEventListener('click', () => {
     roster.clear();
-    applyNames();
+    lineUp();
   });
 
   // Nothing runs on its own any more, so there has to be a way to see what
@@ -396,13 +428,16 @@ function buildControls() {
   // whichever universe is showing. Start still waits for a click.
   document.getElementById('btn-example').addEventListener('click', () => {
     roster.setNames(exampleNames());
-    applyNames();
+    refreshHint();
+    lineUp();
   });
 
   // Rounds never begin by themselves; this is the only way a race starts.
   const startBtn = document.getElementById('btn-start');
   function pressStart() {
     if (!round || transitioning) return;
+    // A name typed a moment ago should be in the race, not left behind.
+    lineUp();
     if (round.start()) startBtn.hidden = true;
   }
   startBtn.addEventListener('click', pressStart);
@@ -411,6 +446,11 @@ function buildControls() {
     if (ev.target && /^(INPUT|TEXTAREA|BUTTON)$/.test(ev.target.tagName)) return;
     ev.preventDefault();
     pressStart();
+  });
+  window.addEventListener('keydown', (ev) => {
+    if (ev.key !== 's' && ev.key !== 'S') return;
+    if (ev.target && /^(INPUT|TEXTAREA)$/.test(ev.target.tagName)) return;
+    shuffleField();
   });
 
   document.getElementById('btn-skip').addEventListener('click', () => {
@@ -460,11 +500,22 @@ function buildControls() {
   });
 
   // The cursor is the only hint that any of this is clickable.
+  //
+  // A mouse over the arena also carries the viewfinder: the white box sits
+  // under the cursor and the close-up shows what is inside it. Touch is left
+  // out, since a finger only moves while dragging and tapping already locks.
   canvas.addEventListener('pointermove', (ev) => {
     if (!round) return;
     const w = worldAt(ev);
     canvas.style.cursor = playerAt(round, w.x, w.y) ? 'pointer' : '';
+    if (ev.pointerType !== 'mouse') return;
+    const r = canvas.getBoundingClientRect();
+    const px = ev.clientX - r.left;
+    // The strip of canvas under the rail is drawn but never seen.
+    if (px > stageW) chase.pointClear();
+    else chase.pointAt(px, ev.clientY - r.top);
   });
+  canvas.addEventListener('pointerleave', () => chase.pointClear());
 
   window.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape') chase.lock(null);
