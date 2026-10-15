@@ -21,12 +21,14 @@
 // button stay; only what is inside the card comes from the ad network,
 // requested at the size the slot has on that screen.
 //
-// The X above the ad hides it for the rest of the visit, so it never has to
-// sit beside a race someone would rather watch. On a phone the arena takes
-// the banner's strip back.
+// The arrow above the ad folds it down to its "Ad" heading, so it never has
+// to sit beside a race someone would rather watch, and opens it again. It is
+// folded away, never removed: the heading stays, one press brings it back,
+// and the choice holds for the rest of the visit. On a phone the arena takes
+// most of the banner's strip back while it is folded.
 
 import { ADS_ENABLED, ADSENSE_CLIENT, ADSENSE_SLOT } from './config.js';
-import { t, onLang } from './i18n.js';
+import { t, onLang, setTip } from './i18n.js';
 
 const ROTATE_MS = 8000;
 
@@ -95,35 +97,43 @@ const ADS = [
   },
 ];
 
-const STORE_CLOSED = 'cosmos.adClosed';
+const STORE_FOLDED = 'cosmos.adFolded';
+let folded = false;
 
-function closedThisVisit() {
-  try { return sessionStorage.getItem(STORE_CLOSED) === '1'; } catch (e) { return false; }
-}
-
-// The close button. Hides the whole ad, stops the rotation, and tells the
-// page to re-measure so a phone's arena grows back into the freed strip.
-function wireClose(stop) {
+// The fold button. Folding shrinks the ad to its heading and tells the page to
+// re-measure, so a phone's arena grows into the freed strip; unfolding puts
+// it all back. Returns whether the ad starts folded.
+function wireFold() {
   const section = document.querySelector('.ad');
-  const btn = section && section.querySelector('.ad-close');
+  const btn = section && section.querySelector('.ad-fold');
   if (!section || !btn) return false;
-  const close = () => {
-    section.hidden = true;
-    document.body.classList.add('ad-closed');
-    try { sessionStorage.setItem(STORE_CLOSED, '1'); } catch (e) { /* fine */ }
-    stop();
+  const set = (on, remember = true) => {
+    folded = on;
+    section.classList.toggle('folded', on);
+    document.body.classList.toggle('ad-folded', on);
+    btn.setAttribute('aria-expanded', on ? 'false' : 'true');
+    const label = on ? t('Show ad') : t('Hide ad');
+    btn.setAttribute('aria-label', label);
+    setTip(btn, label);
+    if (remember) {
+      try { sessionStorage.setItem(STORE_FOLDED, on ? '1' : '0'); } catch (e) { /* fine */ }
+    }
     window.dispatchEvent(new Event('resize'));
   };
-  btn.addEventListener('click', close);
-  if (closedThisVisit()) { close(); return true; }
-  return false;
+  btn.addEventListener('click', () => set(!folded));
+  onLang(() => set(folded, false));
+  let start = false;
+  try { start = sessionStorage.getItem(STORE_FOLDED) === '1'; } catch (e) { /* fine */ }
+  set(start, false);
+  return start;
 }
 
 export function installAds() {
   const slot = document.getElementById('ad-slot');
   if (!slot) return;
+  wireFold();
   if (ADS_ENABLED) {
-    if (!wireClose(() => {})) installNetwork(slot);
+    installNetwork(slot);
     return;
   }
 
@@ -195,8 +205,8 @@ export function installAds() {
 
   onLang(paint);
   show(0);
-  timer = setInterval(() => { if (!paused && !document.hidden) show(index + 1); }, ROTATE_MS);
-  wireClose(() => clearInterval(timer));
+  // Folded ads hold still; they pick up where they were when opened.
+  timer = setInterval(() => { if (!paused && !folded && !document.hidden) show(index + 1); }, ROTATE_MS);
 }
 
 function esc(s) {
@@ -215,12 +225,16 @@ function installNetwork(slot) {
   // One responsive ad unit, asked for at exactly the slot's size on this
   // screen: 300x250 beside the arena, 300x100 on a short laptop, 320x50 along
   // the bottom of a phone. The ad fills the page's own card.
+  // A folded slot measures nothing, so its size comes from the same screen
+  // breakpoints the CSS uses.
   const r = slot.getBoundingClientRect();
+  const [w, h] = r.width && r.height ? [Math.round(r.width), Math.round(r.height)]
+    : innerWidth <= 900 ? [320, 50] : innerHeight <= 849 ? [300, 100] : [300, 250];
   const ins = document.createElement('ins');
   ins.className = 'adsbygoogle';
   ins.style.display = 'inline-block';
-  ins.style.width = `${Math.round(r.width) || 300}px`;
-  ins.style.height = `${Math.round(r.height) || 250}px`;
+  ins.style.width = `${w}px`;
+  ins.style.height = `${h}px`;
   ins.setAttribute('data-ad-client', ADSENSE_CLIENT);
   ins.setAttribute('data-ad-slot', ADSENSE_SLOT);
   slot.classList.add('network');

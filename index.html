@@ -628,7 +628,12 @@
   .names .name-icon:hover:not(:disabled) canvas,
   .names .name-icon:hover:not(:disabled) svg { filter: drop-shadow(0 0 5px rgba(232, 163, 61, 0.8)); }
   .names .name-icon:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); background: transparent; }
-  .names .name-icon:disabled { opacity: 0.35; cursor: default; background: transparent; }
+  /* Nothing shows for a racer who has not picked an icon, or for an empty
+     box. A named row offers its "+" only under the pointer or while typing. */
+  .names .name-icon:disabled { visibility: hidden; }
+  .names .name-icon.unpicked { opacity: 0; transition: opacity 140ms ease, color 140ms ease, border-color 140ms ease; }
+  .name-row:hover .name-icon.unpicked,
+  .name-row:focus-within .name-icon.unpicked { opacity: 0.75; }
   .names .name-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
   /* The menu: a panel over a dimmed page, centred on the window. */
@@ -1241,8 +1246,7 @@
      never runs into the title in the corner.
   */
   .ad { flex: none; width: 300px; max-width: 100%; }
-  .ad[hidden] { display: none !important; }
-  /* A plain "Ad" heading and the close button, above the ad rather than on
+  /* A plain "Ad" heading and the fold button, above the ad rather than on
      it: a button laid over an ad is easy to hit by accident, and an ad
      network will not have its creative covered. */
   .ad-head {
@@ -1254,7 +1258,7 @@
     padding: 0 1px 0 3px;
   }
   .ad-label { font-size: 11px; letter-spacing: 0.04em; color: var(--ink-dim); }
-  .ad-close {
+  .ad-fold {
     display: grid;
     place-items: center;
     width: 20px;
@@ -1267,9 +1271,13 @@
     cursor: pointer;
     transition: color 140ms ease, border-color 140ms ease;
   }
-  .ad-close svg { display: block; width: 9px; height: 9px; }
-  .ad-close:hover { color: var(--accent); border-color: var(--accent); }
-  .ad-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ad-fold svg { display: block; width: 11px; height: 11px; transition: transform 200ms ease; }
+  .ad-fold:hover { color: var(--accent); border-color: var(--accent); }
+  .ad-fold:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Folded: just the heading, its arrow turned to say "open". */
+  .ad.folded .ad-slot { display: none; }
+  .ad.folded .ad-fold svg { transform: rotate(180deg); }
+  .ad.folded .ad-head { margin-bottom: 0; }
   /* The heading already says "Ad"; the sample creatives' own badge would
      say it twice. Phones have no heading row, so they keep the badge. */
   .ad-head ~ .ad-slot .hads-badge { display: none; }
@@ -1453,8 +1461,12 @@
        strip rather than being covered by it, so the controls bar, the corner
        and Start all stay where they were, just above the banner. */
     .stage-wrap { bottom: 62px; }
-    /* Closed: the arena takes the strip back. */
-    body.ad-closed .stage-wrap { bottom: 0; }
+    /* Folded: a 26px strip with the heading and the arrow; the arena takes
+       the rest back. */
+    body.ad-folded .stage-wrap { bottom: 26px; }
+    .ad.folded { height: 26px; }
+    .ad.folded .ad-head { position: static; display: flex; gap: 10px; }
+    .ad.folded .ad-label { display: inline; }
     .ad {
       position: fixed;
       left: 0;
@@ -1635,10 +1647,9 @@
       <section class="ad" aria-label="Ad" data-i18n-aria="Ad">
         <div class="ad-head">
           <span class="ad-label" data-i18n>Ad</span>
-          <button type="button" class="ad-close" aria-label="Close ad" title="Close ad"
-                  data-i18n-aria="Close ad" data-i18n-title="Close ad">
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"
-              fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <button type="button" class="ad-fold" aria-expanded="true" aria-label="Hide ad" title="Hide ad">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
         <div id="ad-slot" class="ad-slot"></div>

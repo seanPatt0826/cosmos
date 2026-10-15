@@ -22,10 +22,11 @@ import { t, setTip, onLang } from './i18n.js';
 import { pickOf, paintThumb, onLooksChange } from './looks.js';
 
 const ICON_PX = 64;   // backing size of the row icon; drawn at 32 CSS px
-const DICE = '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" '
-  + 'stroke-width="1.9" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/></g>'
-  + '<g fill="currentColor"><circle cx="9" cy="9" r="1.6"/><circle cx="15" cy="15" r="1.6"/>'
-  + '<circle cx="15" cy="9" r="1.6"/><circle cx="9" cy="15" r="1.6"/></g></svg>';
+// What an unpicked row offers on hover: a dashed ring with a plus, meaning
+// "give this racer an icon". A dice here read as an icon they had chosen.
+const ADD = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" '
+  + 'stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 2.6"/><path d="M12 8v8M8 12h8" '
+  + 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
 
 const MIN_ROWS = 8;
 const MAX_ROWS = 40;
@@ -81,8 +82,10 @@ export function createRoster(listEl, onChange, { onIcon = null } = {}) {
     }
   }
 
-  // The icon button shows the name's own pick, or a dice for "dealt at
-  // random". An empty box has nobody to dress yet, so its button is disabled.
+  // The icon button shows an icon only once that racer has picked one. A name
+  // without a pick shows nothing until the row is hovered or focused, then a
+  // faint "+" to pick one; an empty box has nobody to dress and shows nothing.
+  // The space stays reserved either way, so the names still line up.
   function paintIcon(row) {
     const btn = row.querySelector('.name-icon');
     if (!btn) return;
@@ -90,6 +93,7 @@ export function createRoster(listEl, onChange, { onIcon = null } = {}) {
     const pick = name ? pickOf(name) : null;
     btn.disabled = !name;
     btn.classList.toggle('picked', !!pick);
+    btn.classList.toggle('unpicked', !!name && !pick);
     const label = name ? t('Choose an icon for {name}', { name }) : t('Choose icon');
     setTip(btn, label);
     btn.setAttribute('aria-label', label);
@@ -104,7 +108,7 @@ export function createRoster(listEl, onChange, { onIcon = null } = {}) {
       }
       paintThumb(c, pick);
     } else if (!btn.querySelector('svg')) {
-      btn.innerHTML = DICE;
+      btn.innerHTML = ADD;
     }
   }
 
