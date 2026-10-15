@@ -153,6 +153,7 @@ const KO = {
 
   // Sample ads (made-up companies; see src/ads.js)
   'Ad': '광고',
+  'Close ad': '광고 닫기',
   'Why this ad?': '이 광고는 왜 보이나요?',
   'Sample ad': '샘플 광고예요',
   'Fresh buns, delivered warm': '갓 구운 빵, 따끈하게 배달',

@@ -15,6 +15,15 @@
 // screens get the 300x100 banner cut of the same ads. The slot reserves its
 // space from first paint whether or not an ad ever arrives, so switching
 // advertising on, or having it blocked, never shifts the layout.
+//
+// Real ads, once switched on (see ADS_ENABLED in config.js), arrive inside
+// the same frame: the page's rounded card, its "Ad" heading and its close
+// button stay; only what is inside the card comes from the ad network,
+// requested at the size the slot has on that screen.
+//
+// The X above the ad hides it for the rest of the visit, so it never has to
+// sit beside a race someone would rather watch. On a phone the arena takes
+// the banner's strip back.
 
 import { ADS_ENABLED, ADSENSE_CLIENT, ADSENSE_SLOT } from './config.js';
 import { t, onLang } from './i18n.js';
@@ -86,11 +95,35 @@ const ADS = [
   },
 ];
 
+const STORE_CLOSED = 'cosmos.adClosed';
+
+function closedThisVisit() {
+  try { return sessionStorage.getItem(STORE_CLOSED) === '1'; } catch (e) { return false; }
+}
+
+// The close button. Hides the whole ad, stops the rotation, and tells the
+// page to re-measure so a phone's arena grows back into the freed strip.
+function wireClose(stop) {
+  const section = document.querySelector('.ad');
+  const btn = section && section.querySelector('.ad-close');
+  if (!section || !btn) return false;
+  const close = () => {
+    section.hidden = true;
+    document.body.classList.add('ad-closed');
+    try { sessionStorage.setItem(STORE_CLOSED, '1'); } catch (e) { /* fine */ }
+    stop();
+    window.dispatchEvent(new Event('resize'));
+  };
+  btn.addEventListener('click', close);
+  if (closedThisVisit()) { close(); return true; }
+  return false;
+}
+
 export function installAds() {
   const slot = document.getElementById('ad-slot');
   if (!slot) return;
   if (ADS_ENABLED) {
-    installNetwork(slot);
+    if (!wireClose(() => {})) installNetwork(slot);
     return;
   }
 
@@ -163,7 +196,7 @@ export function installAds() {
   onLang(paint);
   show(0);
   timer = setInterval(() => { if (!paused && !document.hidden) show(index + 1); }, ROTATE_MS);
-  return () => clearInterval(timer);
+  wireClose(() => clearInterval(timer));
 }
 
 function esc(s) {
@@ -179,13 +212,18 @@ function installNetwork(slot) {
   s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
   document.head.appendChild(s);
 
+  // One responsive ad unit, asked for at exactly the slot's size on this
+  // screen: 300x250 beside the arena, 300x100 on a short laptop, 320x50 along
+  // the bottom of a phone. The ad fills the page's own card.
+  const r = slot.getBoundingClientRect();
   const ins = document.createElement('ins');
   ins.className = 'adsbygoogle';
   ins.style.display = 'inline-block';
-  ins.style.width = '300px';
-  ins.style.height = '250px';
+  ins.style.width = `${Math.round(r.width) || 300}px`;
+  ins.style.height = `${Math.round(r.height) || 250}px`;
   ins.setAttribute('data-ad-client', ADSENSE_CLIENT);
   ins.setAttribute('data-ad-slot', ADSENSE_SLOT);
+  slot.classList.add('network');
   slot.textContent = '';
   slot.appendChild(ins);
 
