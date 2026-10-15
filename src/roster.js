@@ -13,14 +13,25 @@
 // Every box can be removed, so a race of two or three is just two or three
 // boxes. Remove them all and the list says it is waiting instead of going
 // blank.
+//
+// Each box also carries a small icon button on its left: what that racer will
+// look like, or a dice when they are dealt one at random. It opens Choose icon
+// for that name (see lookmenu.js).
 
 import { t, setTip, onLang } from './i18n.js';
+import { pickOf, paintThumb, onLooksChange } from './looks.js';
+
+const ICON_PX = 44;   // backing size of the row icon; drawn at 22 CSS px
+const DICE = '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" '
+  + 'stroke-width="1.9" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/></g>'
+  + '<g fill="currentColor"><circle cx="9" cy="9" r="1.6"/><circle cx="15" cy="15" r="1.6"/>'
+  + '<circle cx="15" cy="9" r="1.6"/><circle cx="9" cy="15" r="1.6"/></g></svg>';
 
 const MIN_ROWS = 8;
 const MAX_ROWS = 40;
 const MAX_LEN = 22;
 
-export function createRoster(listEl, onChange) {
+export function createRoster(listEl, onChange, { onIcon = null } = {}) {
   const roster = {
     names() {
       return inputs()
@@ -70,9 +81,41 @@ export function createRoster(listEl, onChange) {
     }
   }
 
+  // The icon button shows the name's own pick, or a dice for "dealt at
+  // random". An empty box has nobody to dress yet, so its button is disabled.
+  function paintIcon(row) {
+    const btn = row.querySelector('.name-icon');
+    if (!btn) return;
+    const name = row.querySelector('input').value.trim();
+    const pick = name ? pickOf(name) : null;
+    btn.disabled = !name;
+    btn.classList.toggle('picked', !!pick);
+    const label = name ? t('Choose an icon for {name}', { name }) : t('Choose icon');
+    setTip(btn, label);
+    btn.setAttribute('aria-label', label);
+    if (pick) {
+      let c = btn.querySelector('canvas');
+      if (!c) {
+        btn.textContent = '';
+        c = document.createElement('canvas');
+        c.width = ICON_PX;
+        c.height = ICON_PX;
+        btn.appendChild(c);
+      }
+      paintThumb(c, pick);
+    } else if (!btn.querySelector('svg')) {
+      btn.innerHTML = DICE;
+    }
+  }
+
+  function paintIcons() {
+    for (const row of listEl.querySelectorAll('.name-row')) paintIcon(row);
+  }
+
   function addRow(value) {
     const row = document.createElement('div');
     row.className = 'name-row';
+    if (onIcon) row.classList.add('with-icon');
 
     const input = document.createElement('input');
     input.type = 'text';
@@ -97,7 +140,19 @@ export function createRoster(listEl, onChange) {
       onChange();
     });
 
+    let icon = null;
+    if (onIcon) {
+      icon = document.createElement('button');
+      icon.type = 'button';
+      icon.className = 'name-icon';
+      icon.addEventListener('click', () => {
+        const name = input.value.trim();
+        if (name) onIcon(name);
+      });
+    }
+
     input.addEventListener('input', () => {
+      paintIcon(row);
       // Typing in the last box opens another, so the list is never a dead end.
       const all = inputs();
       if (input === all[all.length - 1] && input.value.trim() && all.length < MAX_ROWS) {
@@ -127,6 +182,7 @@ export function createRoster(listEl, onChange) {
       }
       if (inputs().length < MAX_ROWS) addRow('');
       renumber();
+      paintIcons();
       onChange();
     });
 
@@ -139,14 +195,19 @@ export function createRoster(listEl, onChange) {
       else roster.addAndFocus();
     });
 
+    if (icon) row.append(icon);
     row.append(input, del);
     listEl.appendChild(row);
+    if (icon) paintIcon(row);
     return row;
   }
 
   // The placeholders and remove buttons are written in the page's language.
+  onLooksChange(paintIcons);
+
   onLang(() => {
     renumber();
+    paintIcons();
     for (const del of listEl.querySelectorAll('.name-del')) {
       setTip(del, t('Remove'));
       del.setAttribute('aria-label', t('Remove this name'));

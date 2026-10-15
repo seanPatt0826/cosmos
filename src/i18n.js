@@ -143,6 +143,33 @@ const KO = {
   'Wormholes': '웜홀',
   'in one side, out the other': '이쪽으로 들어가 저쪽으로',
   'Fall into a door and you fly out of its same-coloured twin, still moving.': '문에 빠지면 같은 색 짝꿍 문으로, 움직이던 그대로 나와요.',
+
+  // Choose icon
+  'Choose icon': '아이콘 고르기',
+  'Choose an icon for {name}': '{name}의 아이콘 고르기',
+  'Icon for {name}': '{name}의 아이콘',
+  'Tap an icon to wear it. Random deals one each round.': '아이콘을 누르면 그 모습으로 달려요. 무작위는 라운드마다 하나를 골라 줘요.',
+  'Icons that are lit get dealt at random. Tap one to leave it out or put it back.': '밝게 켜진 아이콘이 무작위로 나와요. 누르면 빼거나 다시 넣을 수 있어요.',
+  'Random': '무작위',
+  'Saturn': '토성',
+  'Planet': '행성',
+  'Rocket': '로켓',
+  'Groot': '그루트',
+  'UFO': 'UFO',
+  'Satellite': '인공위성',
+  'Astronaut': '우주비행사',
+  'Alien': '외계인',
+  'Draw your own': '직접 그리기',
+  'Eraser': '지우개',
+  'Save drawing': '그림 저장',
+  'Name your drawing': '그림 이름',
+  'My drawing': '내 그림',
+  'Pen colour': '펜 색',
+  'Done': '완료',
+  'Delete this drawing': '이 그림 삭제',
+  'Saved. {name} is wearing it.': '저장했어요. 이제 {name}이(가) 이 아이콘으로 달려요.',
+  'Saved. It is in the random deal now.': '저장했어요. 이제 무작위로 나올 수 있어요.',
+  'No room for more drawings. Delete one first.': '그림을 더 저장할 수 없어요. 먼저 하나를 지워 주세요.',
 };
 
 // A cast for the example run, in whichever language is showing.

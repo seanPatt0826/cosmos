@@ -10,6 +10,8 @@ import { ROUND, CAMERA } from './config.js';
 import { update as updateCamera, screenToWorld } from './camera.js';
 import { setMode, isLight } from './theme.js';
 import { createRoster } from './roster.js';
+import { createLookMenu } from './lookmenu.js';
+import { onLooksChange } from './looks.js';
 import { createMiniMap, playerAt } from './minimap.js';
 import { createUniverses } from './universes.js';
 import { installTooltips } from './tooltip.js';
@@ -422,7 +424,22 @@ function buildControls() {
   aboutOpen.addEventListener('click', () => showAboutCard(true, { focus: true }));
   showAboutCard(load(STORE_ABOUT) !== 'closed');
 
-  roster = createRoster(document.getElementById('name-list'), refreshHint);
+  // Choose icon. A racer's icon button opens it for that name; the button
+  // under the list opens it for the random deal. A change shows at once on a
+  // field still waiting on the line, in the same universe with the same sky,
+  // and mid-race it waits for the next line-up like any other edit.
+  const looks = createLookMenu();
+  roster = createRoster(document.getElementById('name-list'), refreshHint, {
+    onIcon: (name) => looks.openFor(name),
+  });
+  document.getElementById('btn-looks').addEventListener('click', () => looks.openSet());
+  onLooksChange(() => {
+    if (round && round.phase === PHASE.READY && !transitioning) {
+      startRound(round.mapDef, { seed: round.seed });
+    }
+  });
+  // While the menu is open, the race's own keys stand down.
+  const menuOpen = () => looks.isOpen();
 
   // Restore a saved roster. The old build stored the raw textarea contents, so
   // accept either shape rather than throwing away someone's list on upgrade.
@@ -468,12 +485,14 @@ function buildControls() {
   startBtn.addEventListener('click', pressStart);
   window.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    if (menuOpen()) return;
     if (ev.target && /^(INPUT|TEXTAREA|BUTTON)$/.test(ev.target.tagName)) return;
     ev.preventDefault();
     pressStart();
   });
   window.addEventListener('keydown', (ev) => {
     if (ev.key !== 's' && ev.key !== 'S') return;
+    if (menuOpen()) return;
     if (ev.target && /^(INPUT|TEXTAREA)$/.test(ev.target.tagName)) return;
     shuffleField();
   });

@@ -11,7 +11,7 @@
 import { SKETCH, PAPER, GRAPHITE, PAPER_SHADE } from './config.js';
 import { makeRng, hashSeed } from './rng.js';
 import {
-  circlePath, ellipsePath, strokeSketch, strokeLine,
+  circlePath, ellipsePath, rectPath, strokeSketch, strokeLine,
   paperFill, hatch, mixHex, pathTo, shrinkPath,
 } from './sketch.js';
 
@@ -263,6 +263,297 @@ function drawComet(ctx, S, rng, col) {
   }
 }
 
+// ── Choose-icon looks ───────────────────────────────────────────────────────
+//
+// The icons people can pick for a racer (see looks.js). Same crayon and
+// graphite as everything else, and each one keeps a part in the racer's own
+// colour, so a field of eight rockets is still eight different racers.
+
+const LEAF = '#8CCB6A';
+const BARK = '#9A6B43';
+const BARK_DARK = '#6B4A2E';
+const FLAME = '#FFB347';
+const FLAME_CORE = '#FFE59A';
+const PANEL = '#6F8FD8';
+
+function offset(pts, dx, dy) {
+  return pts.map((p) => ({ x: p.x + dx, y: p.y + dy }));
+}
+
+function rotate(pts, a) {
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  return pts.map((p) => ({ x: p.x * c - p.y * s, y: p.x * s + p.y * c }));
+}
+
+// A round world with seas in the racer's colour and a few green continents.
+function drawPlanet(ctx, S, rng, col) {
+  const body = circlePath(rng, S * 0.88);
+  paperFill(ctx, body, rng);
+  hatch(ctx, body, rng, { color: col.crayon, angle: rng.range(-1.1, -0.5), alpha: 0.55, width: S * 0.16 });
+  ctx.save();
+  pathTo(ctx, shrinkPath(body, S * 0.04), true);
+  ctx.clip();
+  const lands = rng.int(2, 3);
+  for (let i = 0; i < lands; i++) {
+    const a = rng.range(0, Math.PI * 2);
+    const d = rng.range(0.15, 0.5) * S;
+    const land = offset(circlePath(rng, S * rng.range(0.26, 0.38), { wobble: 0.22 }),
+      Math.cos(a) * d, Math.sin(a) * d);
+    paperFill(ctx, land, rng, { color: LEAF, alpha: 0.85 });
+    strokeSketch(ctx, land, rng, { color: mixHex(LEAF, GRAPHITE, 0.45), width: S * 0.05, passes: 1, alpha: 0.7 });
+  }
+  // A wisp of cloud across the middle.
+  strokeLine(ctx, { x: -S * 0.6, y: -S * 0.28 }, { x: S * 0.2, y: -S * 0.36 }, rng, {
+    color: PAPER, width: S * 0.1, passes: 2, alpha: 0.8, segments: 5, wobble: S * 0.04,
+  });
+  ctx.restore();
+  strokeSketch(ctx, body, rng, { color: GRAPHITE, width: S * 0.09 });
+}
+
+// A tall rocket going up, nose cone and fins in the racer's colour, with a
+// flame underneath.
+function drawRocket(ctx, S, rng, col) {
+  const w = S * 0.4;
+  const top = -S * 1.12;
+  const shoulder = -S * 0.42;
+  const base = S * 0.62;
+
+  const flame = [
+    { x: -w * 0.62, y: base },
+    { x: -w * 0.3, y: base + S * 0.42 },
+    { x: 0, y: base + S * 0.68 + rng.wobble(S * 0.05) },
+    { x: w * 0.3, y: base + S * 0.42 },
+    { x: w * 0.62, y: base },
+  ];
+  paperFill(ctx, flame, rng, { color: FLAME, alpha: 0.95 });
+  paperFill(ctx, offset(flame.map((p) => ({ x: p.x * 0.5, y: base + (p.y - base) * 0.6 })), 0, 0), rng,
+    { color: FLAME_CORE, alpha: 0.95 });
+
+  for (const sx of [-1, 1]) {
+    const fin = [
+      { x: sx * w * 0.9, y: S * 0.05 },
+      { x: sx * w * 1.85, y: base + S * 0.12 },
+      { x: sx * w * 0.9, y: base },
+    ];
+    paperFill(ctx, fin, rng);
+    hatch(ctx, fin, rng, { color: col.crayon, alpha: 0.7, width: S * 0.12, cross: false, inset: 1 });
+    strokeSketch(ctx, fin, rng, { color: GRAPHITE, width: S * 0.08 });
+  }
+
+  const hull = [];
+  for (let i = 0; i <= 10; i++) {
+    const t = i / 10;
+    const a = Math.PI + t * Math.PI;
+    hull.push({ x: Math.cos(a) * w, y: shoulder + Math.sin(a) * (shoulder - top) });
+  }
+  hull.push({ x: w * (1 + rng.wobble(0.04)), y: base });
+  hull.push({ x: -w * (1 + rng.wobble(0.04)), y: base });
+  paperFill(ctx, hull, rng);
+  // The nose in colour, the rest left as paper.
+  ctx.save();
+  pathTo(ctx, hull, true);
+  ctx.clip();
+  const nose = [
+    { x: -S, y: top - S * 0.1 }, { x: S, y: top - S * 0.1 },
+    { x: S, y: shoulder + S * 0.04 }, { x: -S, y: shoulder + S * 0.04 },
+  ];
+  hatch(ctx, nose, rng, { color: col.crayon, angle: 0.9, alpha: 0.75, width: S * 0.14 });
+  strokeLine(ctx, { x: -w, y: base - S * 0.18 }, { x: w, y: base - S * 0.18 }, rng, {
+    color: col.crayon, width: S * 0.14, passes: 2, alpha: 0.8, segments: 4, wobble: S * 0.02,
+  });
+  ctx.restore();
+  strokeSketch(ctx, hull, rng, { color: GRAPHITE, width: S * 0.09 });
+
+  const port = offset(circlePath(rng, S * 0.17), 0, -S * 0.08);
+  paperFill(ctx, port, rng, { color: mixHex(col.glow, PAPER, 0.3), alpha: 0.95 });
+  strokeSketch(ctx, port, rng, { color: GRAPHITE, width: S * 0.07, passes: 2 });
+}
+
+// A little cartoon Groot: a bark face with big shiny eyes, a happy smile and
+// twigs with leaves sprouting out of the top. One leaf is the racer's colour.
+function drawGroot(ctx, S, rng, col) {
+  // Twigs and leaves first, so the head sits in front of their roots.
+  const twigs = [
+    { x0: -S * 0.3, x1: -S * 0.62, y1: -S * 1.22 },
+    { x0: 0, x1: S * 0.05, y1: -S * 1.28 },
+    { x0: S * 0.32, x1: S * 0.66, y1: -S * 1.18 },
+  ];
+  twigs.forEach((tw, i) => {
+    strokeLine(ctx, { x: tw.x0, y: -S * 0.62 }, { x: tw.x1, y: tw.y1 }, rng, {
+      color: BARK_DARK, width: S * 0.1, passes: 2, alpha: 0.9, segments: 4, wobble: S * 0.03,
+    });
+    const leaf = rotate(ellipsePath(rng, S * 0.2, S * 0.11, { steps: 10 }), rng.range(-0.8, 0.8));
+    const placed = offset(leaf, tw.x1, tw.y1);
+    paperFill(ctx, placed, rng, { color: i === 1 ? col.crayon : LEAF, alpha: 0.95 });
+    strokeSketch(ctx, placed, rng, { color: GRAPHITE, width: S * 0.05, passes: 1, alpha: 0.75 });
+  });
+
+  // The head: a tall rounded block of wood, a touch wider at the top.
+  const head = [];
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * Math.PI * 2;
+    const flare = Math.sin(a) < 0 ? 1.05 : 0.9;
+    head.push({
+      x: Math.cos(a) * S * 0.66 * flare * (1 + rng.wobble(0.04)),
+      y: Math.sin(a) * S * 0.86 * (1 + rng.wobble(0.04)),
+    });
+  }
+  paperFill(ctx, head, rng, { color: mixHex(BARK, PAPER, 0.35) });
+  hatch(ctx, head, rng, { color: BARK, angle: 1.45, alpha: 0.7, width: S * 0.14, cross: false });
+  // Bark grain running down the face.
+  ctx.save();
+  pathTo(ctx, shrinkPath(head, S * 0.05), true);
+  ctx.clip();
+  for (const x of [-0.42, -0.12, 0.2, 0.46]) {
+    strokeLine(ctx, { x: x * S, y: -S * 0.9 }, { x: (x + rng.wobble(0.06)) * S, y: -S * 0.35 }, rng, {
+      color: BARK_DARK, width: S * 0.05, passes: 1, alpha: 0.55, segments: 4, wobble: S * 0.03,
+    });
+  }
+  ctx.restore();
+  strokeSketch(ctx, head, rng, { color: BARK_DARK, width: S * 0.1 });
+
+  // Big round eyes with a shine, and a wide smile.
+  for (const sx of [-1, 1]) {
+    const eye = offset(circlePath(rng, S * 0.15), sx * S * 0.26, -S * 0.05);
+    paperFill(ctx, eye, rng, { color: GRAPHITE, alpha: 0.95 });
+    const shine = offset(circlePath(rng, S * 0.05), sx * S * 0.26 + S * 0.05, -S * 0.11);
+    paperFill(ctx, shine, rng, { color: PAPER, alpha: 0.95 });
+  }
+  const smile = [];
+  for (let i = 0; i <= 6; i++) {
+    const t = i / 6;
+    smile.push({ x: (-0.24 + 0.48 * t) * S, y: S * (0.3 + Math.sin(t * Math.PI) * 0.14) });
+  }
+  strokeSketch(ctx, smile, rng, { color: BARK_DARK, width: S * 0.08, passes: 2, closed: false });
+  // Rosy cheeks.
+  for (const sx of [-1, 1]) {
+    const cheek = offset(ellipsePath(rng, S * 0.1, S * 0.06, { steps: 8 }), sx * S * 0.42, S * 0.2);
+    paperFill(ctx, cheek, rng, { color: '#E0728C', alpha: 0.5 });
+  }
+}
+
+// A satellite tumbling a little: a box in the racer's colour, two solar
+// panels and a dish.
+function drawSatellite(ctx, S, rng, col) {
+  ctx.save();
+  ctx.rotate(-0.35);
+  for (const sx of [-1, 1]) {
+    strokeLine(ctx, { x: sx * S * 0.28, y: 0 }, { x: sx * S * 0.5, y: 0 }, rng, {
+      color: GRAPHITE, width: S * 0.07, passes: 2, alpha: 0.9, segments: 2, wobble: S * 0.01,
+    });
+    const panel = offset(rectPath(rng, S * 0.62, S * 0.44, { wobble: S * 0.02 }), sx * S * 0.84, 0);
+    paperFill(ctx, panel, rng, { color: mixHex(PANEL, PAPER, 0.45) });
+    hatch(ctx, panel, rng, { color: PANEL, alpha: 0.6, width: S * 0.1, angle: 0.4 });
+    for (const k of [-1, 0, 1]) {
+      const x = sx * S * 0.84 + k * S * 0.15;
+      strokeLine(ctx, { x, y: -S * 0.21 }, { x, y: S * 0.21 }, rng, {
+        color: GRAPHITE, width: S * 0.035, passes: 1, alpha: 0.6, segments: 2, wobble: S * 0.01,
+      });
+    }
+    strokeSketch(ctx, panel, rng, { color: GRAPHITE, width: S * 0.07 });
+  }
+  const box = rectPath(rng, S * 0.58, S * 0.62, { wobble: S * 0.02 });
+  paperFill(ctx, box, rng);
+  hatch(ctx, box, rng, { color: col.crayon, alpha: 0.65, width: S * 0.13, angle: 1.0 });
+  strokeSketch(ctx, box, rng, { color: GRAPHITE, width: S * 0.085 });
+
+  // Dish and antenna on top.
+  strokeLine(ctx, { x: 0, y: -S * 0.31 }, { x: 0, y: -S * 0.55 }, rng, {
+    color: GRAPHITE, width: S * 0.06, passes: 2, segments: 2, wobble: S * 0.01,
+  });
+  const dish = [];
+  for (let i = 0; i <= 8; i++) {
+    const a = Math.PI * (i / 8);
+    dish.push({ x: Math.cos(a) * S * 0.3, y: -S * 0.55 - Math.sin(a) * S * 0.16 });
+  }
+  paperFill(ctx, dish, rng);
+  strokeSketch(ctx, dish, rng, { color: GRAPHITE, width: S * 0.07 });
+  const tip = offset(circlePath(rng, S * 0.07), 0, -S * 0.86);
+  strokeLine(ctx, { x: 0, y: -S * 0.6 }, { x: 0, y: -S * 0.8 }, rng, {
+    color: GRAPHITE, width: S * 0.045, passes: 1, segments: 2, wobble: S * 0.01,
+  });
+  paperFill(ctx, tip, rng, { color: col.glow, alpha: 0.95 });
+  ctx.restore();
+}
+
+// An astronaut: round helmet with a tinted visor, a puffy suit, and a
+// backpack in the racer's colour.
+function drawAstronaut(ctx, S, rng, col) {
+  const pack = offset(rectPath(rng, S * 1.0, S * 0.8, { wobble: S * 0.02 }), 0, S * 0.42);
+  paperFill(ctx, pack, rng);
+  hatch(ctx, pack, rng, { color: col.crayon, alpha: 0.7, width: S * 0.13, angle: 0.8 });
+  strokeSketch(ctx, pack, rng, { color: GRAPHITE, width: S * 0.08 });
+
+  // Arms and legs as stubby rounded limbs.
+  const limbs = [
+    { x: -S * 0.55, y: S * 0.42, a: 0.5 }, { x: S * 0.55, y: S * 0.42, a: -0.5 },
+    { x: -S * 0.22, y: S * 0.98, a: 0 }, { x: S * 0.22, y: S * 0.98, a: 0 },
+  ];
+  for (const l of limbs) {
+    const limb = offset(rotate(ellipsePath(rng, S * 0.17, S * 0.26, { steps: 10 }), l.a), l.x, l.y);
+    paperFill(ctx, limb, rng);
+    strokeSketch(ctx, limb, rng, { color: GRAPHITE, width: S * 0.07 });
+  }
+
+  const suit = offset(ellipsePath(rng, S * 0.47, S * 0.5), 0, S * 0.46);
+  paperFill(ctx, suit, rng);
+  hatch(ctx, suit, rng, { color: mixHex(PAPER_SHADE, GRAPHITE, 0.15), alpha: 0.4, width: S * 0.1, cross: false });
+  strokeSketch(ctx, suit, rng, { color: GRAPHITE, width: S * 0.085 });
+  const badge = offset(rectPath(rng, S * 0.22, S * 0.16, { wobble: S * 0.01 }), S * 0.1, S * 0.38);
+  paperFill(ctx, badge, rng, { color: col.crayon, alpha: 0.9 });
+
+  const helmet = offset(circlePath(rng, S * 0.62), 0, -S * 0.32);
+  paperFill(ctx, helmet, rng);
+  strokeSketch(ctx, helmet, rng, { color: GRAPHITE, width: S * 0.09 });
+  const visor = offset(ellipsePath(rng, S * 0.42, S * 0.32), 0, -S * 0.3);
+  paperFill(ctx, visor, rng, { color: mixHex(col.glow, GRAPHITE, 0.55), alpha: 0.95 });
+  strokeSketch(ctx, visor, rng, { color: GRAPHITE, width: S * 0.07, passes: 2 });
+  const glint = offset(rotate(ellipsePath(rng, S * 0.12, S * 0.05, { steps: 8 }), -0.6), -S * 0.17, -S * 0.42);
+  paperFill(ctx, glint, rng, { color: PAPER, alpha: 0.9 });
+}
+
+// A friendly alien: a big egg-shaped head in the racer's colour, huge dark
+// eyes, a little smile and two bobbly antennae.
+function drawAlien(ctx, S, rng, col) {
+  for (const sx of [-1, 1]) {
+    const tipX = sx * S * 0.5;
+    const tipY = -S * 1.2;
+    strokeLine(ctx, { x: sx * S * 0.2, y: -S * 0.7 }, { x: tipX, y: tipY }, rng, {
+      color: GRAPHITE, width: S * 0.06, passes: 2, segments: 3, wobble: S * 0.03,
+    });
+    const ball = offset(circlePath(rng, S * 0.11), tipX, tipY);
+    paperFill(ctx, ball, rng, { color: col.glow, alpha: 0.95 });
+    strokeSketch(ctx, ball, rng, { color: GRAPHITE, width: S * 0.05, passes: 1 });
+  }
+
+  const head = [];
+  for (let i = 0; i < 26; i++) {
+    const a = (i / 26) * Math.PI * 2;
+    const pinch = Math.sin(a) > 0 ? 0.62 + 0.38 * (1 - Math.sin(a)) : 1;
+    head.push({
+      x: Math.cos(a) * S * 0.8 * pinch * (1 + rng.wobble(0.04)),
+      y: Math.sin(a) * S * (Math.sin(a) > 0 ? 0.95 : 0.8) * (1 + rng.wobble(0.04)),
+    });
+  }
+  paperFill(ctx, head, rng);
+  hatch(ctx, head, rng, { color: col.crayon, angle: rng.range(0.4, 1.0), alpha: 0.7, width: S * 0.16 });
+  strokeSketch(ctx, head, rng, { color: GRAPHITE, width: S * 0.09 });
+
+  for (const sx of [-1, 1]) {
+    const eye = offset(rotate(ellipsePath(rng, S * 0.26, S * 0.15, { steps: 12 }), sx * 0.5), sx * S * 0.32, -S * 0.02);
+    paperFill(ctx, eye, rng, { color: GRAPHITE, alpha: 0.95 });
+    const shine = offset(circlePath(rng, S * 0.05), sx * S * 0.32 - S * 0.07, -S * 0.08);
+    paperFill(ctx, shine, rng, { color: PAPER, alpha: 0.9 });
+  }
+  const smile = [];
+  for (let i = 0; i <= 5; i++) {
+    const t = i / 5;
+    smile.push({ x: (-0.14 + 0.28 * t) * S, y: S * (0.42 + Math.sin(t * Math.PI) * 0.08) });
+  }
+  strokeSketch(ctx, smile, rng, { color: GRAPHITE, width: S * 0.06, passes: 2, closed: false });
+}
+
 const ARCHETYPE_DRAW = {
   sun: drawSun,
   ufo: drawUfo,
@@ -270,11 +561,35 @@ const ARCHETYPE_DRAW = {
   ringed: drawRinged,
   capsule: drawCapsule,
   comet: drawComet,
+  saturn: drawRinged,
+  planet: drawPlanet,
+  rocket: drawRocket,
+  groot: drawGroot,
+  satellite: drawSatellite,
+  astronaut: drawAstronaut,
+  alien: drawAlien,
 };
 
 export function bakeBody(archetype, col, seed, worldRadius) {
   const draw = ARCHETYPE_DRAW[archetype] || drawMoon;
   return bake(worldRadius, (ctx, S, rng) => draw(ctx, S, rng, col), hashSeed('body', archetype, seed));
+}
+
+// A drawing someone made in the Choose icon pad. It sits on a round paper
+// badge with a pencil rim in the racer's colour, so it reads on any sky, and
+// each boil frame nudges it a hair so it wriggles like the rest.
+export function bakeCustom(image, col, seed, worldRadius) {
+  return bake(worldRadius, (ctx, S, rng) => {
+    const disc = circlePath(rng, S * 0.95);
+    paperFill(ctx, disc, rng);
+    ctx.save();
+    pathTo(ctx, shrinkPath(disc, S * 0.02), true);
+    ctx.clip();
+    const d = S * 1.9;
+    ctx.drawImage(image, -d / 2 + rng.wobble(S * 0.015), -d / 2 + rng.wobble(S * 0.015), d, d);
+    ctx.restore();
+    strokeSketch(ctx, disc, rng, { color: mixHex(col.crayon, GRAPHITE, 0.25), width: S * 0.1 });
+  }, hashSeed('custom', seed));
 }
 
 // ── Scenery ─────────────────────────────────────────────────────────────────

@@ -4,9 +4,9 @@
 // Uniform collision behaviour is what keeps thirty bodies readable and keeps
 // the outcome honest — the drawing is decoration, never an advantage.
 
-import { PALETTE, ARCHETYPES, BODY } from './config.js';
+import { PALETTE, BODY } from './config.js';
 import { makeRng, hashSeed } from './rng.js';
-import { bakeBody } from './sprites.js';
+import { lookFor, bakeLook } from './looks.js';
 
 let spriteCache = new Map();
 
@@ -14,11 +14,14 @@ export function clearSpriteCache() {
   spriteCache = new Map();
 }
 
-function spriteFor(archetype, col, variant) {
-  const key = `${archetype}|${col.name}|${variant}`;
+// A drawing whose image is still decoding comes back null; it wears a planet
+// for now and is not cached, so the next line-up picks the drawing up.
+function spriteFor(look, col, variant) {
+  const key = `${look}|${col.name}|${variant}`;
   let s = spriteCache.get(key);
   if (!s) {
-    s = bakeBody(archetype, col, hashSeed(key), BODY.radius);
+    s = bakeLook(look, col, hashSeed(key), BODY.radius);
+    if (!s) return bakeLook('planet', col, hashSeed(key), BODY.radius);
     spriteCache.set(key, s);
   }
   return s;
@@ -45,7 +48,8 @@ export function createPlayers(count, seed, names = []) {
   const players = [];
   for (let i = 0; i < count; i++) {
     const col = colours[i % colours.length];
-    const archetype = ARCHETYPES[(i + rng.int(0, 5)) % ARCHETYPES.length];
+    // Their own icon from Choose icon, or one dealt from the set.
+    const archetype = lookFor(roster[i] || null, rng);
     // Two objects sharing a colour must not share a silhouette.
     const variant = Math.floor(i / colours.length);
     players.push({
