@@ -1419,7 +1419,7 @@
 
   /* Short windows: the 300x100 banner cut. Picture on the left, brand,
      headline and button on the right. */
-  @media (max-height: 849px) and (min-width: 901px) {
+  @media (max-height: 849px) and (min-height: 521px) and (min-width: 901px) {
     .ad-slot { height: 100px; }
     .hads, .hads.app { grid-template-columns: 96px 1fr; grid-template-rows: 1fr auto; }
     .hads-art, .hads-app { grid-row: 1 / 3; }
@@ -1437,7 +1437,9 @@
     .hads.in > *, .hads-art svg { animation: none; }
   }
 
-  @media (max-width: 900px) {
+  /* Short screens up to 1100px wide (big phones on their side) count as
+     phones too: the desktop layout needs more height than they have. */
+  @media (max-width: 900px), (max-width: 1100px) and (max-height: 520px) {
     /* One variable, so the controls bar below stays centred on the arena. */
     :root { --rail-w: min(260px, 46vw); }
     /* No room for two columns of panels; the rail wins. */
@@ -1556,6 +1558,68 @@
     /* The card heading wraps rather than being cut to "이렇게 진…". */
     .map-about-title { white-space: normal; }
   }
+
+  /* ── Phones and tablets: one bottom row each ─────────────────────────── */
+  /*
+     At 900px and under, four things wanted the bottom of the screen at once:
+     the controls bar, the wordmark with its links and language button, Start,
+     and the side column, which ran all the way down. On a sideways phone the
+     language button sat on the pause button and Start covered the card; on a
+     tablet the wordmark ran into the bar; upright, Start and the bar slid
+     under the column. Measured at thirteen sizes before this.
+
+     So the bottom is split into rows that nothing else enters. The bar owns
+     the bottom row, centred on the whole screen, and the side column stops
+     above it. The wordmark sits on the row above the bar, on the left. Start
+     goes where there is room for it: upright, higher up the left side, with
+     the card ending above it; sideways, there is no height for that, so it
+     sits beside the column instead and the card keeps the left edge.
+  */
+  /* Short screens up to 1100px wide (big phones on their side) count as
+     phones too: the desktop layout needs more height than they have. */
+  @media (max-width: 900px), (max-width: 1100px) and (max-height: 520px) {
+    .rail { max-height: calc(100% - 20px - 64px); }
+    #controls {
+      left: 50%;
+      bottom: 10px;
+      max-width: calc(100% - 20px);
+      flex-wrap: nowrap;
+    }
+    .corner { left: 16px; bottom: 72px; }
+    #btn-start {
+      left: calc((100% - var(--rail-w) - 20px) / 2 + 4px);
+      bottom: 138px;
+      font-size: 22px;
+      padding: 10px 34px 11px;
+    }
+    .left-col { max-height: calc(100% - 72px - 200px); }
+    /* The wordmark stops short of the column; on the narrowest phones the
+       language button drops to a line of its own rather than run under it. */
+    .corner { max-width: calc(100% - var(--rail-w) - 30px); }
+    .corner nav { flex-wrap: wrap; row-gap: 6px; }
+  }
+  /* Narrow upright phones: the wordmark can wrap to two lines, so Start
+     and the card above it move up to match. */
+  @media (max-width: 560px) {
+    #btn-start { bottom: 170px; }
+    .left-col { max-height: calc(100% - 72px - 232px); }
+  }
+  /* Sideways phones: short, so the wordmark shares the bar's row on the left,
+     the bar shifts right to clear it, and Start moves beside the column. */
+  @media (max-width: 1100px) and (max-height: 520px) {
+    .corner { bottom: 10px; }
+    #controls { left: calc(50% + 70px); }
+    /* Snug against the column, and a size that fits the gap between it and
+       the card even on a 667px-wide phone. */
+    #btn-start {
+      left: calc(100% - var(--rail-w) - 80px);
+      bottom: 72px;
+      font-size: 18px;
+      padding: 7px 22px 8px;
+    }
+    .left-col { max-height: calc(100% - 72px - 74px); }
+  }
+
 
   @media (prefers-reduced-motion: reduce) {
     #banner, #fade, #map-name.intro { transition: none; animation: none; }
