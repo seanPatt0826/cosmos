@@ -165,9 +165,9 @@ function stored() {
   }
 }
 
-// A saved choice wins; otherwise a Korean browser starts in Korean.
-let lang = stored() || ((navigator.language || '').toLowerCase().startsWith('ko') ? 'ko' : 'en');
-if (lang !== 'ko') lang = 'en';
+// Korean is the default for everyone. Only someone who has pressed the globe
+// and picked English gets English, and that choice is remembered.
+let lang = stored() === 'en' ? 'en' : 'ko';
 
 const listeners = [];
 
