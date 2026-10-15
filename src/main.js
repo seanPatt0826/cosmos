@@ -16,7 +16,7 @@ import { onLooksChange } from './looks.js';
 import { createMiniMap, playerAt } from './minimap.js';
 import { createUniverses } from './universes.js';
 import { installTooltips } from './tooltip.js';
-import { t, installLang, onLang, examplePool } from './i18n.js';
+import { t, installLang, onLang, examplePool, setTip } from './i18n.js';
 import { setIcon } from './icons.js';
 
 const STORE_NAMES = 'cosmos.names';
@@ -412,17 +412,22 @@ function buildControls() {
   // The "how this universe works" card on the arena. Open by default so a
   // first visit explains itself; once closed it stays closed, with the round
   // button left in its place to bring it back.
+  // It folds rather than vanishing: its header stays, with the same arrow
+  // the ad card below it has, so the two line up and work the same way.
   const aboutCard = document.getElementById('map-about');
-  const aboutOpen = document.getElementById('btn-about-open');
-  const aboutClose = document.getElementById('btn-about-close');
-  function showAboutCard(open, { focus = false } = {}) {
-    aboutCard.hidden = !open;
-    aboutOpen.hidden = open;
+  const aboutFold = document.getElementById('btn-about-close');
+  let aboutOpen = true;
+  function showAboutCard(open) {
+    aboutOpen = open;
+    aboutCard.classList.toggle('folded', !open);
+    aboutFold.setAttribute('aria-expanded', open ? 'true' : 'false');
+    const label = open ? t('Hide how it works') : t('Show how it works');
+    aboutFold.setAttribute('aria-label', label);
+    setTip(aboutFold, label);
     save(STORE_ABOUT, open ? 'open' : 'closed');
-    if (focus) (open ? aboutClose : aboutOpen).focus();
   }
-  aboutClose.addEventListener('click', () => showAboutCard(false, { focus: true }));
-  aboutOpen.addEventListener('click', () => showAboutCard(true, { focus: true }));
+  aboutFold.addEventListener('click', () => showAboutCard(!aboutOpen));
+  onLang(() => showAboutCard(aboutOpen));
   showAboutCard(load(STORE_ABOUT) !== 'closed');
 
   // Choose icon. A racer's icon button opens it for that name; the button

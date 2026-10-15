@@ -230,7 +230,7 @@ function installNetwork(slot) {
   const r = slot.getBoundingClientRect();
   const [w, h] = r.width && r.height ? [Math.round(r.width), Math.round(r.height)]
     : innerWidth <= 900 || (innerWidth <= 1100 && innerHeight <= 520) ? [320, 50]
-      : innerHeight <= 849 ? [300, 100] : [300, 250];
+      : innerHeight <= 899 ? [300, 100] : [300, 250];
   const ins = document.createElement('ins');
   ins.className = 'adsbygoogle';
   ins.style.display = 'inline-block';

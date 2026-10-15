@@ -47,7 +47,8 @@ const KO = {
   // Arena
   'How it works': '이렇게 진행돼요',
   'How {name} works': '{name} 진행 방식',
-  'Close the description': '설명 닫기',
+  'Hide how it works': '설명 접기',
+  'Show how it works': '설명 펼치기',
   'Close': '닫기',
   'What happens in this universe?': '이 우주에서는 무슨 일이 일어날까요?',
   'What happens here?': '여기선 무슨 일이?',

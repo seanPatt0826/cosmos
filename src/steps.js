@@ -63,7 +63,7 @@ export function createSteps() {
     clearInterval(timer);
     if (touched) return;
     timer = setInterval(() => {
-      if (!el.card || !el.card.hidden) show(step + 1);
+      if (!el.card || !el.card.classList.contains('folded')) show(step + 1);
     }, AUTO_MS);
   }
 
