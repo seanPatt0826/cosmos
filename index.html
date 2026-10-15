@@ -1415,9 +1415,48 @@
       right: 10px;
       gap: 9px;
     }
-    /* The rail is 260px at most here. A medium rectangle does not fit in
-       that, and a squashed slot is worse than none, so it stands down. */
-    .ad { display: none; }
+    /* Phones and narrow tablets: no room for a 300x250 beside the arena, so
+       the slot becomes the standard 320x50 mobile banner, anchored along the
+       bottom edge the way phone ads usually sit. The arena gives up that
+       strip rather than being covered by it, so the controls bar, the corner
+       and Start all stay where they were, just above the banner. */
+    .stage-wrap { bottom: 62px; }
+    .ad {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 5;
+      width: auto;
+      max-width: none;
+      height: 62px;
+      display: grid;
+      place-items: center;
+      background: var(--void);
+      border-top: 1px solid var(--edge-soft);
+    }
+    .ad-slot {
+      width: 320px;
+      max-width: calc(100vw - 12px);
+      height: 50px;
+      border-radius: 8px;
+      border-width: 1px;
+      box-shadow: none;
+    }
+    .hads, .hads.app { grid-template-columns: 54px 1fr auto; grid-template-rows: 1fr; }
+    .hads-art, .hads-app { grid-row: 1; grid-column: 1; }
+    .hads-art svg { width: 50px; height: 40px; }
+    .hads-app { padding: 0; justify-content: center; border-bottom: none; border-right: 1px solid #E5E7EB; }
+    .hads-icon svg { width: 36px; height: 36px; }
+    .hads-app-meta, .hads-body, .hads-offer { display: none; }
+    .hads-copy { grid-column: 2; justify-content: center; gap: 0; padding: 0 6px 0 8px; min-width: 0; }
+    .hads-brand { font-size: 10px; }
+    .hads-logo svg { width: 10px; height: 10px; }
+    .hads-head { font-size: 12.5px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hads-foot { grid-column: 3; padding: 0 20px 0 0; }
+    .hads.app .hads-foot .hads-cta, .hads-cta { width: auto; padding: 5px 11px; font-size: 12px; border-radius: 6px; }
+    .hads-badge { top: 2px; left: 2px; padding: 0 3px; font-size: 8.5px; line-height: 12px; }
+    .hads-info { top: 3px; right: 3px; width: 13px; height: 13px; font-size: 9px; line-height: 11px; }
     /* Seven portraits in one row inside a 260px rail would be 33px each. */
     /* Three, three, then the last one centred. */
     #universe-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
