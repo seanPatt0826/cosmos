@@ -70,7 +70,10 @@ export const SKETCH = {
 // ── Bodies ──────────────────────────────────────────────────────────────────
 
 export const BODY = {
-  radius: 18,
+  // 32, up from 18, so a racer can be picked out at a glance. Measured over
+  // 15 seeded rounds a universe at 18, 32 and 40: medians stayed within the
+  // run-to-run noise and nothing stalled, so the pacing tuning still holds.
+  radius: 32,
   restitution: 0.72,
   friction: 0.008,
   frictionStatic: 0.02,

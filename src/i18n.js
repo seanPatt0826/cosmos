@@ -151,6 +151,9 @@ const KO = {
   'Tap an icon to wear it. Random deals one each round.': '아이콘을 누르면 그 모습으로 달려요. 무작위는 라운드마다 하나를 골라 줘요.',
   'Icons that are lit get dealt at random. Tap one to leave it out or put it back.': '밝게 켜진 아이콘이 무작위로 나와요. 누르면 빼거나 다시 넣을 수 있어요.',
   'Random': '무작위',
+  'Tap an icon to wear it. Blue ones are already taken, but you can still pick one: you race in your own colour.':
+    '아이콘을 누르면 그 모습으로 달려요. 파란 아이콘은 이미 누가 골랐지만, 그래도 고를 수 있어요. 색은 서로 달라요.',
+  'Taken by {name}': '{name}이(가) 골랐어요',
   'Saturn': '토성',
   'Planet': '행성',
   'Rocket': '로켓',

@@ -428,7 +428,7 @@ function buildControls() {
   // under the list opens it for the random deal. A change shows at once on a
   // field still waiting on the line, in the same universe with the same sky,
   // and mid-race it waits for the next line-up like any other edit.
-  const looks = createLookMenu();
+  const looks = createLookMenu({ names: () => (roster ? roster.names() : []) });
   roster = createRoster(document.getElementById('name-list'), refreshHint, {
     onIcon: (name) => looks.openFor(name),
   });

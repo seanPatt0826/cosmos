@@ -102,6 +102,11 @@ export function pickOf(name) {
   return id && exists(id) ? id : null;
 }
 
+// Every name that has picked this icon, in the order they were saved.
+export function ownersOf(id) {
+  return Object.keys(state.picks).filter((n) => state.picks[n] === id && exists(id));
+}
+
 export function setPick(name, id) {
   if (!name) return;
   if (id && exists(id)) state.picks[name] = id;

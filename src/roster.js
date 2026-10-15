@@ -21,7 +21,7 @@
 import { t, setTip, onLang } from './i18n.js';
 import { pickOf, paintThumb, onLooksChange } from './looks.js';
 
-const ICON_PX = 44;   // backing size of the row icon; drawn at 22 CSS px
+const ICON_PX = 64;   // backing size of the row icon; drawn at 32 CSS px
 const DICE = '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" '
   + 'stroke-width="1.9" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/></g>'
   + '<g fill="currentColor"><circle cx="9" cy="9" r="1.6"/><circle cx="15" cy="15" r="1.6"/>'

@@ -13,12 +13,12 @@
 // through onLooksChange, the same as any other change to the looks.
 
 import {
-  allLooks, inSet, setInSet, pickOf, setPick, addCustom, removeCustom,
+  allLooks, inSet, setInSet, pickOf, setPick, ownersOf, addCustom, removeCustom,
   customCount, CUSTOM_LIMIT, paintThumb, onLooksChange,
 } from './looks.js';
 import { t, onLang } from './i18n.js';
 
-const TILE_PX = 96;      // backing size of each tile's preview canvas
+const TILE_PX = 144;     // backing size of each tile's preview canvas (72 CSS px, 2x)
 const PAD_PX = 320;      // backing size of the drawing pad
 const SAVE_PX = 128;     // drawings are stored this size, as PNG
 const PENS = ['#2E2934', '#E2574C', '#F2A93B', '#F4D35E', '#6CC57C', '#4FA3E0', '#9B6BD6', '#F2EADB'];
@@ -30,7 +30,10 @@ const DICE = '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke=
 const CROSS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" '
   + 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 
-export function createLookMenu() {
+// `names` reports who is on the list right now, so an icon someone else
+// already wears can be marked as theirs. Picks left behind by names that have
+// since been deleted are not shown as taken.
+export function createLookMenu({ names = () => [] } = {}) {
   let el = null;
   let mode = 'set';      // 'name' while choosing for one racer, 'set' for the deal
   let forName = '';
@@ -191,28 +194,46 @@ export function createLookMenu() {
 
   // ── The grid ─────────────────────────────────────────────────────────────
 
-  function tile({ id, label, on, custom, onClick, dice }) {
+  // `index` staggers the float so the icons drift out of step, like the
+  // racers on the line. `owners` are the other names already wearing it.
+  function tile({ id, label, on, custom, onClick, dice, index = 0, owners = [] }) {
     const wrap = document.createElement('div');
     wrap.className = 'look-cell';
+    wrap.style.setProperty('--float-delay', `${-((index * 0.61) % 3.4).toFixed(2)}s`);
     wrap.setAttribute('role', 'listitem');
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'look-tile';
     b.classList.toggle('on', on);
+    b.classList.toggle('taken', owners.length > 0);
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
     if (dice) {
-      b.insertAdjacentHTML('beforeend', `<span class="look-dice">${DICE}</span>`);
+      b.insertAdjacentHTML('beforeend', `<span class="look-float"><span class="look-dice">${DICE}</span></span>`);
     } else {
+      const f = document.createElement('span');
+      f.className = 'look-float';
       const c = document.createElement('canvas');
       c.width = TILE_PX;
       c.height = TILE_PX;
       paintThumb(c, id);
-      b.appendChild(c);
+      f.appendChild(c);
+      b.appendChild(f);
     }
     const s = document.createElement('span');
     s.className = 'look-label';
     s.textContent = label;
     b.appendChild(s);
+    // Taken: the owner's name rides on the tile in its own colour. It can
+    // still be picked; the two racers just race in different colours.
+    if (owners.length) {
+      const o = document.createElement('span');
+      o.className = 'look-owner';
+      o.textContent = owners.length > 1 ? `${owners[0]} +${owners.length - 1}` : owners[0];
+      b.appendChild(o);
+      const who = t('Taken by {name}', { name: owners.join(', ') });
+      b.title = who;
+      b.setAttribute('aria-label', `${label}, ${who}`);
+    }
     b.addEventListener('click', onClick);
     wrap.appendChild(b);
     if (custom) {
@@ -235,7 +256,7 @@ export function createLookMenu() {
       ? t('Icon for {name}', { name: forName })
       : t('Choose icon');
     el.querySelector('.look-hint').textContent = naming
-      ? t('Tap an icon to wear it. Random deals one each round.')
+      ? t('Tap an icon to wear it. Blue ones are already taken, but you can still pick one: you race in your own colour.')
       : t('Icons that are lit get dealt at random. Tap one to leave it out or put it back.');
     el.querySelector('.look-sub').textContent = t('Draw your own');
     el.querySelector('.look-eraser').textContent = t('Eraser');
@@ -252,9 +273,12 @@ export function createLookMenu() {
     const keep = grid.contains(document.activeElement) ? [...grid.querySelectorAll('.look-tile')].indexOf(document.activeElement) : -1;
     grid.textContent = '';
     const mine = naming ? pickOf(forName) : null;
+    const here = new Set(names());
+    const others = (id) => ownersOf(id).filter((n) => n !== forName && here.has(n));
+    let index = 0;
     if (naming) {
       grid.appendChild(tile({
-        dice: true, label: t('Random'), on: !mine,
+        dice: true, label: t('Random'), on: !mine, index: index++,
         onClick: () => setPick(forName, null),
       }));
     }
@@ -263,6 +287,8 @@ export function createLookMenu() {
         id: look.id,
         label: look.custom ? look.name : t(look.name),
         custom: look.custom,
+        index: index++,
+        owners: others(look.id),
         on: naming ? mine === look.id : inSet(look.id),
         onClick: naming
           ? () => setPick(forName, look.id)

@@ -31,6 +31,39 @@ const OUT_LOG = 6;
 const BLAST_RADIUS = 260;
 const BLAST_FORCE = 0.026;
 
+// Nudges apart any two starting spots closer than `gap`, so a long roster
+// does not start with racers drawn on top of each other. Only overlapping
+// pairs move, each by half the shortfall, so a map's layout (and the orbit
+// speeds it set) is kept wherever it already had room. Spots that sit exactly
+// on top of one another are split along an angle taken from their index,
+// which keeps the result the same for the same seed.
+function spreadSpawns(spawns, gap) {
+  const pts = spawns.map((s) => ({ ...s }));
+  for (let pass = 0; pass < 40; pass++) {
+    let moved = false;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        const a = pts[i];
+        const b = pts[j];
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        let d = Math.hypot(dx, dy);
+        if (d >= gap) continue;
+        if (d < 0.001) {
+          const ang = (i * 2.399 + j) % (Math.PI * 2);
+          dx = Math.cos(ang); dy = Math.sin(ang); d = 1;
+        }
+        const push = (gap - d) / 2 / d;
+        a.x -= dx * push; a.y -= dy * push;
+        b.x += dx * push; b.y += dy * push;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return pts;
+}
+
 export function createRound(mapDef, seed, audio, names = [], opts = {}) {
   const rng = makeRng(hashSeed('round', seed));
   // No map has ambient gravity any more; the two that fell were deleted.
@@ -49,7 +82,7 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
   const players = createPlayers(count, seed, names);
   sim.players = players;
 
-  const spawns = map.spawn(count);
+  const spawns = spreadSpawns(map.spawn(count), BODY.radius * 2 + 4);
   players.forEach((p, i) => {
     const s = spawns[i] || spawns[spawns.length - 1];
     const b = makeBody(sim.Matter, p, s.x, s.y);
