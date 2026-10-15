@@ -1,9 +1,8 @@
 // Choose icon: what each racer looks like.
 //
-// Two layers, both optional. The set decides which icons a racer can be dealt
-// at random; a pick pins one racer, by name, to one icon. Nobody has to touch
-// either: out of the box every icon is in the set and nobody has a pick, so a
-// race looks the way it always did, just with more to be dealt.
+// A pick pins one racer, by name, to one icon. Nobody has to make one: a racer
+// without a pick is dealt any icon at random, so a race looks the way it
+// always did, just with more to be dealt.
 //
 // Drawings made in the pad are icons too. They are kept as small PNGs and
 // turned back into images on load; until an image has decoded it stands in as
@@ -30,8 +29,12 @@ export const BUILTIN = [
   { id: 'alien', name: 'Alien' },
 ];
 
-// { off: [ids left out of the set], picks: { name: id }, custom: [{ id, name, data }] }
-let state = { off: [], picks: {}, custom: [] };
+// { picks: { name: id }, custom: [{ id, name, data }] }
+//
+// Older saves also carry `off`, the icons someone left out of the random deal.
+// Nothing can edit that list any more, so it is read past and dropped rather
+// than leaving those icons switched off for good.
+let state = { picks: {}, custom: [] };
 const images = new Map();
 const listeners = new Set();
 
@@ -41,7 +44,6 @@ function read() {
     const s = raw ? JSON.parse(raw) : null;
     if (s && typeof s === 'object') {
       state = {
-        off: Array.isArray(s.off) ? s.off : [],
         picks: s.picks && typeof s.picks === 'object' ? s.picks : {},
         custom: Array.isArray(s.custom) ? s.custom.filter((c) => c && c.id && c.data) : [],
       };
@@ -87,16 +89,6 @@ function exists(id) {
   return allLooks().some((l) => l.id === id);
 }
 
-export function inSet(id) {
-  return !state.off.includes(id);
-}
-
-export function setInSet(id, on) {
-  state.off = state.off.filter((x) => x !== id);
-  if (!on) state.off.push(id);
-  changed();
-}
-
 export function pickOf(name) {
   const id = name ? state.picks[name] : null;
   return id && exists(id) ? id : null;
@@ -127,7 +119,6 @@ export function addCustom(name, data) {
 
 export function removeCustom(id) {
   state.custom = state.custom.filter((c) => c.id !== id);
-  state.off = state.off.filter((x) => x !== id);
   for (const n of Object.keys(state.picks)) if (state.picks[n] === id) delete state.picks[n];
   images.delete(id);
   thumbs.clear();
@@ -141,13 +132,11 @@ export function customCount() {
 export const CUSTOM_LIMIT = MAX_CUSTOM;
 
 // The icon a racer wears: their own pick if they have one, otherwise one dealt
-// from the set. `rng` keeps the deal tied to the round's seed. An empty set
-// deals from everything rather than leaving racers with nothing to wear.
+// from every icon there is. `rng` keeps the deal tied to the round's seed.
 export function lookFor(name, rng) {
   const own = pickOf(name);
   if (own) return own;
-  let pool = allLooks().filter((l) => inSet(l.id));
-  if (!pool.length) pool = BUILTIN;
+  const pool = allLooks();
   return pool[rng.int(0, pool.length - 1)].id;
 }
 

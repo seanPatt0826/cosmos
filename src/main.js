@@ -11,6 +11,7 @@ import { update as updateCamera, screenToWorld } from './camera.js';
 import { setMode, isLight } from './theme.js';
 import { createRoster } from './roster.js';
 import { createLookMenu } from './lookmenu.js';
+import { installAds } from './ads.js';
 import { onLooksChange } from './looks.js';
 import { createMiniMap, playerAt } from './minimap.js';
 import { createUniverses } from './universes.js';
@@ -432,7 +433,6 @@ function buildControls() {
   roster = createRoster(document.getElementById('name-list'), refreshHint, {
     onIcon: (name) => looks.openFor(name),
   });
-  document.getElementById('btn-looks').addEventListener('click', () => looks.openSet());
   onLooksChange(() => {
     if (round && round.phase === PHASE.READY && !transitioning) {
       startRound(round.mapDef, { seed: round.seed });
@@ -529,6 +529,22 @@ function buildControls() {
     if (transitioning) return;
     goToMap(id);
   });
+
+  // The ad slot beside the arena. Until real ads are on it runs house ads,
+  // and their buttons reach into the page: draw opens the icon menu for the
+  // first name on the list (or sends you to the list when it is empty), and
+  // the universe ad switches universe like the picker does.
+  installAds({
+    maps: MAPS,
+    onPlay: (id) => { if (!transitioning) goToMap(id); },
+    onDraw: () => {
+      const first = roster.names()[0];
+      if (first) { looks.openFor(first); return true; }
+      const box = document.querySelector('#name-list input');
+      if (box) box.focus();
+      return false;
+    },
+  });
   // Seven physics worlds is not something to make the first frame wait for.
   const paintPortraits = () => {
     universes.refresh();
@@ -550,10 +566,17 @@ function buildControls() {
     return screenToWorld(round.cam, ev.clientX - r.left, ev.clientY - r.top, stageW, viewH);
   }
 
+  // While everyone waits for Start, clicking a racer opens their icon menu:
+  // you find yourself on the field and change what you look like right there.
+  // Once the race is running a click rings them instead, as before.
   canvas.addEventListener('pointerdown', (ev) => {
     if (!round || transitioning) return;
     const w = worldAt(ev);
     const p = playerAt(round, w.x, w.y);
+    if (p && p.name && round.phase === PHASE.READY) {
+      looks.openFor(p.name);
+      return;
+    }
     lockedId = p ? p.body.id : null;
   });
 

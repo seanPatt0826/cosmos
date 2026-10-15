@@ -227,13 +227,20 @@
     position: absolute;
     left: 18px;
     top: 72px;
-    /* Wide enough for the step pictures to read at a glance. */
-    width: 300px;
+    /* Wide enough for the step pictures to read at a glance, and for a
+       300px ad unit plus the 6px of shadow padding below. */
+    width: 306px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
     z-index: 3;
+    /* Stops short of the title in the bottom corner. Whatever does not fit
+       (the knocked-out feed, late in a long race) is clipped, never drawn
+       over it. The padding leaves room for the cards' offset shadows. */
+    max-height: calc(100% - 72px - 96px);
+    overflow: hidden;
+    padding: 0 6px 6px 0;
   }
 
   /* ── What this universe is ──────────────────────────────────────────── */
@@ -1220,57 +1227,153 @@
      narrow strip and the entrants box collapses to a tap-to-open panel. The
      stage still fills the screen behind it. */
 
-  /* ── Sponsored ──────────────────────────────────────────────────────── */
+  /* ── Ad ─────────────────────────────────────────────────────────────── */
   /*
-     A real slot at a real size, rather than a box that happens to be
-     rectangular. The rail is 340px and a panel eats 12px of padding each
-     side, which leaves exactly 300 — the medium rectangle every ad network
-     ships as its default sidebar unit. Sizing to a standard unit now means
-     whatever goes in later drops in without reflowing the column.
+     A 300x250 medium rectangle, the default sidebar unit of every ad network,
+     under the "How it works" card in the left column. It used to sit at the
+     foot of the right-hand rail, 300px below the fold on a laptop, and nobody
+     scrolls a game's sidebar to look at an ad. Here it is on screen from the
+     first frame, beside the arena rather than over it.
 
-     Placed at the foot of the single column, below entrants and universes.
-     Those are what people reach for while a race is set up; the slot is a
-     scroll away rather than in front of them.
-
-     The aspect-ratio holds the space open before anything loads, so the
-     column does not jump when a creative arrives late.
+     It is drawn like an ad, not like a panel: no heading, its own rounded
+     card and shadow, and a small "Ad" badge, the way display ads look
+     anywhere else. Short windows get the 300x100 banner cut (see below) so it
+     never runs into the title in the corner.
   */
-  /* Last in the column now; see the Rail note. */
-  .ad { padding: 11px 12px 12px; order: 9; }
-  /* Same heading treatment as the other panels, so it reads as part of the
-     column rather than something injected into it. */
-  .ad label {
-    display: block;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--paper);
-    padding-bottom: 7px;
-    margin-bottom: 8px;
-    border-bottom: 1.5px solid var(--edge-soft);
-  }
+  .ad { flex: none; width: 300px; max-width: 100%; }
   .ad-slot {
-    width: 100%;
-    aspect-ratio: 300 / 250;
-    display: grid;
-    place-items: center;
-    border: 1.5px dashed var(--edge-soft);
-    border-radius: 10px;
+    position: relative;
+    width: 300px;
+    max-width: 100%;
+    height: 250px;
+    overflow: hidden;
+    border-radius: 14px;
+    border: 1.5px solid var(--edge);
     background: var(--void-2);
-    /* A creative that overshoots gets clipped rather than widening the rail
-       and putting a scrollbar across the bottom of the sidebar. */
+    /* The same slipped-pen shadow as the cards. A soft drop shadow was cut
+       off square by the column's edge and showed as a pale box around it. */
+    box-shadow: 2px 2.5px 0 var(--edge-soft);
+  }
+  .ad-slot > ins { display: block; }
+
+  /* House ads: picture on top, headline, one button. */
+  .hads {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-rows: 118px 1fr auto;
+    font-family: var(--font);
+    color: var(--paper);
+    background: var(--panel-bg);
+  }
+  .hads-art {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    overflow: hidden;
+    /* A scatter of stars over each ad's own colours. */
+    background-image:
+      radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.8) 0 1.2px, transparent 2px),
+      radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.7) 0 1px, transparent 2px),
+      radial-gradient(circle at 88% 70%, rgba(255, 255, 255, 0.6) 0 1.4px, transparent 2px),
+      radial-gradient(circle at 30% 80%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px),
+      var(--hads-sky);
+  }
+  .hads[data-ad="draw"]     { --hads-sky: linear-gradient(135deg, #FF7E5F 0%, #F2A93B 55%, #FEC867 100%); }
+  .hads[data-ad="share"]    { --hads-sky: linear-gradient(135deg, #4FACFE 0%, #6A6BE0 50%, #8E54C9 100%); }
+  .hads[data-ad="universe"] { --hads-sky: linear-gradient(135deg, #0F9B8E 0%, #2D6A9F 55%, #3B2667 100%); }
+  .hads-racer {
+    width: 66px;
+    height: 66px;
+    filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.35));
+    animation: hads-bob 3.2s ease-in-out infinite;
+    animation-delay: calc(var(--k) * -0.9s);
+  }
+  @keyframes hads-bob {
+    0%, 100% { transform: translateY(3px) rotate(-4deg); }
+    50%      { transform: translateY(-5px) rotate(4deg); }
+  }
+  .hads-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    padding: 1px 7px 2px;
+    border-radius: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #FFFFFF;
+    background: rgba(10, 8, 24, 0.5);
+  }
+  .hads-copy { display: flex; flex-direction: column; gap: 3px; padding: 10px 14px 0; min-height: 0; }
+  .hads-head { font-size: 17px; line-height: 1.2; font-weight: 700; color: var(--paper); }
+  .hads-body {
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--ink);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  /* Whatever is dropped in fills the slot. */
-  .ad-slot > :not(.ad-placeholder) { max-width: 100%; max-height: 100%; }
-  .ad-placeholder {
-    margin: 0;
-    text-align: center;
-    color: var(--ink-dim);
-    font-size: 13px;
-    line-height: 1.6;
-    user-select: none;
+  .hads-cta {
+    justify-self: start;
+    margin: 0 14px 12px;
+    padding: 6px 18px 7px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1A1206;
+    background: var(--accent);
+    border: none;
+    border-radius: 999px;
+    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25), 0 0 16px rgba(232, 163, 61, 0.35);
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
   }
-  .ad-placeholder span { display: block; font-size: 11px; opacity: 0.75; }
+  .hads-cta:hover { transform: translateY(-1px) scale(1.04); box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25), 0 0 24px rgba(232, 163, 61, 0.6); }
+  .hads-cta:active { transform: translateY(1px) scale(0.98); }
+  .hads-cta:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
+  .hads-cta.flash { background: #6CC57C; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25), 0 0 16px rgba(108, 197, 124, 0.5); }
+  .hads-dots { position: absolute; right: 14px; bottom: 21px; display: flex; gap: 6px; }
+  .hads-dot {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--edge);
+    cursor: pointer;
+  }
+  .hads-dot.on { background: var(--accent); }
+  /* Each new ad slides in, the way rotating display ads change over. */
+  .hads.in .hads-copy { animation: hads-in 420ms cubic-bezier(.2, .8, .3, 1) both; }
+  .hads.in .hads-racer { animation: hads-in 420ms cubic-bezier(.2, .8, .3, 1) both, hads-bob 3.2s ease-in-out 420ms infinite; }
+  @keyframes hads-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* Short windows: the 300x100 banner cut. Picture on the left, headline and
+     button on the right, one racer. */
+  @media (max-height: 849px) and (min-width: 901px) {
+    .ad-slot { height: 100px; }
+    .hads { grid-template-columns: 100px 1fr; grid-template-rows: 1fr auto; }
+    .hads-art { grid-row: 1 / 3; }
+    .hads-racer { width: 62px; height: 62px; }
+    .hads-racer:not(:first-child) { display: none; }
+    .hads-copy { padding: 9px 10px 0; }
+    .hads-head { font-size: 14.5px; }
+    .hads-body { display: none; }
+    .hads-cta { margin: 0 10px 9px; padding: 4px 14px 5px; font-size: 13px; }
+    .hads-dots { right: 10px; bottom: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hads-racer, .hads.in .hads-racer, .hads.in .hads-copy { animation: none; }
+  }
 
   @media (max-width: 900px) {
     /* One variable, so the controls bar below stays centred on the arena. */
@@ -1361,15 +1464,6 @@
         <p class="chase-caption" id="chase-caption"></p>
       </section>
 
-      <section class="ad panel">
-        <label data-i18n>Sponsored</label>
-        <!-- The slot. To run a real ad, put the network tag inside this div
-             and delete the placeholder — the box is already a 300x250. -->
-        <div id="ad-slot" class="ad-slot">
-          <p class="ad-placeholder"><b data-i18n style="font-weight:inherit">Ad space</b><span>300 &times; 250</span></p>
-        </div>
-      </section>
-
       <section class="names panel">
         <label data-i18n>Entrants</label>
         <div id="name-list"></div>
@@ -1378,7 +1472,6 @@
                   data-i18n data-i18n-title="Shuffle who stands where (S)">Shuffle</button>
           <button type="button" id="btn-add" class="ghost" data-i18n>+ Add</button>
           <button type="button" id="btn-names-clear" class="ghost" data-i18n>Clear</button>
-          <button type="button" id="btn-looks" class="ghost" data-i18n>Choose icon</button>
         </div>
         <button type="button" id="btn-example" class="example" data-i18n>Watch an example</button>
         <p class="names-hint" id="names-hint">Add names, or watch an example.</p>
@@ -1436,6 +1529,12 @@
         <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="2.7" r="1.4" fill="currentColor"/><path d="M8 6.2v7.6"
           fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
+
+      <!-- The ad slot. Real network ads drop into #ad-slot (see src/ads.js);
+           until then it runs house ads. -->
+      <section class="ad" aria-label="Ad" data-i18n-aria="Ad">
+        <div id="ad-slot" class="ad-slot"></div>
+      </section>
 
       <aside class="feed panel" id="feed" hidden>
         <label data-i18n>Knocked out</label>

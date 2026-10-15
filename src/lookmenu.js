@@ -1,19 +1,21 @@
 // The Choose icon menu.
 //
-// One panel, two ways in. From a name's own icon button it picks that racer's
-// look: tap an icon and they wear it, or tap Random to go back to being dealt
-// one. From the "Choose icon" button under the list it edits the set instead:
-// tap an icon to leave it out of the random deal, or put it back.
+// Always opened for one racer: from the icon button beside their name, or by
+// clicking them on the field while everyone waits for Start. Tap an icon and
+// they wear it, or tap Random to go back to being dealt one.
 //
-// Both ways share the drawing pad at the bottom. Whatever is drawn there is
-// saved as an icon of its own, and when the menu was opened for a name, that
-// name wears it straight away.
+// There used to be a second way in, a "Choose icon" button under the list that
+// edited which icons the random deal could hand out. It belonged to nobody, so
+// nobody could tell whose icon they were changing; it is gone.
+//
+// The drawing pad at the bottom saves whatever is drawn as an icon of its own,
+// and the racer the menu was opened for wears it straight away.
 //
 // The menu only reads and writes looks.js; whoever is lined up finds out
 // through onLooksChange, the same as any other change to the looks.
 
 import {
-  allLooks, inSet, setInSet, pickOf, setPick, ownersOf, addCustom, removeCustom,
+  allLooks, pickOf, setPick, ownersOf, addCustom, removeCustom,
   customCount, CUSTOM_LIMIT, paintThumb, onLooksChange,
 } from './looks.js';
 import { t, onLang } from './i18n.js';
@@ -35,7 +37,6 @@ const CROSS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9
 // since been deleted are not shown as taken.
 export function createLookMenu({ names = () => [] } = {}) {
   let el = null;
-  let mode = 'set';      // 'name' while choosing for one racer, 'set' for the deal
   let forName = '';
   let lastFocus = null;
   let pen = PENS[0];
@@ -180,12 +181,10 @@ export function createLookMenu({ names = () => [] } = {}) {
       note(t('No room for more drawings. Delete one first.'));
       return;
     }
-    if (mode === 'name' && forName) setPick(forName, id);
+    if (forName) setPick(forName, id);
     nameEl.value = '';
     wipe();
-    note(mode === 'name' && forName
-      ? t('Saved. {name} is wearing it.', { name: forName })
-      : t('Saved. It is in the random deal now.'));
+    note(t('Saved. {name} is wearing it.', { name: forName }));
   }
 
   function note(text) {
@@ -251,13 +250,9 @@ export function createLookMenu({ names = () => [] } = {}) {
 
   function render() {
     if (!el || el.hidden) return;
-    const naming = mode === 'name';
-    el.querySelector('.look-title').textContent = naming
-      ? t('Icon for {name}', { name: forName })
-      : t('Choose icon');
-    el.querySelector('.look-hint').textContent = naming
-      ? t('Tap an icon to wear it. Blue ones are already taken, but you can still pick one: you race in your own colour.')
-      : t('Icons that are lit get dealt at random. Tap one to leave it out or put it back.');
+    el.querySelector('.look-title').textContent = t('Icon for {name}', { name: forName });
+    el.querySelector('.look-hint').textContent =
+      t('Tap an icon to wear it. Blue ones are already taken, but you can still pick one: you race in your own colour.');
     el.querySelector('.look-sub').textContent = t('Draw your own');
     el.querySelector('.look-eraser').textContent = t('Eraser');
     el.querySelector('.look-wipe').textContent = t('Clear');
@@ -272,16 +267,14 @@ export function createLookMenu({ names = () => [] } = {}) {
     const grid = el.querySelector('.look-grid');
     const keep = grid.contains(document.activeElement) ? [...grid.querySelectorAll('.look-tile')].indexOf(document.activeElement) : -1;
     grid.textContent = '';
-    const mine = naming ? pickOf(forName) : null;
+    const mine = pickOf(forName);
     const here = new Set(names());
     const others = (id) => ownersOf(id).filter((n) => n !== forName && here.has(n));
     let index = 0;
-    if (naming) {
-      grid.appendChild(tile({
-        dice: true, label: t('Random'), on: !mine, index: index++,
-        onClick: () => setPick(forName, null),
-      }));
-    }
+    grid.appendChild(tile({
+      dice: true, label: t('Random'), on: !mine, index: index++,
+      onClick: () => setPick(forName, null),
+    }));
     for (const look of allLooks()) {
       grid.appendChild(tile({
         id: look.id,
@@ -289,10 +282,8 @@ export function createLookMenu({ names = () => [] } = {}) {
         custom: look.custom,
         index: index++,
         owners: others(look.id),
-        on: naming ? mine === look.id : inSet(look.id),
-        onClick: naming
-          ? () => setPick(forName, look.id)
-          : () => setInSet(look.id, !inSet(look.id)),
+        on: mine === look.id,
+        onClick: () => setPick(forName, look.id),
       }));
     }
     if (keep >= 0) {
@@ -304,10 +295,10 @@ export function createLookMenu({ names = () => [] } = {}) {
 
   // ── Open and close ───────────────────────────────────────────────────────
 
-  function open(m, name) {
+  function open(name) {
+    if (!name) return;
     if (!el) build();
-    mode = m;
-    forName = name || '';
+    forName = name;
     lastFocus = document.activeElement;
     note('');
     el.hidden = false;
@@ -326,8 +317,7 @@ export function createLookMenu({ names = () => [] } = {}) {
   onLang(render);
 
   return {
-    openFor(name) { open('name', name); },
-    openSet() { open('set'); },
+    openFor(name) { open(name); },
     isOpen() { return !!el && !el.hidden; },
   };
 }

@@ -149,8 +149,20 @@ const KO = {
   'Choose an icon for {name}': '{name}의 아이콘 고르기',
   'Icon for {name}': '{name}의 아이콘',
   'Tap an icon to wear it. Random deals one each round.': '아이콘을 누르면 그 모습으로 달려요. 무작위는 라운드마다 하나를 골라 줘요.',
-  'Icons that are lit get dealt at random. Tap one to leave it out or put it back.': '밝게 켜진 아이콘이 무작위로 나와요. 누르면 빼거나 다시 넣을 수 있어요.',
   'Random': '무작위',
+
+  // House ads
+  'Ad': '광고',
+  'Draw your own racer': '나만의 레이서를 그려 보세요',
+  'Doodle anything, and it races against your friends.': '무엇이든 그리면 친구들과 함께 달려요.',
+  'Draw now': '그리러 가기',
+  'Add a name first': '먼저 이름을 넣어 주세요',
+  'Race your friends': '친구들과 경주해요',
+  'Send the link, add everyone’s name, and see who is left standing.': '링크를 보내고 모두의 이름을 넣은 다음, 누가 끝까지 남는지 보세요.',
+  'Copy link': '링크 복사',
+  'Copied!': '복사했어요!',
+  'Try {name}': '{name}에 도전해 보세요',
+  'Play it': '플레이',
   'Tap an icon to wear it. Blue ones are already taken, but you can still pick one: you race in your own colour.':
     '아이콘을 누르면 그 모습으로 달려요. 파란 아이콘은 이미 누가 골랐지만, 그래도 고를 수 있어요. 색은 서로 달라요.',
   'Taken by {name}': '{name}이(가) 골랐어요',
@@ -171,7 +183,6 @@ const KO = {
   'Done': '완료',
   'Delete this drawing': '이 그림 삭제',
   'Saved. {name} is wearing it.': '저장했어요. 이제 {name}이(가) 이 아이콘으로 달려요.',
-  'Saved. It is in the random deal now.': '저장했어요. 이제 무작위로 나올 수 있어요.',
   'No room for more drawings. Delete one first.': '그림을 더 저장할 수 없어요. 먼저 하나를 지워 주세요.',
 };
 
