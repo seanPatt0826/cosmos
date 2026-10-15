@@ -530,21 +530,8 @@ function buildControls() {
     goToMap(id);
   });
 
-  // The ad slot beside the arena. Until real ads are on it runs house ads,
-  // and their buttons reach into the page: draw opens the icon menu for the
-  // first name on the list (or sends you to the list when it is empty), and
-  // the universe ad switches universe like the picker does.
-  installAds({
-    maps: MAPS,
-    onPlay: (id) => { if (!transitioning) goToMap(id); },
-    onDraw: () => {
-      const first = roster.names()[0];
-      if (first) { looks.openFor(first); return true; }
-      const box = document.querySelector('#name-list input');
-      if (box) box.focus();
-      return false;
-    },
-  });
+  // The ad slot beside the arena; sample ads until real ones are switched on.
+  installAds();
   // Seven physics worlds is not something to make the first frame wait for.
   const paintPortraits = () => {
     universes.refresh();

@@ -1256,123 +1256,145 @@
   }
   .ad-slot > ins { display: block; }
 
-  /* House ads: picture on top, headline, one button. */
+  /* Sample ads. Set in a plain web font, in each brand's own colours, and
+     untouched by the page theme or the Korean handwriting rules: real ads
+     arrive looking like themselves, and these show what that will look like. */
   .hads {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-rows: 118px 1fr auto;
-    font-family: var(--font);
-    color: var(--paper);
-    background: var(--panel-bg);
+    grid-template-rows: 112px 1fr auto;
+    font-family: "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", Roboto, Arial, sans-serif;
+    font-size-adjust: none;
+    letter-spacing: normal;
+    word-break: keep-all;
+    color: var(--ad-ink);
+    background: var(--ad-bg);
+    text-align: left;
   }
-  .hads-art {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    overflow: hidden;
-    /* A scatter of stars over each ad's own colours. */
-    background-image:
-      radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.8) 0 1.2px, transparent 2px),
-      radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.7) 0 1px, transparent 2px),
-      radial-gradient(circle at 88% 70%, rgba(255, 255, 255, 0.6) 0 1.4px, transparent 2px),
-      radial-gradient(circle at 30% 80%, rgba(255, 255, 255, 0.5) 0 1px, transparent 2px),
-      var(--hads-sky);
+  .hads * { font-size-adjust: none; letter-spacing: normal; }
+  .hads[data-ad="moonbun"] {
+    --ad-bg: #FFF6EA; --ad-ink: #4A2C17; --ad-dim: #8A6447;
+    --ad-art: radial-gradient(circle at 70% 30%, #FFE3B8, #FFD1A1 70%);
+    --ad-cta: #D9534F; --ad-cta-ink: #FFFFFF;
   }
-  .hads[data-ad="draw"]     { --hads-sky: linear-gradient(135deg, #FF7E5F 0%, #F2A93B 55%, #FEC867 100%); }
-  .hads[data-ad="share"]    { --hads-sky: linear-gradient(135deg, #4FACFE 0%, #6A6BE0 50%, #8E54C9 100%); }
-  .hads[data-ad="universe"] { --hads-sky: linear-gradient(135deg, #0F9B8E 0%, #2D6A9F 55%, #3B2667 100%); }
-  .hads-racer {
-    width: 66px;
-    height: 66px;
-    filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.35));
-    animation: hads-bob 3.2s ease-in-out infinite;
-    animation-delay: calc(var(--k) * -0.9s);
+  .hads[data-ad="zappawatt"] {
+    --ad-bg: #12122B; --ad-ink: #F4F3FF; --ad-dim: #A5A3C9;
+    --ad-art: radial-gradient(circle at 50% 40%, #3B2A7A, #12122B 75%);
+    --ad-cta: #8B5CF6; --ad-cta-ink: #FFFFFF;
   }
-  @keyframes hads-bob {
-    0%, 100% { transform: translateY(3px) rotate(-4deg); }
-    50%      { transform: translateY(-5px) rotate(4deg); }
+  .hads[data-ad="driftly"] {
+    --ad-bg: #FFFFFF; --ad-ink: #111827; --ad-dim: #6B7280;
+    --ad-cta: #2563EB; --ad-cta-ink: #FFFFFF;
   }
   .hads-badge {
     position: absolute;
-    top: 8px;
-    left: 8px;
+    top: 6px;
+    left: 6px;
     z-index: 2;
-    padding: 1px 7px 2px;
-    border-radius: 5px;
-    font-size: 10.5px;
+    padding: 0 5px;
+    border-radius: 3px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    line-height: 15px;
     color: #FFFFFF;
-    background: rgba(10, 8, 24, 0.5);
+    background: rgba(0, 0, 0, 0.55);
   }
-  .hads-copy { display: flex; flex-direction: column; gap: 3px; padding: 10px 14px 0; min-height: 0; }
-  .hads-head { font-size: 17px; line-height: 1.2; font-weight: 700; color: var(--paper); }
-  .hads-body {
-    font-size: 12.5px;
-    line-height: 1.4;
-    color: var(--ink);
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .hads-cta {
-    justify-self: start;
-    margin: 0 14px 12px;
-    padding: 6px 18px 7px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    color: #1A1206;
-    background: var(--accent);
-    border: none;
-    border-radius: 999px;
-    box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25), 0 0 16px rgba(232, 163, 61, 0.35);
-    cursor: pointer;
-    transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
-  }
-  .hads-cta:hover { transform: translateY(-1px) scale(1.04); box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25), 0 0 24px rgba(232, 163, 61, 0.6); }
-  .hads-cta:active { transform: translateY(1px) scale(0.98); }
-  .hads-cta:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
-  .hads-cta.flash { background: #6CC57C; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25), 0 0 16px rgba(108, 197, 124, 0.5); }
-  .hads-dots { position: absolute; right: 14px; bottom: 21px; display: flex; gap: 6px; }
-  .hads-dot {
-    width: 8px;
-    height: 8px;
+  .hads-info {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 2;
+    width: 15px;
+    height: 15px;
     padding: 0;
-    border: none;
+    border: 1px solid currentColor;
     border-radius: 50%;
-    background: var(--edge);
+    font: italic 700 10px/13px Georgia, serif;
+    color: var(--ad-dim);
+    background: transparent;
     cursor: pointer;
+    opacity: 0.8;
   }
-  .hads-dot.on { background: var(--accent); }
-  /* Each new ad slides in, the way rotating display ads change over. */
-  .hads.in .hads-copy { animation: hads-in 420ms cubic-bezier(.2, .8, .3, 1) both; }
-  .hads.in .hads-racer { animation: hads-in 420ms cubic-bezier(.2, .8, .3, 1) both, hads-bob 3.2s ease-in-out 420ms infinite; }
+  .hads-art {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: var(--ad-art);
+  }
+  .hads-art svg { width: 150px; height: 104px; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.18)); }
+  .hads-copy { display: flex; flex-direction: column; gap: 2px; padding: 9px 14px 0; min-height: 0; }
+  .hads-brand { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--ad-dim); }
+  .hads-logo svg { display: block; width: 13px; height: 13px; }
+  .hads-head { font-size: 16px; line-height: 1.25; font-weight: 700; color: var(--ad-ink); }
+  .hads-body { font-size: 12px; line-height: 1.35; color: var(--ad-dim); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .hads-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 14px 12px; }
+  .hads-offer { font-size: 13px; font-weight: 700; color: var(--ad-cta); }
+  .hads[data-ad="zappawatt"] .hads-offer { font-size: 18px; color: #FDE047; }
+  .hads-cta {
+    margin-left: auto;
+    padding: 7px 16px;
+    font: 600 13px/1.2 inherit;
+    font-family: inherit;
+    color: var(--ad-cta-ink);
+    background: var(--ad-cta);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: filter 140ms ease, transform 140ms ease;
+  }
+  .hads-cta:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .hads-cta:focus-visible { outline: 2px solid var(--ad-ink); outline-offset: 2px; }
+  .hads-cta.flash { background: #4B5563; }
+
+  /* The app-install layout: a big icon, the name, a category and stars. */
+  .hads.app { grid-template-rows: 112px 1fr auto; }
+  .hads-app {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 16px 0;
+    border-bottom: 1px solid #E5E7EB;
+  }
+  .hads-icon svg { display: block; width: 72px; height: 72px; filter: drop-shadow(0 3px 6px rgba(37, 99, 235, 0.3)); }
+  .hads-app-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .hads-brand-name { font-size: 18px; font-weight: 700; color: var(--ad-ink); }
+  .hads-cat { font-size: 12px; color: var(--ad-dim); }
+  .hads-stars { font-size: 12px; color: #F59E0B; letter-spacing: 1px; }
+  .hads-stars em { font-style: normal; color: var(--ad-dim); letter-spacing: normal; }
+  .hads.app .hads-copy { padding-top: 12px; }
+  .hads.app .hads-foot .hads-cta { width: 100%; padding: 9px 16px; font-size: 14px; border-radius: 999px; }
+
+  /* Each new ad fades in, the way rotating display ads change over. */
+  .hads.in > * { animation: hads-in 380ms ease-out both; }
   @keyframes hads-in {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: none; }
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .hads-art svg { animation: hads-float 4s ease-in-out infinite; }
+  @keyframes hads-float {
+    0%, 100% { transform: translateY(2px); }
+    50%      { transform: translateY(-3px); }
   }
 
-  /* Short windows: the 300x100 banner cut. Picture on the left, headline and
-     button on the right, one racer. */
+  /* Short windows: the 300x100 banner cut. Picture on the left, brand,
+     headline and button on the right. */
   @media (max-height: 849px) and (min-width: 901px) {
     .ad-slot { height: 100px; }
-    .hads { grid-template-columns: 100px 1fr; grid-template-rows: 1fr auto; }
-    .hads-art { grid-row: 1 / 3; }
-    .hads-racer { width: 62px; height: 62px; }
-    .hads-racer:not(:first-child) { display: none; }
-    .hads-copy { padding: 9px 10px 0; }
-    .hads-head { font-size: 14.5px; }
-    .hads-body { display: none; }
-    .hads-cta { margin: 0 10px 9px; padding: 4px 14px 5px; font-size: 13px; }
-    .hads-dots { right: 10px; bottom: 14px; }
+    .hads, .hads.app { grid-template-columns: 96px 1fr; grid-template-rows: 1fr auto; }
+    .hads-art, .hads-app { grid-row: 1 / 3; }
+    .hads-art svg { width: 86px; height: 70px; }
+    .hads-app { padding: 0; justify-content: center; border-bottom: none; border-right: 1px solid #E5E7EB; }
+    .hads-icon svg { width: 58px; height: 58px; }
+    .hads-app-meta { display: none; }
+    .hads-copy { padding: 8px 26px 0 10px; }
+    .hads-head { font-size: 13.5px; }
+    .hads-body, .hads-offer { display: none; }
+    .hads-foot { padding: 0 10px 8px; }
+    .hads.app .hads-foot .hads-cta, .hads-cta { width: auto; padding: 5px 14px; font-size: 12.5px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .hads-racer, .hads.in .hads-racer, .hads.in .hads-copy { animation: none; }
+    .hads.in > *, .hads-art svg { animation: none; }
   }
 
   @media (max-width: 900px) {
