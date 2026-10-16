@@ -171,6 +171,8 @@ function startRound(mapDef, { seed = (Math.random() * 4294967295) >>> 0 } = {}) 
     for (const p of round.players) if (!before.has(p.name)) p.popAt = round.time;
   }
   hud.setMap(mapDef);
+  // The names list shows what each racer is wearing, dealt icons included.
+  if (roster) roster.setWorn(round.players);
   if (minimap) minimap.reset();
   // A new round is a new cast; an old id would ring nobody.
   lockedId = null;

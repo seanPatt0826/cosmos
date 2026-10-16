@@ -14,9 +14,9 @@
 // boxes. Remove them all and the list says it is waiting instead of going
 // blank.
 //
-// Each box also carries a small icon button on its left: what that racer will
-// look like, or a dice when they are dealt one at random. It opens Choose icon
-// for that name (see lookmenu.js).
+// Each box also carries a small icon button on its left: what that racer is
+// wearing in the arena, whether they chose it or were dealt it at random. It
+// opens Choose icon for that name (see lookmenu.js).
 
 import { t, setTip, onLang } from './i18n.js';
 import { pickOf, paintThumb, onLooksChange } from './looks.js';
@@ -33,7 +33,18 @@ const MAX_ROWS = 40;
 const MAX_LEN = 22;
 
 export function createRoster(listEl, onChange, { onIcon = null } = {}) {
+  // What each name is wearing on the field right now, dealt ones included.
+  let worn = new Map();
+
   const roster = {
+    // Called with the field after every line-up, so a racer dealt a random
+    // icon shows that icon here too, not only someone who picked one.
+    setWorn(players) {
+      worn = new Map();
+      for (const p of players) if (p.name) worn.set(p.name, p.archetype);
+      paintIcons();
+    },
+
     names() {
       return inputs()
         .map((i) => i.value.trim())
@@ -82,17 +93,20 @@ export function createRoster(listEl, onChange, { onIcon = null } = {}) {
     }
   }
 
-  // The icon button shows an icon only once that racer has picked one. A name
-  // without a pick shows nothing until the row is hovered or focused, then a
-  // faint "+" to pick one; an empty box has nobody to dress and shows nothing.
-  // The space stays reserved either way, so the names still line up.
+  // The icon button shows what that racer wears: their own pick, or else the
+  // icon they were dealt for this line-up. A name not on the field yet (typed
+  // mid-race) shows nothing until hovered or focused, then a faint "+"; an
+  // empty box has nobody to dress and shows nothing. The space stays reserved
+  // either way, so the names still line up.
   function paintIcon(row) {
     const btn = row.querySelector('.name-icon');
     if (!btn) return;
     const name = row.querySelector('input').value.trim();
-    const pick = name ? pickOf(name) : null;
+    const own = name ? pickOf(name) : null;
+    const pick = own || (name ? worn.get(name) : null) || null;
     btn.disabled = !name;
     btn.classList.toggle('picked', !!pick);
+    btn.classList.toggle('dealt', !!pick && !own);
     btn.classList.toggle('unpicked', !!name && !pick);
     const label = name ? t('Choose an icon for {name}', { name }) : t('Choose icon');
     setTip(btn, label);

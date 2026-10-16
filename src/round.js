@@ -129,6 +129,10 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
       if (!player.alive || round.aliveCount <= 1) return false;
       player.alive = false;
       round.aliveCount--;
+      // Where they finished, for the Ranking panel: the first out of ten is
+      // tenth. The feed's log is capped, so the place lives on the racer.
+      player.place = round.aliveCount + 1;
+      player.outKind = kind;
 
       const pos = opts.at || player.body.position;
       const vel = player.body.velocity;

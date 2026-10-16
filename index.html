@@ -612,6 +612,63 @@
 
   /* Each name box carries its racer's icon on the left: their own pick, or a
      dice for "dealt at random". The input makes room for it. */
+  /* ── Ranking ────────────────────────────────────────────────────────── */
+
+  /* Everyone in the race: still in on top, then the ones out in the place
+     they finished, dimmed and struck through. */
+  .rail .ranking.panel > label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .ranking-count {
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  #ranking-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 2px 0 0;
+    max-height: 26vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--edge-soft) transparent;
+    font-size: 13px;
+  }
+  #ranking-list::-webkit-scrollbar { width: 6px; }
+  #ranking-list::-webkit-scrollbar-thumb { background: var(--edge-soft); border-radius: 3px; }
+  .rank-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 2px 0;
+    min-width: 0;
+    color: var(--ink);
+  }
+  .rank-place {
+    flex: 0 0 20px;
+    text-align: right;
+    color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .rank-icon {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    /* The thumbnails are all drawn in one colour; the ring is the racer's own,
+       so a row can be matched to its body in the arena. */
+    box-shadow: 0 0 0 1.5px var(--crayon);
+  }
+  .rank-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank-status { flex: 0 0 auto; font-size: 11.5px; color: var(--ink-dim); }
+  .rank-row.in .rank-status { color: #7ed491; }
+  body.light .rank-row.in .rank-status { color: #2f8a45; }
+  .rank-row.win { color: var(--accent); font-weight: 600; }
+  .rank-row.win .rank-place, .rank-row.win .rank-status { color: var(--accent); }
+  .rank-row.out { opacity: 0.55; }
+  .rank-row.out .rank-name { text-decoration: line-through; text-decoration-thickness: 1px; }
+  .rank-row.out .rank-icon { filter: grayscale(0.8); }
+  .rank-empty { color: var(--ink-dim); font-style: italic; font-size: 12.5px; }
+
   .name-row.with-icon input { padding-top: 7px; padding-bottom: 7px; padding-left: 42px; }
   .names .name-icon {
     position: absolute;
@@ -1708,6 +1765,12 @@
 
       <aside class="feed panel" id="feed" hidden>
         <label data-i18n>Knocked out</label>
+      <!-- Who is still in and who is out, filled by hud.js. -->
+      <section class="ranking panel" id="ranking">
+        <label><span data-i18n>Ranking</span><span class="ranking-count" id="ranking-count"></span></label>
+        <ol id="ranking-list"></ol>
+      </section>
+
         <ul id="feed-list"></ul>
       </aside>
     </div>

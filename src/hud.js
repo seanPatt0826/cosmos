@@ -1,13 +1,17 @@
 // The interface.
 //
-// Still deliberately thin: three words at the big moments and a feed of who
-// just went out. No score, no combo, no XP. There is no "N left" list any
-// more; the mini map and the arena already show who is still in.
+// Still deliberately thin: three words at the big moments, a feed of who just
+// went out, and the Ranking on the right: everyone in the race, the ones still
+// in at the top and the ones out below in the place they finished. No score,
+// no combo, no XP.
 
 import { PHASE } from './round.js';
 import { ROUND } from './config.js';
 import { t, getLang } from './i18n.js';
 import { createSteps } from './steps.js';
+import { paintThumb, onLooksChange } from './looks.js';
+
+const RANK_ICON_PX = 44;   // backing size of a ranking icon; drawn at 22 CSS px
 
 export function createHud() {
   const steps = createSteps();
@@ -22,11 +26,16 @@ export function createHud() {
     start: document.getElementById('btn-start'),
     feed: document.getElementById('feed'),
     feedList: document.getElementById('feed-list'),
+    rankCount: document.getElementById('ranking-count'),
+    rankList: document.getElementById('ranking-list'),
   };
 
   let lastBanner = '';
   let lastSig = '';
   let lastFeed = '';
+  let lastRank = '';
+  // A drawing that finishes decoding repaints the ranking's icons too.
+  onLooksChange(() => { lastRank = ''; });
   let idle = 0;
 
   const hud = {
@@ -71,6 +80,7 @@ export function createHud() {
       if (el.start) el.start.hidden = round.phase !== PHASE.READY;
 
       drawFeed(round);
+      drawRanking(round);
 
       idle += dtMs;
       if (idle > 2800) el.controls.classList.add('hidden');
@@ -123,6 +133,54 @@ export function createHud() {
         + `<span class="who">${escapeHtml(o.name)}</span>`
         + `<span class="how">${t(CAUSE[o.kind] || 'out')}</span></li>`;
     }).join('');
+  }
+
+  // Everyone in the race, in one list. Still in at the top, in the order they
+  // stand; out below them, best place first, struck through and dimmed, with
+  // what got them. The winner sits on top with a 1. Rebuilt only when someone
+  // goes out or the field changes, never every frame.
+  function drawRanking(round) {
+    if (!el.rankList) return;
+    const ps = round.idle ? [] : round.players;
+    const sig = getLang() + round.phase + ':' + (round.winner ? round.winner.id : '') + ':'
+      + ps.map((p) => `${p.id}${p.label}${p.archetype}${p.alive ? '' : p.place}`).join('|');
+    if (sig === lastRank) return;
+    lastRank = sig;
+
+    const alive = ps.filter((p) => p.alive);
+    if (el.rankCount) {
+      el.rankCount.textContent = !ps.length ? ''
+        : round.winner ? t('winner')
+          : alive.length === ps.length ? t('{n} entrants', { n: ps.length })
+            : t('{n} left', { n: alive.length });
+    }
+
+    if (!ps.length) {
+      el.rankList.innerHTML = `<li class="rank-empty">${escapeHtml(t('waiting for names'))}</li>`;
+      return;
+    }
+
+    const out = ps.filter((p) => !p.alive).sort((a, b) => a.place - b.place);
+    // The winner first, then whoever else is still in (only before the end).
+    const inRows = round.winner
+      ? [round.winner, ...alive.filter((p) => p !== round.winner)]
+      : alive;
+
+    const row = (p, place, cls, status) => `<li class="rank-row ${cls}">`
+      + `<span class="rank-place">${place}</span>`
+      + `<canvas class="rank-icon" width="${RANK_ICON_PX}" height="${RANK_ICON_PX}"`
+      + ` data-look="${escapeHtml(p.archetype)}" style="--crayon:${p.col.crayon}"></canvas>`
+      + `<span class="rank-name">${escapeHtml(p.label)}</span>`
+      + `<span class="rank-status">${escapeHtml(status)}</span></li>`;
+
+    el.rankList.innerHTML = [
+      ...inRows.map((p) => (round.winner === p
+        ? row(p, '1', 'win', t('winner'))
+        : row(p, '·', 'in', t('in')))),
+      ...out.map((p) => row(p, String(p.place), 'out', t(CAUSE[p.outKind] || 'out'))),
+    ].join('');
+
+    for (const c of el.rankList.querySelectorAll('canvas.rank-icon')) paintThumb(c, c.dataset.look);
   }
 
   function setBanner(text, cls) {

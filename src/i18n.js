@@ -22,6 +22,8 @@ const KO = {
   '{n} still in': '{n}명 남음',
   'Sponsored': '광고',
   'Entrants': '참가자',
+  'Ranking': '순위',
+  'in': '생존',
   'Universes': '우주',
   'Shuffle': '섞기',
   'Shuffle who stands where (S)': '출발 자리 섞기 (S)',
