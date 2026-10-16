@@ -157,6 +157,13 @@ const KO = {
   // Sample ads (made-up companies; see src/ads.js)
   'Ad': '광고',
   'Hide ad': '광고 접기',
+  'Remove ads': '광고 없애기',
+  'Play without ads': '광고 없이 즐기기',
+  'One payment of {price} removes the ads on this device for good.': '{price} 한 번만 결제하면 이 기기에서 광고가 영원히 사라져요.',
+  'Pay {price}': '{price} 결제하기',
+  'Not now': '나중에',
+  'Payments open soon': '결제는 곧 열려요',
+  'Ads are gone. Thank you!': '광고가 사라졌어요. 고마워요!',
   'Show ad': '광고 펼치기',
   'Why this ad?': '이 광고는 왜 보이나요?',
   'Sample ad': '샘플 광고예요',

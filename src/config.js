@@ -153,3 +153,13 @@ export const SIM = {
 export const ADS_ENABLED = false;
 export const ADSENSE_CLIENT = 'ca-pub-0000000000000000';
 export const ADSENSE_SLOT = '0000000000';
+
+// Paying to remove the ads. ADFREE_LINK is a Stripe Payment Link, set up in
+// the Stripe dashboard with its "after payment" redirect pointing at
+//   https://cosmos-race.vercel.app/?adfree_session={CHECKOUT_SESSION_ID}
+// The payment is then confirmed by api/verify-adfree.js, which needs the
+// STRIPE_SECRET_KEY environment variable in Vercel. Left empty, the lock
+// button still shows the offer but says payments open soon.
+// ADFREE_PRICE is only what the button says; it must match the link's price.
+export const ADFREE_LINK = '';
+export const ADFREE_PRICE = '₩3,000';

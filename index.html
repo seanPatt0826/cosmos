@@ -252,6 +252,10 @@
     transform: rotate(-0.3deg);
   }
   .map-about[hidden] { display: none; }
+  /* On short screens the column caps its height. The card gives way and
+     scrolls inside itself, rather than being cut off mid-line; the ad card
+     below it keeps its size. */
+  .left-col > .map-about.panel { flex-shrink: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
   .map-about-head {
     display: flex;
     align-items: center;
@@ -608,10 +612,6 @@
     border-radius: 8px;
   }
 
-  /* ── Choose icon ────────────────────────────────────────────────────── */
-
-  /* Each name box carries its racer's icon on the left: their own pick, or a
-     dice for "dealt at random". The input makes room for it. */
   /* ── Ranking ────────────────────────────────────────────────────────── */
 
   /* Everyone in the race: still in on top, then the ones out in the place
@@ -669,6 +669,10 @@
   .rank-row.out .rank-icon { filter: grayscale(0.8); }
   .rank-empty { color: var(--ink-dim); font-style: italic; font-size: 12.5px; }
 
+  /* ── Choose icon ────────────────────────────────────────────────────── */
+
+  /* Each name box carries its racer's icon on the left: their own pick, or a
+     dice for "dealt at random". The input makes room for it. */
   .name-row.with-icon input { padding-top: 7px; padding-bottom: 7px; padding-left: 42px; }
   .names .name-icon {
     position: absolute;
@@ -1328,6 +1332,49 @@
      it: a button laid over an ad is easy to hit by accident, and an ad
      network will not have its creative covered. */
   .ad.folded .ad-slot { display: none; }
+
+  /* The lock: pay once and the ads go for good on this device. It sits just
+     left of the fold arrow, the same size, and opens the offer in place of
+     the ad. */
+  .ad-head .ad-lock { margin-left: auto; margin-right: 6px; }
+  .ad-head .ad-lock svg { transform: none; }
+  .ad-lock[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+  .ad.offering .ad-slot { display: none; }
+  .ad-offer {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 2px 14px;
+  }
+  .ad-offer[hidden] { display: none; }
+  .ad-offer-head { font-size: 16px; font-weight: 700; color: var(--paper); }
+  .ad-offer-body { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink); }
+  .ad-offer-row { display: flex; gap: 8px; margin-top: 4px; }
+  .ad-offer-buy, .ad-offer-cancel {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .ad-offer-buy { font-weight: 700; color: #1A1206; background: var(--accent); border: none; }
+  .ad-offer-buy:disabled { opacity: 0.55; cursor: default; }
+  .ad-offer-cancel { color: var(--ink); background: transparent; border: 1px solid var(--line); }
+  .adfree-thanks {
+    position: fixed;
+    left: 50%;
+    top: 18px;
+    z-index: 70;
+    transform: translateX(-50%);
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-family: var(--font);
+    font-size: 14px;
+    color: #1A1206;
+    background: var(--accent);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    transition: opacity 400ms ease;
+  }
   /* The heading already says "Ad"; the sample creatives' own badge would
      say it twice. Phones have no heading row, so they keep the badge. */
   .ad-head ~ .ad-slot .hads-badge { display: none; }
@@ -1511,6 +1558,26 @@
     /* Folded: a 26px strip with the heading and the arrow; the arena takes
        the rest back. */
     body.ad-folded .stage-wrap { bottom: 26px; }
+    body.ad-free .stage-wrap { bottom: 0; }
+    .ad-head { display: flex; gap: 6px; }
+    .ad-head .ad-lock { margin: 0; }
+    .ad.offering .ad-slot { display: block; }
+    /* The ad lives in the left column, which stacks level with the corner; lift
+       the column while the offer is open so nothing draws over it. */
+    .left-col:has(.ad.offering) { z-index: 8; }
+    .ad-offer {
+      position: absolute;
+      right: 8px;
+      bottom: 66px;
+      width: min(320px, calc(100vw - 16px));
+      padding: 12px 14px;
+      /* Solid, not the panels' see-through fill: it floats over the controls. */
+      background: var(--void);
+      border: 1.5px solid var(--edge);
+      border-radius: 14px;
+      box-shadow: 2px 2.5px 0 var(--edge-soft), 0 10px 30px rgba(0, 0, 0, 0.45);
+      z-index: 2;
+    }
     .ad.folded { height: 26px; }
     .ad.folded .ad-head { position: static; display: flex; gap: 10px; }
     .ad.folded .ad-label { display: inline; }
@@ -1533,6 +1600,9 @@
       border-radius: 0;
       box-shadow: none;
     }
+    /* The banner centres in the strip left of the two buttons, so neither
+       button sits on it. */
+    .ad:not(.folded) { padding: 0 66px 0 8px; }
     .ad.folded { padding: 0; }
     /* The heading row folds away; the X moves to the right-hand end of the
        strip, beside the banner rather than on it. */
@@ -1541,7 +1611,7 @@
     .ad-head ~ .ad-slot .hads-badge { display: block; }
     .ad-slot {
       width: 320px;
-      max-width: calc(100vw - 60px);
+      max-width: calc(100vw - 88px);
       height: 50px;
       margin: 0;
       border: 1px solid var(--edge);
@@ -1644,6 +1714,9 @@
       padding: 10px 34px 11px;
     }
     .left-col { max-height: calc(100% - 72px - 200px); }
+    /* The Korean Start is set larger to match Gaegu's small drawing; on a
+       phone it follows the smaller English size instead of staying 34px. */
+    body.lang-ko #btn-start { font-size: 28px; padding-top: 6px; padding-bottom: 7px; }
     /* The wordmark stops short of the column; on the narrowest phones the
        language button drops to a line of its own rather than run under it. */
     .corner { max-width: calc(100% - var(--rail-w) - 30px); }
@@ -1668,6 +1741,7 @@
       font-size: 18px;
       padding: 7px 22px 8px;
     }
+    body.lang-ko #btn-start { font-size: 23px; padding-top: 4px; padding-bottom: 5px; }
     .left-col { max-height: calc(100% - 72px - 74px); }
   }
 
@@ -1689,6 +1763,12 @@
         <label data-i18n>Map</label>
         <canvas id="chase-cam" width="336" height="210"></canvas>
         <p class="chase-caption" id="chase-caption"></p>
+      </section>
+
+      <!-- Who is still in and who is out, filled by hud.js. -->
+      <section class="ranking panel" id="ranking">
+        <label><span data-i18n>Ranking</span><span class="ranking-count" id="ranking-count"></span></label>
+        <ol id="ranking-list"></ol>
       </section>
 
       <section class="names panel">
@@ -1755,22 +1835,30 @@
       <section class="ad" aria-label="Ad" data-i18n-aria="Ad">
         <div class="map-about-head ad-head">
           <span class="map-about-title ad-label" data-i18n>Ad</span>
+          <button type="button" class="about-toggle panel-fold ad-lock" aria-expanded="false"
+                  aria-label="Remove ads" title="Remove ads" data-i18n-aria="Remove ads" data-i18n-title="Remove ads">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1.6"
+              fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"
+              fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </button>
           <button type="button" class="about-toggle panel-fold ad-fold" aria-expanded="true" aria-label="Hide ad" title="Hide ad">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4"
               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
+        </div>
+        <div class="ad-offer" hidden>
+          <b class="ad-offer-head" data-i18n>Play without ads</b>
+          <p class="ad-offer-body"></p>
+          <div class="ad-offer-row">
+            <button type="button" class="ad-offer-buy"></button>
+            <button type="button" class="ad-offer-cancel" data-i18n>Not now</button>
+          </div>
         </div>
         <div id="ad-slot" class="ad-slot"></div>
       </section>
 
       <aside class="feed panel" id="feed" hidden>
         <label data-i18n>Knocked out</label>
-      <!-- Who is still in and who is out, filled by hud.js. -->
-      <section class="ranking panel" id="ranking">
-        <label><span data-i18n>Ranking</span><span class="ranking-count" id="ranking-count"></span></label>
-        <ol id="ranking-list"></ol>
-      </section>
-
         <ul id="feed-list"></ul>
       </aside>
     </div>

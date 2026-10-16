@@ -27,7 +27,7 @@
 // and the choice holds for the rest of the visit. On a phone the arena takes
 // most of the banner's strip back while it is folded.
 
-import { ADS_ENABLED, ADSENSE_CLIENT, ADSENSE_SLOT } from './config.js';
+import { ADS_ENABLED, ADSENSE_CLIENT, ADSENSE_SLOT, ADFREE_LINK, ADFREE_PRICE } from './config.js';
 import { t, onLang, setTip } from './i18n.js';
 
 const ROTATE_MS = 8000;
@@ -128,10 +128,90 @@ function wireFold() {
   return start;
 }
 
+// ── Paying to remove the ads ─────────────────────────────────────────────────
+//
+// The lock button offers one payment that removes the ads on this device for
+// good. Payment happens on Stripe; when it comes back, api/verify-adfree.js
+// asks Stripe whether that checkout was really paid, and only then are the
+// ads dropped and the device remembered.
+
+const STORE_ADFREE = 'cosmos.adFree';
+
+function isAdFree() {
+  try { return !!localStorage.getItem(STORE_ADFREE); } catch (e) { return false; }
+}
+
+function dropAds() {
+  const section = document.querySelector('.ad');
+  if (section) section.remove();
+  document.body.classList.add('ad-free');
+  window.dispatchEvent(new Event('resize'));
+}
+
+function thank() {
+  const n = document.createElement('div');
+  n.className = 'adfree-thanks';
+  n.setAttribute('role', 'status');
+  n.textContent = t('Ads are gone. Thank you!');
+  document.body.appendChild(n);
+  setTimeout(() => { n.style.opacity = '0'; }, 3200);
+  setTimeout(() => n.remove(), 3800);
+}
+
+// Back from Stripe: confirm the payment, then tidy the address bar.
+async function checkReturn() {
+  const q = new URLSearchParams(location.search);
+  const id = q.get('adfree_session');
+  if (!id) return false;
+  q.delete('adfree_session');
+  const rest = q.toString();
+  history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+  try {
+    const r = await fetch('/api/verify-adfree?session=' + encodeURIComponent(id), { cache: 'no-store' });
+    const j = await r.json();
+    if (j && j.paid) {
+      try { localStorage.setItem(STORE_ADFREE, id); } catch (e) { /* still drop them for now */ }
+      return true;
+    }
+  } catch (e) { /* not confirmed: the ads stay */ }
+  return false;
+}
+
+function wireLock() {
+  const section = document.querySelector('.ad');
+  const btn = section && section.querySelector('.ad-lock');
+  const offer = section && section.querySelector('.ad-offer');
+  if (!btn || !offer) return;
+  const buy = offer.querySelector('.ad-offer-buy');
+  const paint = () => {
+    offer.querySelector('.ad-offer-body').textContent =
+      t('One payment of {price} removes the ads on this device for good.', { price: ADFREE_PRICE });
+    buy.textContent = ADFREE_LINK ? t('Pay {price}', { price: ADFREE_PRICE }) : t('Payments open soon');
+    buy.disabled = !ADFREE_LINK;
+  };
+  const show = (on) => {
+    offer.hidden = !on;
+    section.classList.toggle('offering', on);
+    btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on && section.classList.contains('folded')) section.querySelector('.ad-fold').click();
+  };
+  btn.addEventListener('click', () => show(offer.hidden));
+  offer.querySelector('.ad-offer-cancel').addEventListener('click', () => show(false));
+  buy.addEventListener('click', () => { if (ADFREE_LINK) location.href = ADFREE_LINK; });
+  onLang(paint);
+  paint();
+}
+
 export function installAds() {
   const slot = document.getElementById('ad-slot');
   if (!slot) return;
+  if (isAdFree()) {
+    dropAds();
+    return;
+  }
+  checkReturn().then((paid) => { if (paid) { dropAds(); thank(); } });
   wireFold();
+  wireLock();
   if (ADS_ENABLED) {
     installNetwork(slot);
     return;
