@@ -131,7 +131,7 @@ function wireFold() {
 // ── Paying to remove the ads ─────────────────────────────────────────────────
 //
 // The lock button offers one payment that removes the ads on this device for
-// good. Payment happens on Stripe; when it comes back, api/verify-adfree.js
+// good. Payment happens on Stripe; when it comes back, worker/index.js
 // asks Stripe whether that checkout was really paid, and only then are the
 // ads dropped and the device remembered.
 

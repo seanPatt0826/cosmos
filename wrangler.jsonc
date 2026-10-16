@@ -1,0 +1,11 @@
+// Cloudflare deploy settings. Deploy with tools/deploy.sh, which fills dist/
+// from the last commit rather than from whatever is in the folder.
+{
+  "name": "cosmos",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  }
+}
