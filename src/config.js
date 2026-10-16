@@ -156,7 +156,7 @@ export const ADSENSE_SLOT = '0000000000';
 
 // Paying to remove the ads. ADFREE_LINK is a Stripe Payment Link, set up in
 // the Stripe dashboard with its "after payment" redirect pointing at
-//   https://<the site's address>/?adfree_session={CHECKOUT_SESSION_ID}
+//   https://cosmosroulette.com/?adfree_session={CHECKOUT_SESSION_ID}
 // The payment is then confirmed by worker/index.js on Cloudflare, which needs
 // the STRIPE_SECRET_KEY secret (see that file). Left empty, the lock
 // button still shows the offer but says payments open soon.
