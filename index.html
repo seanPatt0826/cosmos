@@ -1336,9 +1336,28 @@
   /* The lock: pay once and the ads go for good on this device. It sits just
      left of the fold arrow, the same size, and opens the offer in place of
      the ad. */
-  .ad-head .ad-lock { margin-left: auto; margin-right: 6px; }
-  .ad-head .ad-lock svg { transform: none; }
-  .ad-lock[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+  /* A pill with words, in the accent colour: a bare grey padlock beside the
+     arrow was easy to miss. */
+  .ad-head .ad-lock {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    width: auto;
+    height: 24px;
+    margin-left: auto;
+    margin-right: 6px;
+    padding: 0 10px 0 8px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 12.5px;
+    line-height: 1;
+    color: var(--accent);
+    border-color: rgba(232, 163, 61, 0.6);
+    background: rgba(232, 163, 61, 0.12);
+  }
+  .ad-head .ad-lock svg { width: 13px; height: 13px; transform: none; }
+  .ad-head .ad-lock:hover { background: rgba(232, 163, 61, 0.24); }
+  .ad-lock[aria-expanded="true"] { background: rgba(232, 163, 61, 0.28); border-color: var(--accent); }
   .ad.offering .ad-slot { display: none; }
   .ad-offer {
     display: flex;
@@ -1560,7 +1579,10 @@
     body.ad-folded .stage-wrap { bottom: 26px; }
     body.ad-free .stage-wrap { bottom: 0; }
     .ad-head { display: flex; gap: 6px; }
-    .ad-head .ad-lock { margin: 0; }
+    /* No room for words beside the phone banner: the padlock alone, still
+       in the accent colour. */
+    .ad-head .ad-lock { margin: 0; width: 24px; padding: 0; justify-content: center; }
+    .ad-lock-text { display: none; }
     .ad.offering .ad-slot { display: block; }
     /* The ad lives in the left column, which stacks level with the corner; lift
        the column while the offer is open so nothing draws over it. */
@@ -1840,6 +1862,7 @@
             <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1.6"
               fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 7V5.2a2.5 2.5 0 0 1 5 0V7"
               fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            <span class="ad-lock-text" data-i18n>Remove ads</span>
           </button>
           <button type="button" class="about-toggle panel-fold ad-fold" aria-expanded="true" aria-label="Hide ad" title="Hide ad">
             <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6.5l4 4 4-4"
