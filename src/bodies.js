@@ -46,17 +46,28 @@ export function createPlayers(count, seed, names = []) {
   }
 
   const players = [];
-  // How many racers already wear each icon, so a second alien is drawn at a
-  // different size from the first (BODY.twinScales).
+  // The colours each icon already wears, so a second alien is drawn at a
+  // different size from the first (BODY.twinScales) and in a colour far from
+  // the first one's, never sky beside periwinkle.
   const worn = new Map();
+  // Colours still to deal in this pass through the palette. Without twins they
+  // go out in shuffled order, exactly as before.
+  let left = [];
+  let pass = -1;
   for (let i = 0; i < count; i++) {
-    const col = colours[i % colours.length];
+    if (!left.length) {
+      left = colours.slice();
+      pass++;
+    }
     // Their own icon from Choose icon, or one dealt from the set.
     const archetype = lookFor(roster[i] || null, rng);
+    const twins = worn.get(archetype) || [];
+    const col = left.splice(farthestFrom(left, twins), 1)[0];
+    twins.push(col);
+    worn.set(archetype, twins);
+    const twin = twins.length - 1;
     // Two objects sharing a colour must not share a silhouette.
-    const variant = Math.floor(i / colours.length);
-    const twin = worn.get(archetype) || 0;
-    worn.set(archetype, twin + 1);
+    const variant = pass;
     // The size it is drawn at. The body underneath stays BODY.radius.
     const drawR = Math.round(BODY.radius * BODY.drawScale * BODY.twinScales[twin % BODY.twinScales.length]);
     players.push({
@@ -80,6 +91,41 @@ export function createPlayers(count, seed, names = []) {
     });
   }
   return players;
+}
+
+// Index of the colour in `pool` whose hue is farthest from every colour in
+// `taken` (the closest one counts). Nothing taken: the first, so the shuffled
+// order stands. Ties keep the earlier one, so no randomness is needed.
+function farthestFrom(pool, taken) {
+  if (!taken.length) return 0;
+  let best = 0;
+  let bestGap = -1;
+  pool.forEach((c, k) => {
+    const gap = Math.min(...taken.map((t) => hueGap(c.crayon, t.crayon)));
+    if (gap > bestGap) {
+      best = k;
+      bestGap = gap;
+    }
+  });
+  return best;
+}
+
+// Distance round the colour wheel between two #rrggbb colours, 0 to 180.
+function hueGap(a, b) {
+  const d = Math.abs(hue(a) - hue(b));
+  return Math.min(d, 360 - d);
+}
+
+function hue(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) / 255;
+  const g = ((n >> 8) & 255) / 255;
+  const b = (n & 255) / 255;
+  const max = Math.max(r, g, b);
+  const d = max - Math.min(r, g, b);
+  if (!d) return 0;
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
 }
 
 export function makeBody(Matter, player, x, y) {
