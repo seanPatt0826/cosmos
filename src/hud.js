@@ -143,7 +143,7 @@ export function createHud() {
     if (!el.rankList) return;
     const ps = round.idle ? [] : round.players;
     const sig = getLang() + round.phase + ':' + (round.winner ? round.winner.id : '') + ':'
-      + ps.map((p) => `${p.id}${p.label}${p.archetype}${p.alive ? '' : p.place}`).join('|');
+      + ps.map((p) => `${p.id}${p.label}${p.archetype}${p.col.name}${p.alive ? '' : p.place}`).join('|');
     if (sig === lastRank) return;
     lastRank = sig;
 
@@ -169,7 +169,7 @@ export function createHud() {
     const row = (p, place, cls, status) => `<li class="rank-row ${cls}">`
       + `<span class="rank-place">${place}</span>`
       + `<canvas class="rank-icon" width="${RANK_ICON_PX}" height="${RANK_ICON_PX}"`
-      + ` data-look="${escapeHtml(p.archetype)}" style="--crayon:${p.col.crayon}"></canvas>`
+      + ` style="--crayon:${p.col.crayon}"></canvas>`
       + `<span class="rank-name">${escapeHtml(p.label)}</span>`
       + `<span class="rank-status">${escapeHtml(status)}</span></li>`;
 
@@ -180,7 +180,9 @@ export function createHud() {
       ...out.map((p) => row(p, String(p.place), 'out', t(CAUSE[p.outKind] || 'out'))),
     ].join('');
 
-    for (const c of el.rankList.querySelectorAll('canvas.rank-icon')) paintThumb(c, c.dataset.look);
+    // Each icon in its racer's own colour, as it looks in the arena.
+    const shown = [...inRows, ...out];
+    el.rankList.querySelectorAll('canvas.rank-icon').forEach((c, k) => paintThumb(c, shown[k].archetype, shown[k].col));
   }
 
   function setBanner(text, cls) {

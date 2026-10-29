@@ -154,14 +154,16 @@ export function bakeLook(id, col, seed, radius = BODY.radius) {
   return bakeBody(id, col, seed, radius);
 }
 
-// Small previews for the menu and the name rows, cached by look and size.
+// Small previews for the menu and the name rows, cached by look, colour and
+// size. The lists pass the racer's own colour, so a row matches its body in
+// the arena; the menu, and a name not yet on the field, use sky.
 const thumbs = new Map();
 const THUMB_COL = PALETTE.find((p) => p.name === 'sky') || PALETTE[0];
 
-export function thumbnail(id, px) {
-  const key = `${id}|${px}`;
+export function thumbnail(id, px, col = THUMB_COL) {
+  const key = `${id}|${px}|${col.name}`;
   if (thumbs.has(key)) return thumbs.get(key);
-  const sprite = bakeLook(id, THUMB_COL, 7, BODY.radius);
+  const sprite = bakeLook(id, col, 7, BODY.radius);
   const c = document.createElement('canvas');
   c.width = px;
   c.height = px;
@@ -179,8 +181,8 @@ export function thumbnail(id, px) {
 // Paints a look's preview onto a canvas the caller owns, at that canvas's own
 // backing size. A cached preview is one element, and putting it in two places
 // would move it rather than copy it.
-export function paintThumb(target, id) {
+export function paintThumb(target, id, col) {
   const g = target.getContext('2d');
   g.clearRect(0, 0, target.width, target.height);
-  if (id) g.drawImage(thumbnail(id, target.width), 0, 0, target.width, target.height);
+  if (id) g.drawImage(thumbnail(id, target.width, col || THUMB_COL), 0, 0, target.width, target.height);
 }

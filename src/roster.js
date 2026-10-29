@@ -41,7 +41,7 @@ export function createRoster(listEl, onChange, { onIcon = null } = {}) {
     // icon shows that icon here too, not only someone who picked one.
     setWorn(players) {
       worn = new Map();
-      for (const p of players) if (p.name) worn.set(p.name, p.archetype);
+      for (const p of players) if (p.name) worn.set(p.name, { look: p.archetype, col: p.col });
       paintIcons();
     },
 
@@ -103,7 +103,8 @@ export function createRoster(listEl, onChange, { onIcon = null } = {}) {
     if (!btn) return;
     const name = row.querySelector('input').value.trim();
     const own = name ? pickOf(name) : null;
-    const pick = own || (name ? worn.get(name) : null) || null;
+    const onField = name ? worn.get(name) : null;
+    const pick = own || (onField && onField.look) || null;
     btn.disabled = !name;
     btn.classList.toggle('picked', !!pick);
     btn.classList.toggle('dealt', !!pick && !own);
@@ -120,7 +121,8 @@ export function createRoster(listEl, onChange, { onIcon = null } = {}) {
         c.height = ICON_PX;
         btn.appendChild(c);
       }
-      paintThumb(c, pick);
+      // In the colour they wear on the field; sky until they are on it.
+      paintThumb(c, pick, onField && onField.col);
     } else if (!btn.querySelector('svg')) {
       btn.innerHTML = ADD;
     }
