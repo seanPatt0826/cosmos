@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>셔틀 도킹 — 코스모스</title>
 <meta name="description" content="A multiplayer space game: fly your ship to a free shuttle and dock before anyone else. There is always one shuttle fewer than players.">
 <meta name="theme-color" content="#07060F">
@@ -242,19 +242,108 @@
   #t-boost { right: 22px; bottom: 112px; }
   #t-brake { right: 104px; bottom: 30px; }
 
-  @media (max-width: 760px) {
-    #lobby { top: auto; bottom: 12px; right: 12px; left: 12px; width: auto; max-height: 46vh; }
-    #info { top: 44px; left: 12px; padding: 8px 12px; min-width: 0; }
-    .corner { left: 12px; top: 10px; }
-    .corner h1 { font-size: 18px; }
-    #dockpanel { bottom: 170px; }
-    #toast { display: none; }
-    #btn-guide { top: 10px; bottom: auto; right: 12px; }
-    #guide { left: 50%; bottom: auto; top: 50%; transform: translate(-50%, -50%); }
-    /* Below the room panel instead of over the title and links. */
-    #status { top: 176px; font-size: 14px; }
+  /* ── Phones ─────────────────────────────────────────────────────────── */
+  /* Any phone, upright or on its side. The panels shrink to strips so the
+     sky in the middle stays clear, and nothing sits under a thumb. --sb/--sl/
+     --sr are the notch and home-bar insets. */
+  @media (max-width: 760px), (max-height: 500px) and (max-width: 1000px) {
+    :root {
+      --sb: env(safe-area-inset-bottom, 0px);
+      --sl: env(safe-area-inset-left, 0px);
+      --sr: env(safe-area-inset-right, 0px);
+    }
+    .corner { left: calc(12px + var(--sl)); top: 8px; gap: 10px; }
+    .corner h1 { font-size: 17px; }
+    .corner a, .corner .lang-toggle { font-size: 12px; }
+
+    /* The room panel becomes a two-line strip. */
+    #info { top: 38px; left: calc(12px + var(--sl)); padding: 6px 10px 7px; min-width: 0; }
+    .room-code { font-size: 15px; }
+    #btn-copy { font-size: 11px; padding: 2px 8px; }
+    .counts { display: flex; flex-wrap: wrap; gap: 0 4px; margin: 3px 0 0; font-size: 13px; }
+    .counts dd { margin-right: 8px; }
+
+    /* Over the panels and the help dialog, sized by the short side of the screen. */
+    #banner { z-index: 8; top: 30%; font-size: clamp(20px, 7.5vmin, 40px); }
+    #banner.count { font-size: clamp(56px, 22vmin, 120px); }
+
+    #dockpanel { padding: 7px 12px 9px; width: min(290px, calc(100vw - 24px)); }
+    .dp-head { font-size: 14px; }
+    .dp-reason { margin: 2px 0 4px; font-size: 13px; }
+    .dp-checks { display: flex; gap: 16px; font-size: 12px; }
+    .dp-checks li { gap: 6px; }
+    .hold { margin-top: 6px; height: 6px; }
+
+    #status { font-size: 14px; padding: 4px 12px; }
     body.in-lobby #status { display: none; }
+    #toast { display: none; }
+
+    #btn-guide { top: 8px; bottom: auto; right: calc(12px + var(--sr)); width: 34px; height: 34px; font-size: 16px; }
+    /* The controls guide is a dialog here, dimming whatever is behind it. */
+    #guide {
+      left: 50%; top: 50%; bottom: auto; transform: translate(-50%, -50%); z-index: 7;
+      width: min(380px, calc(100vw - 32px)); max-height: calc(100% - 24px); overflow-y: auto;
+      background: #0E0B1A; box-shadow: 0 0 0 100vmax rgba(4, 3, 10, 0.6);
+    }
+
+    #summary { width: min(400px, calc(100vw - 24px)); padding: 14px 16px; max-height: calc(100% - 24px); }
+    #summary h3 { font-size: 21px; }
+
+    #pad { left: calc(18px + var(--sl)); bottom: calc(22px + var(--sb)); width: 128px; height: 128px; }
+    #pad i { width: 50px; height: 50px; margin: -25px 0 0 -25px; }
+    .tbtn { width: 70px; height: 70px; font-size: 14px; }
+    #t-boost { right: calc(18px + var(--sr)); bottom: calc(104px + var(--sb)); }
+    #t-brake { right: calc(98px + var(--sr)); bottom: calc(24px + var(--sb)); }
     body.in-lobby #pad, body.in-lobby .tbtn { display: none; }
+  }
+
+  /* Upright: the lobby is a sheet along the bottom, and the docking panel
+     sits just above the thumb controls. */
+  @media (max-width: 760px) and (orientation: portrait) {
+    #lobby {
+      top: auto; bottom: calc(10px + var(--sb)); left: 10px; right: 10px; width: auto;
+      max-height: 52%; padding: 10px 14px 12px;
+    }
+    #status { top: 104px; }
+    #dockpanel { bottom: calc(196px + var(--sb)); }
+    /* The help dialog sits low, so the countdown above it stays readable. */
+    #guide { top: auto; bottom: calc(16px + var(--sb)); transform: translateX(-50%); }
+    #banner { top: 22%; }
+  }
+
+  /* On its side: there is little height, so things go to the sides. */
+  @media (max-height: 500px) and (max-width: 1000px) and (orientation: landscape) {
+    #join {
+      left: auto; right: calc(16px + var(--sr)); top: 50%; transform: translateY(-50%);
+      width: min(360px, calc(100vw - 300px)); padding: 12px 18px 12px;
+      max-height: calc(100% - 16px); overflow-y: auto;
+    }
+    #join h2 { display: none; }
+    #join p { margin-bottom: 4px; font-size: 14px; line-height: 1.4; }
+    #join label { margin: 6px 0 3px; }
+    #join input { padding: 6px 10px; }
+    #btn-join { margin-top: 10px; padding: 7px; font-size: 16px; }
+    #join-msg { margin-top: 4px !important; }
+
+    #lobby {
+      top: 8px; right: calc(56px + var(--sr)); width: min(290px, calc(100vw - 320px));
+      max-height: calc(100% - 16px); padding: 8px 12px 10px;
+    }
+    #lobby h3 { font-size: 15px; margin-bottom: 4px; padding-bottom: 4px; }
+    .plist { margin-bottom: 6px; }
+    .settings { gap: 3px; margin-bottom: 8px; }
+    .lobby-note { margin-top: 6px; font-size: 12px; }
+
+    /* Top right, next to the help button, clear of the title. */
+    #status { top: 8px; left: auto; right: calc(56px + var(--sr)); transform: none; max-width: 42vw; font-size: 13px; }
+    /* Bottom middle, between the pad and the buttons. */
+    #dockpanel { bottom: calc(8px + var(--sb)); width: min(290px, calc(100vw - 360px)); }
+
+    #pad { width: 112px; height: 112px; bottom: calc(16px + var(--sb)); }
+    #pad i { width: 44px; height: 44px; margin: -22px 0 0 -22px; }
+    .tbtn { width: 62px; height: 62px; font-size: 13px; }
+    #t-boost { bottom: calc(88px + var(--sb)); }
+    #t-brake { right: calc(88px + var(--sr)); bottom: calc(16px + var(--sb)); }
   }
 </style>
 </head>

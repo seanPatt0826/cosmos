@@ -480,7 +480,9 @@ function setupControls() {
     if (m > 1) { x /= m; y /= m; }
     touch.x = x;
     touch.y = y;
-    knob.style.transform = `translate(${x * 40}px, ${y * 40}px)`;
+    // The pad is smaller on a phone held sideways, so the knob's reach is too.
+    const reach = r.width * 0.3;
+    knob.style.transform = `translate(${x * reach}px, ${y * reach}px)`;
   };
   pad.addEventListener('pointerdown', (e) => {
     pad.setPointerCapture(e.pointerId);
