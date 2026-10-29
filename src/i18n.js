@@ -205,7 +205,6 @@ const KO = {
   // Shuttle Docking (dock.html)
   'Shuttle Docking': '셔틀 도킹',
   'Shuttle Docking — Cosmos': '셔틀 도킹 — 코스모스',
-  'Docking game': '도킹 게임',
   'back to Cosmos': '코스모스로 돌아가기',
   'Fly your ship to a free shuttle and dock before anyone else takes it. There is always one shuttle fewer than players.':
     '내 우주선을 몰고 빈 셔틀에 먼저 도킹하세요. 셔틀은 언제나 플레이어보다 하나 적어요.',
