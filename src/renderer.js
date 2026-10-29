@@ -111,7 +111,7 @@ export function drawNameTags(g, round, time, stageW, viewH) {
     const pop = popScale(p, round);
     scale *= pop;
     const s = worldToScreen(cam, pos.x, y, stageW, viewH);
-    const below = BODY.radius * scale * cam.zoom + 5;
+    const below = p.drawR * scale * cam.zoom + 5;
     g.globalAlpha = intro * Math.min(1, pop);
     g.strokeText(p.name, s.x, s.y + below);
     g.fillText(p.name, s.x, s.y + below);
@@ -232,10 +232,11 @@ function drawPlayers(g, round, time) {
         // shade is heavier now, and the colour pool under each one uses the
         // crayon rather than the glow, because the glow is the pale end of the
         // palette and pale is exactly what does not work here.
-        softGlow(g, pos.x + 3, y + 5, 46 * big, '#6A5E52', 0.9 * intro);
-        softGlow(g, pos.x, y, 44 * big, p.col.crayon, (glowA + 0.26) * intro);
+        // Glows are sized to the drawing (46 and 44 at the old radius of 32).
+        softGlow(g, pos.x + 3, y + 5, p.drawR * 1.44 * big, '#6A5E52', 0.9 * intro);
+        softGlow(g, pos.x, y, p.drawR * 1.38 * big, p.col.crayon, (glowA + 0.26) * intro);
       } else {
-        softGlow(g, pos.x, y, 46 * big, p.col.glow, glowA * intro);
+        softGlow(g, pos.x, y, p.drawR * 1.44 * big, p.col.glow, glowA * intro);
       }
       drawSprite(g, p.sprite, pos.x, y, p.body.angle, scale, intro, frame);
       // Whoever the close-up has been told to hold. The side panel is small and
@@ -354,7 +355,7 @@ export { hexToRgba };
 // like it belongs to the drawing rather than to the browser.
 function drawFocusRing(g, x, y, p, time) {
   const rng = makeRng(hashSeed('focus', p.id, Math.floor(time / 130)));
-  const r = 40 + Math.sin(time * 0.004) * 2.5;
+  const r = p.drawR + 8 + Math.sin(time * 0.004) * 2.5;
   const steps = 26;
   g.save();
   g.lineCap = 'round';

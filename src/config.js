@@ -70,10 +70,19 @@ export const SKETCH = {
 // ── Bodies ──────────────────────────────────────────────────────────────────
 
 export const BODY = {
-  // 32, up from 18, so a racer can be picked out at a glance. Measured over
-  // 15 seeded rounds a universe at 18, 32 and 40: medians stayed within the
-  // run-to-run noise and nothing stalled, so the pacing tuning still holds.
-  radius: 32,
+  // 40, up from 18 and then 32, so a racer can be picked out at a glance.
+  // Measured over 15 seeded rounds a universe at 18, 32 and 40: medians
+  // stayed within the run-to-run noise and nothing stalled, so the pacing
+  // tuning still holds.
+  radius: 40,
+  // Every racer is drawn this much larger than the circle it collides as, so
+  // the icons read at the zoom that shows a whole universe.
+  drawScale: 1.1,
+  // Racers who wear the same icon are drawn at these sizes in turn (first
+  // one, second one, ...), so two aliens can be told apart at a glance. Only
+  // the drawing changes; every body still collides as the same circle. The
+  // smallest, 0.88 x 1.1 x 40, is still a fifth bigger than racers were at 32.
+  twinScales: [1, 1.25, 0.88, 1.15, 0.94, 1.32],
   restitution: 0.72,
   friction: 0.008,
   frictionStatic: 0.02,

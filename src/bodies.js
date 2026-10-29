@@ -16,12 +16,12 @@ export function clearSpriteCache() {
 
 // A drawing whose image is still decoding comes back null; it wears a planet
 // for now and is not cached, so the next line-up picks the drawing up.
-function spriteFor(look, col, variant) {
-  const key = `${look}|${col.name}|${variant}`;
+function spriteFor(look, col, variant, radius) {
+  const key = `${look}|${col.name}|${variant}|${radius}`;
   let s = spriteCache.get(key);
   if (!s) {
-    s = bakeLook(look, col, hashSeed(key), BODY.radius);
-    if (!s) return bakeLook('planet', col, hashSeed(key), BODY.radius);
+    s = bakeLook(look, col, hashSeed(key), radius);
+    if (!s) return bakeLook('planet', col, hashSeed(key), radius);
     spriteCache.set(key, s);
   }
   return s;
@@ -46,12 +46,19 @@ export function createPlayers(count, seed, names = []) {
   }
 
   const players = [];
+  // How many racers already wear each icon, so a second alien is drawn at a
+  // different size from the first (BODY.twinScales).
+  const worn = new Map();
   for (let i = 0; i < count; i++) {
     const col = colours[i % colours.length];
     // Their own icon from Choose icon, or one dealt from the set.
     const archetype = lookFor(roster[i] || null, rng);
     // Two objects sharing a colour must not share a silhouette.
     const variant = Math.floor(i / colours.length);
+    const twin = worn.get(archetype) || 0;
+    worn.set(archetype, twin + 1);
+    // The size it is drawn at. The body underneath stays BODY.radius.
+    const drawR = Math.round(BODY.radius * BODY.drawScale * BODY.twinScales[twin % BODY.twinScales.length]);
     players.push({
       id: i,
       col,
@@ -60,7 +67,8 @@ export function createPlayers(count, seed, names = []) {
       name: roster[i] || null,
       label: roster[i] || col.name,
       archetype,
-      sprite: spriteFor(archetype, col, variant),
+      drawR,
+      sprite: spriteFor(archetype, col, variant, drawR),
       body: null,
       alive: true,
       trail: [],
