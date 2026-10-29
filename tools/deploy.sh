@@ -12,7 +12,7 @@
 # top-level page or file, such as ads.txt, has to be added here.
 
 set -e
-SITE="index.html about.html privacy.html dock.html src assets"
+SITE="index.html about.html privacy.html src assets"
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
