@@ -337,10 +337,29 @@ window.addEventListener('keydown', (e) => {
 
 // ── Controls ────────────────────────────────────────────────────────────────
 
+// The universe to go back to when leaving Docking Bay.
+let beforeDock = null;
+
 function markActiveMap(id) {
   if (universes) universes.setActive(id);
-  const dock = document.getElementById('btn-dock');
-  if (dock) dock.setAttribute('aria-pressed', id === 'dock' ? 'true' : 'false');
+  if (id !== 'dock') beforeDock = id;
+  paintDockButton();
+}
+
+// The button under the title goes into Docking Bay, and while you are there
+// it becomes the way back out: a rocket to go in, an arrow to leave.
+const ROCKET = '<path d="M20 4c-5.5.3-9.4 3-12 7.6L5.2 11 3 13.2l3.6 1.3L9.5 17.4l1.3 3.6 2.2-2.2-.6-2.8C17 13.4 19.7 9.5 20 4z"'
+  + ' fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><circle cx="15" cy="9" r="1.8" fill="currentColor"/>';
+const LEAVE = '<path d="M14 5H6.5A1.5 1.5 0 0 0 5 6.5v11A1.5 1.5 0 0 0 6.5 19H14M10 12h10M16.5 8.5 20 12l-3.5 3.5"'
+  + ' fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>';
+
+function paintDockButton() {
+  const btn = document.getElementById('btn-dock');
+  if (!btn) return;
+  const inDock = !!round && round.mapDef.id === 'dock';
+  btn.setAttribute('aria-pressed', inDock ? 'true' : 'false');
+  btn.querySelector('svg').innerHTML = inDock ? LEAVE : ROCKET;
+  btn.querySelector('span').textContent = inDock ? t('Leave Docking Bay') : t('Docking Bay');
 }
 
 function buildControls() {
@@ -540,11 +559,19 @@ function buildControls() {
   });
 
   // The button under the title: the same as picking Docking Bay from the
-  // Universes list, for people who never scroll down to it.
+  // Universes list, for people who never scroll down to it. Pressed again
+  // while there, it goes back to the universe you came from (or the next one
+  // in the rotation, if Docking Bay is where you started).
   document.getElementById('btn-dock').addEventListener('click', () => {
-    if (transitioning || (round && round.mapDef.id === 'dock')) return;
-    goToMap('dock');
+    if (transitioning) return;
+    if (round && round.mapDef.id === 'dock') {
+      goToMap(beforeDock || order.find((id) => id !== 'dock') || 'garden');
+    } else {
+      goToMap('dock');
+    }
   });
+  paintDockButton();
+  onLang(paintDockButton);
 
   // The ad slot beside the arena; sample ads until real ones are switched on.
   installAds();

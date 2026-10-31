@@ -204,6 +204,7 @@ const KO = {
 
   // Docking Bay (src/maps/dock.js)
   'Docking Bay': '도킹 정거장',
+  'Leave Docking Bay': '도킹 정거장 나가기',
   'one shuttle short': '셔틀이 하나 모자라요',
   'Still floating when the last shuttle is taken, or falling into a black hole.':
     '마지막 셔틀까지 다 찼을 때 아직 떠다니거나, 블랙홀에 빠지면 탈락.',
