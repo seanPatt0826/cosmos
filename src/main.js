@@ -339,6 +339,8 @@ window.addEventListener('keydown', (e) => {
 
 function markActiveMap(id) {
   if (universes) universes.setActive(id);
+  const dock = document.getElementById('btn-dock');
+  if (dock) dock.setAttribute('aria-pressed', id === 'dock' ? 'true' : 'false');
 }
 
 function buildControls() {
@@ -535,6 +537,13 @@ function buildControls() {
   universes = createUniverses(document.getElementById('universe-grid'), (id) => {
     if (transitioning) return;
     goToMap(id);
+  });
+
+  // The button under the title: the same as picking Docking Bay from the
+  // Universes list, for people who never scroll down to it.
+  document.getElementById('btn-dock').addEventListener('click', () => {
+    if (transitioning || (round && round.mapDef.id === 'dock')) return;
+    goToMap('dock');
   });
 
   // The ad slot beside the arena; sample ads until real ones are switched on.
