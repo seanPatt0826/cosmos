@@ -8,12 +8,13 @@
     "directory": "./dist",
     "binding": "ASSETS"
   },
-  // Shuttle Docking rooms: one Durable Object per room code. SQLite-backed,
-  // the kind the free plan allows, though the rooms store nothing.
-  "durable_objects": {
-    "bindings": [{ "name": "DOCK", "class_name": "DockRoom" }]
-  },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DockRoom"] }],
+  // The online Shuttle Docking rooms (a Durable Object) were added in v1 and
+  // retired in v2; docking is now a universe on the main page. Cloudflare
+  // needs both entries kept, in order, to know the class is gone.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["DockRoom"] },
+    { "tag": "v2", "deleted_classes": ["DockRoom"] }
+  ],
   // The site's own address. Both are attached as Custom Domains, so
   // Cloudflare keeps their DNS records and HTTPS certificates itself.
   "routes": [

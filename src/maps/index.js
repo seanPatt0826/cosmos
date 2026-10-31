@@ -5,8 +5,9 @@ import binary from './binary.js';
 import bumpers from './bumpers.js';
 import nova from './nova.js';
 import warp from './warp.js';
+import dock from './dock.js';
 
-export const MAPS = [garden, orbit, belt, binary, bumpers, nova, warp];
+export const MAPS = [garden, orbit, belt, binary, bumpers, nova, warp, dock];
 
 export function mapById(id) {
   return MAPS.find((m) => m.id === id) || MAPS[0];

@@ -242,6 +242,9 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
   let backstopAt = BACKSTOP_AFTER;
 
   function backstop(dtMs) {
+    // A map that runs its own clock (Docking Bay's heats) opts out: its
+    // docked racers sit still on purpose.
+    if (map.noBackstop) return;
     if (round.elapsed < backstopAt || round.aliveCount <= 1) return;
     backstopAt = round.elapsed + BACKSTOP_EVERY;
     let stillest = null;

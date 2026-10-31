@@ -18,9 +18,7 @@ OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
 mkdir "$OUT/dist"
-# The worker also needs the docking rules and the palette they use, which
-# live with the site's scripts.
-git -C "$ROOT" archive HEAD worker wrangler.jsonc src/dock src/config.js | tar -x -C "$OUT"
+git -C "$ROOT" archive HEAD worker wrangler.jsonc | tar -x -C "$OUT"
 git -C "$ROOT" archive HEAD $SITE | tar -x -C "$OUT/dist"
 cd "$OUT"
 echo "Building $(git -C "$ROOT" log --oneline -1)"

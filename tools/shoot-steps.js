@@ -22,7 +22,10 @@ const W = 560;
 const H = 340;
 // A fixed seed per map so the pictures only change when the map does. Each
 // was checked to give a race that actually finishes.
-const SEEDS = { garden: 11, orbit: 7, belt: 3, binary: 5, bumpers: 2, nova: 9, warp: 4 };
+const SEEDS = { garden: 11, orbit: 7, belt: 3, binary: 5, bumpers: 2, nova: 9, warp: 4, dock: 6 };
+
+// `node tools/shoot-steps.js dock` shoots only the maps named; no names, all.
+const ONLY = process.argv.slice(2);
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript' };
 
@@ -61,6 +64,7 @@ server.listen(0, async () => {
   fs.mkdirSync(OUT, { recursive: true });
   let failed = 0;
   for (const [id, seed] of Object.entries(SEEDS)) {
+    if (ONLY.length && !ONLY.includes(id)) continue;
     for (const mode of ['dark', 'light']) {
       const r = await page.evaluate(([a, b, c, w, h]) => window.shoot(a, b, c, w, h), [id, mode, seed, W, H]);
       if (!r.won) { failed++; console.warn(`${id} (${mode}): no winner within the limit — try another seed`); }
