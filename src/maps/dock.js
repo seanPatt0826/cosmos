@@ -23,7 +23,11 @@
 import { makeRng, hashSeed } from '../rng.js';
 import { staticRect, staticCircle, add, remove } from '../engine.js';
 import { drawEdge } from './common.js';
-import { createHole, updateHoles, holeCapturing, drawHoles } from './hazards.js';
+import {
+  createHole, updateHoles, holeCapturing, drawHoles,
+  createPulsar, updatePulsars, drawPulsars,
+  createComet, updateComets, drawComets,
+} from './hazards.js';
 import { BODY } from '../config.js';
 import { t } from '../i18n.js';
 
@@ -42,6 +46,7 @@ const VERDICT_MS = 1300;                 // the left-out racer is shown, then go
 const BREAK_MS = 1400;                   // between heats, before the next shuttles arrive
 const HOLE_WOBBLE = 110;                 // how far a black hole wanders from its corner
 const HOLE_CLEAR = 300;                  // shuttles keep at least this far from a hole
+const PULSAR_CLEAR = 250;                // and this far from a pulsar
 
 export default {
   id: 'dock',
@@ -51,9 +56,9 @@ export default {
   blurb: 'one shuttle short',
   rules: {
     out: 'Still floating when the last shuttle is taken, or falling into a black hole.',
-    watch: 'Every heat has one shuttle fewer than racers. Drift into a docking circle to get a seat, and keep clear of the black holes in the corners.',
+    watch: 'Every heat has one shuttle fewer than racers. Drift into a docking circle to get a seat. Pulsars shove you away, comets barge through, and black holes swallow you.',
   },
-  description: 'There is always one shuttle too few: drift into a docking circle to take a seat, mind the black holes, and whoever is left floating each heat is out.',
+  description: 'There is always one shuttle too few: drift into a docking circle to take a seat, dodge the pulsars, comets and black holes, and whoever is left floating each heat is out.',
 
   build({ sim, seed }) {
     const { Matter } = sim;
@@ -62,7 +67,10 @@ export default {
     const bounds = { x: -half.w, y: -half.h, w: W, h: H };
 
     // Bouncy walls: nothing here should ever come to rest against an edge.
-    const wallOpts = { restitution: 1.0, friction: 0 };
+    // Racers bounce off them; the comet, in the same negative collision
+    // group, flies straight through, so it can streak in from outside.
+    const PASS_WALLS = -71;
+    const wallOpts = { restitution: 1.0, friction: 0, collisionFilter: { group: PASS_WALLS, category: 1, mask: 0xFFFFFFFF } };
     add(sim,
       staticRect(sim, 0, -half.h - 40, W + 200, 80, wallOpts),
       staticRect(sim, 0, half.h + 40, W + 200, 80, wallOpts),
@@ -91,6 +99,29 @@ export default {
       return h;
     });
 
+    // Two pulsars, out of the starting circle and well clear of the holes.
+    // Every few seconds one pulses and shoves away whoever is floating near
+    // it: off the approach to a port, or toward a hole.
+    const pulsarSpots = [[-0.25, -0.62], [-0.25, 0.62], [0.4, 0.02], [0.12, -0.6], [0.12, 0.6], [-0.42, 0]]
+      .map(([fx, fy]) => ({ x: fx * half.w, y: fy * half.h }))
+      .filter((p) => holes.every((h) => Math.hypot(p.x - h.home.x, p.y - h.home.y) > 420));
+    for (let i = pulsarSpots.length - 1; i > 0; i--) {
+      const j = rng.int(0, i);
+      [pulsarSpots[i], pulsarSpots[j]] = [pulsarSpots[j], pulsarSpots[i]];
+    }
+    const pulsars = pulsarSpots.slice(0, 2).map((p, i) => createPulsar(sim, p.x, p.y, hashSeed('dockpul', seed, i)));
+
+    // A comet that now and then streaks across the room, barging through
+    // anyone in its way, then leaves and comes back later from elsewhere.
+    const comets = [createComet(sim, bounds, hashSeed('dockcom', seed))];
+    for (const c of comets) c.body.collisionFilter.group = PASS_WALLS;
+
+    // What each heat's shuttles must keep clear of, and by how much.
+    const keepOut = [
+      ...holes.map((h) => ({ x: h.home.x, y: h.home.y, clear: HOLE_CLEAR + HOLE_WOBBLE })),
+      ...pulsars.map((p) => ({ x: p.x, y: p.y, clear: PULSAR_CLEAR })),
+    ];
+
     let shuttles = [];   // { id, num, x, y, port, body, occupant, born, gone }
     let leaving = [];    // last heat's shuttles, fading out
     let heatNo = 0;
@@ -98,27 +129,28 @@ export default {
 
     // Lays out `count` shuttles round the room, spread evenly so no part of
     // it is favoured, each with its port facing somewhere between the middle
-    // and side-on, never into a wall, and clear of the black holes: it turns
-    // the whole ring until nothing sits within HOLE_CLEAR of a hole's home.
+    // and side-on, never into a wall, and clear of the black holes and
+    // pulsars: it turns the whole ring until nothing sits inside a keep-out
+    // zone (or, failing that, takes the turn that comes closest).
     function layout(count, time) {
       let best = null;
-      let bestGap = -1;
+      let bestGap = -Infinity;
       for (let attempt = 0; attempt < 24; attempt++) {
         const ring = ringOf(count, time);
         let gap = Infinity;
         for (const s of ring) {
           const q = portOf(s);
-          for (const h of holes) {
+          for (const k of keepOut) {
             gap = Math.min(gap,
-              Math.hypot(s.x - h.home.x, s.y - h.home.y),
-              Math.hypot(q.x - h.home.x, q.y - h.home.y));
+              Math.hypot(s.x - k.x, s.y - k.y) - k.clear,
+              Math.hypot(q.x - k.x, q.y - k.y) - k.clear);
           }
         }
         if (gap > bestGap) {
           best = ring;
           bestGap = gap;
         }
-        if (gap >= HOLE_CLEAR + HOLE_WOBBLE) break;
+        if (gap >= 0) break;
       }
       return best || [];
     }
@@ -359,7 +391,7 @@ export default {
       noBackstop: true,
 
       // For tests: the heat as it stands.
-      inspect: () => ({ heatNo, heat, shuttles }),
+      inspect: () => ({ heatNo, heat, shuttles, comets: comets.map((c) => ({ active: c.active, x: c.body.position.x, y: c.body.position.y })) }),
 
       spawn(n) {
         // Lined up in a ring in the middle, the first heat's shuttles already
@@ -388,6 +420,9 @@ export default {
         }
         heat.t += dt;
         moveHoles(dt, round);
+        // Pulsars shove only racers still floating; docked ones are held.
+        updatePulsars(sim, pulsars, dt, round.alivePlayers().filter((p) => !p.docked), round.particles);
+        updateComets(sim, comets, dt, round.particles);
         swallow(round);
         // A hole may just have taken the second-to-last racer.
         if (round.phase !== 'running') return;
@@ -458,6 +493,8 @@ export default {
 
       drawFront(g, cam, time) {
         drawHoles(g, holes, time);
+        drawPulsars(g, pulsars, time);
+        drawComets(g, comets, time);
         for (const s of leaving) {
           const k = 1 - Math.min(1, (time - s.gone) / 700);
           if (k > 0) drawShuttle(g, s, time, k, null);

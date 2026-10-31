@@ -207,10 +207,10 @@ const KO = {
   'one shuttle short': '셔틀이 하나 모자라요',
   'Still floating when the last shuttle is taken, or falling into a black hole.':
     '마지막 셔틀까지 다 찼을 때 아직 떠다니거나, 블랙홀에 빠지면 탈락.',
-  'Every heat has one shuttle fewer than racers. Drift into a docking circle to get a seat, and keep clear of the black holes in the corners.':
-    '매 판마다 셔틀은 참가자보다 하나 적어요. 도킹 원 안으로 떠 들어가면 자리를 잡아요. 구석의 블랙홀은 조심하세요.',
-  'There is always one shuttle too few: drift into a docking circle to take a seat, mind the black holes, and whoever is left floating each heat is out.':
-    '셔틀은 늘 하나 모자라요. 도킹 원으로 떠 들어가면 자리를 잡고, 블랙홀을 조심하세요. 매 판 끝까지 떠다니는 한 명이 탈락해요.',
+  'Every heat has one shuttle fewer than racers. Drift into a docking circle to get a seat. Pulsars shove you away, comets barge through, and black holes swallow you.':
+    '매 판마다 셔틀은 참가자보다 하나 적어요. 도킹 원 안으로 떠 들어가면 자리를 잡아요. 펄서는 밀어내고, 혜성은 부딪쳐 오고, 블랙홀은 삼켜 버려요.',
+  'There is always one shuttle too few: drift into a docking circle to take a seat, dodge the pulsars, comets and black holes, and whoever is left floating each heat is out.':
+    '셔틀은 늘 하나 모자라요. 도킹 원으로 떠 들어가 자리를 잡고, 펄서와 혜성과 블랙홀을 피하세요. 매 판 끝까지 떠다니는 한 명이 탈락해요.',
   'No shuttle!': '셔틀 없음!',
   'Round {n} · {free} of {all} shuttles free': '{n}번째 판 · 빈 셔틀 {free}/{all}',
 
