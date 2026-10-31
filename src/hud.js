@@ -99,13 +99,15 @@ export function createHud() {
     },
   };
 
-  // Four causes, in the words someone watching would use. The engine's names
+  // The causes, in the words someone watching would use. The engine's names
   // for them — scribble, boom — describe the drawing, not what happened.
+  // noShuttle is Docking Bay's: left floating when the last seat went.
   const CAUSE = {
     hole: 'black hole',
     drift: 'flung out',
     scribble: 'burned up',
     boom: 'blown apart',
+    noShuttle: 'no shuttle',
   };
 
   // How long an entry stays on the left before it fades out. This is a feed of

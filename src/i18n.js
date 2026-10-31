@@ -213,6 +213,7 @@ const KO = {
   'There is always one shuttle too few: drift into a docking circle to take a seat, dodge the pulsars, comets and black holes, and whoever is left floating each heat is out.':
     '셔틀은 늘 하나 모자라요. 도킹 원으로 떠 들어가 자리를 잡고, 펄서와 혜성과 블랙홀을 피하세요. 매 판 끝까지 떠다니는 한 명이 탈락해요.',
   'No shuttle!': '셔틀 없음!',
+  'no shuttle': '셔틀 없음',
   'Round {n} · {free} of {all} shuttles free': '{n}번째 판 · 빈 셔틀 {free}/{all}',
 
 };

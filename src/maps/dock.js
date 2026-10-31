@@ -442,7 +442,7 @@ export default {
         } else if (heat.phase === 'verdict') {
           if (heat.t >= VERDICT_MS) {
             const loser = heat.loser;
-            if (loser && loser.alive) round.kill(loser, 'boom', { at: loser.body.position });
+            if (loser && loser.alive) round.kill(loser, 'boom', { at: loser.body.position, cause: 'noShuttle' });
             if (round.aliveCount <= 1) {
               heat.phase = 'done';
               return;

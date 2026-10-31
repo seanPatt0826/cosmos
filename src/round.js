@@ -132,7 +132,11 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
       // Where they finished, for the Ranking panel: the first out of ten is
       // tenth. The feed's log is capped, so the place lives on the racer.
       player.place = round.aliveCount + 1;
-      player.outKind = kind;
+      // What the lists call it. Usually the kind itself, but a map can name
+      // the reason separately (Docking Bay's left-out racer still explodes,
+      // but went out for having no shuttle).
+      const cause = opts.cause || kind;
+      player.outKind = cause;
 
       const pos = opts.at || player.body.position;
       const vel = player.body.velocity;
@@ -155,7 +159,7 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
       round.out.unshift({
         name: player.name || player.col.name,
         crayon: player.col.crayon,
-        kind,
+        kind: cause,
         at: round.time,
       });
       if (round.out.length > OUT_LOG) round.out.length = OUT_LOG;
