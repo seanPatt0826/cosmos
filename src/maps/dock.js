@@ -12,10 +12,18 @@
 // port that reaches further and pulls harder the longer the heat goes on.
 // The beams are the same for everyone; who gets caught is down to where they
 // happen to be drifting.
+//
+// Two or three black holes sit out past the shuttles (the right-hand corners,
+// sometimes one by the top or bottom edge), each wobbling slowly round its
+// own spot. They pull, and a floating racer that
+// falls in is out on the spot. Docked racers are safe. A free shuttle leaves
+// with whoever fell in, so the seats still free stay one fewer than the
+// racers still looking for one.
 
 import { makeRng, hashSeed } from '../rng.js';
 import { staticRect, staticCircle, add, remove } from '../engine.js';
 import { drawEdge } from './common.js';
+import { createHole, updateHoles, holeCapturing, drawHoles } from './hazards.js';
 import { BODY } from '../config.js';
 import { t } from '../i18n.js';
 
@@ -32,6 +40,8 @@ const MIN_SPEED = 1.6;                   // a racer slower than this gets a nudg
 const HEAT_LIMIT_MS = 45000;             // insurance: a heat this long is called
 const VERDICT_MS = 1300;                 // the left-out racer is shown, then goes
 const BREAK_MS = 1400;                   // between heats, before the next shuttles arrive
+const HOLE_WOBBLE = 110;                 // how far a black hole wanders from its corner
+const HOLE_CLEAR = 300;                  // shuttles keep at least this far from a hole
 
 export default {
   id: 'dock',
@@ -40,10 +50,10 @@ export default {
   population: [2, 16],
   blurb: 'one shuttle short',
   rules: {
-    out: 'Still floating when the last shuttle is taken.',
-    watch: 'Every heat has one shuttle fewer than racers. Drift into a docking circle to get a seat; the beams pull harder as a heat goes on.',
+    out: 'Still floating when the last shuttle is taken, or falling into a black hole.',
+    watch: 'Every heat has one shuttle fewer than racers. Drift into a docking circle to get a seat, and keep clear of the black holes in the corners.',
   },
-  description: 'There is always one shuttle too few: drift into a docking circle to take a seat, and whoever is left floating each heat is out.',
+  description: 'There is always one shuttle too few: drift into a docking circle to take a seat, mind the black holes, and whoever is left floating each heat is out.',
 
   build({ sim, seed }) {
     const { Matter } = sim;
@@ -60,6 +70,27 @@ export default {
       staticRect(sim, half.w + 40, 0, 80, H + 200, wallOpts),
     );
 
+    // Black holes in the two right-hand corners, and sometimes a third near
+    // the top or bottom edge, each with its own slow wobble round its home
+    // spot. Never on the left: on a computer the page's left-hand cards
+    // cover that third of the room, and a hole nobody can see is not fair.
+    const spots = [[0.78, 0.7], [0.78, -0.7]];
+    if (rng() < 0.5) spots.push([rng.range(-0.05, 0.3), rng.sign() * 0.8]);
+    const holes = spots.map(([fx, fy], i) => {
+      const r = rng.range(38, 48);
+      const home = { x: fx * half.w, y: fy * half.h };
+      const h = createHole(sim, {
+        x: home.x, y: home.y, r,
+        seed: hashSeed('dockhole', seed, i),
+        mu: r * 150,
+        maxAccel: 0.75,
+      });
+      h.home = home;
+      h.phase = rng() * Math.PI * 2;
+      h.speed = rng.range(0.00025, 0.0005);
+      return h;
+    });
+
     let shuttles = [];   // { id, num, x, y, port, body, occupant, born, gone }
     let leaving = [];    // last heat's shuttles, fading out
     let heatNo = 0;
@@ -67,8 +98,32 @@ export default {
 
     // Lays out `count` shuttles round the room, spread evenly so no part of
     // it is favoured, each with its port facing somewhere between the middle
-    // and side-on, never into a wall.
+    // and side-on, never into a wall, and clear of the black holes: it turns
+    // the whole ring until nothing sits within HOLE_CLEAR of a hole's home.
     function layout(count, time) {
+      let best = null;
+      let bestGap = -1;
+      for (let attempt = 0; attempt < 24; attempt++) {
+        const ring = ringOf(count, time);
+        let gap = Infinity;
+        for (const s of ring) {
+          const q = portOf(s);
+          for (const h of holes) {
+            gap = Math.min(gap,
+              Math.hypot(s.x - h.home.x, s.y - h.home.y),
+              Math.hypot(q.x - h.home.x, q.y - h.home.y));
+          }
+        }
+        if (gap > bestGap) {
+          best = ring;
+          bestGap = gap;
+        }
+        if (gap >= HOLE_CLEAR + HOLE_WOBBLE) break;
+      }
+      return best || [];
+    }
+
+    function ringOf(count, time) {
       const out = [];
       const turn = rng() * Math.PI * 2;
       const rx = half.w * 0.66;
@@ -196,6 +251,55 @@ export default {
 
     // The racer to call out if a heat drags on: whoever is farthest from any
     // port still free.
+    // The holes wobble round their corners; never far enough to reach the
+    // shuttles, which were laid out clear of them.
+    function moveHoles(dt, round) {
+      updateHoles(holes, dt, 0, bounds, round.particles);
+      for (const h of holes) {
+        const a = h.phase + round.time * h.speed;
+        h.well.x = h.home.x + Math.cos(a) * HOLE_WOBBLE;
+        h.well.y = h.home.y + Math.sin(a * 1.3) * HOLE_WOBBLE * 0.7;
+      }
+    }
+
+    // A floating racer inside a hole's edge is out. Docked racers are safe.
+    function swallow(round) {
+      let lost = false;
+      for (const p of round.alivePlayers()) {
+        if (p.docked) continue;
+        const pos = p.body.position;
+        const h = holeCapturing(holes, pos);
+        if (h && round.kill(p, 'hole', { at: pos, target: { x: h.well.x, y: h.well.y } })) lost = true;
+      }
+      if (lost) rebalance(round);
+    }
+
+    // Keeps the free shuttles one fewer than the racers still floating, by
+    // sending away the free ones farthest from anybody.
+    function rebalance(round) {
+      const floating = round.alivePlayers().filter((p) => !p.docked);
+      let extra = shuttles.filter((s) => s.occupant === null).length - Math.max(0, floating.length - 1);
+      while (extra-- > 0) {
+        let pick = null;
+        let far = -1;
+        for (const s of shuttles) {
+          if (s.occupant !== null) continue;
+          const q = portOf(s);
+          const d = Math.min(Infinity, ...floating.map((p) => Math.hypot(q.x - p.body.position.x, q.y - p.body.position.y)));
+          if (d > far) {
+            far = d;
+            pick = s;
+          }
+        }
+        if (!pick) break;
+        if (pick.body) remove(sim, pick.body);
+        pick.body = null;
+        pick.gone = round.time;
+        leaving.push(pick);
+        shuttles = shuttles.filter((s) => s !== pick);
+      }
+    }
+
     function farthest(list) {
       let worst = null;
       let far = -1;
@@ -231,7 +335,7 @@ export default {
         s.body = null;
         s.gone = round.time;
       }
-      leaving = shuttles;
+      leaving = leaving.concat(shuttles);
       shuttles = [];
     }
 
@@ -283,6 +387,10 @@ export default {
           heat = { phase: 'race', t: 0, loser: null };
         }
         heat.t += dt;
+        moveHoles(dt, round);
+        swallow(round);
+        // A hole may just have taken the second-to-last racer.
+        if (round.phase !== 'running') return;
         const alive = round.alivePlayers();
         for (const p of alive) if (p.docked) pin(p, frames);
 
@@ -349,6 +457,7 @@ export default {
       },
 
       drawFront(g, cam, time) {
+        drawHoles(g, holes, time);
         for (const s of leaving) {
           const k = 1 - Math.min(1, (time - s.gone) / 700);
           if (k > 0) drawShuttle(g, s, time, k, null);

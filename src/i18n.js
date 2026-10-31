@@ -205,11 +205,12 @@ const KO = {
   // Docking Bay (src/maps/dock.js)
   'Docking Bay': '도킹 정거장',
   'one shuttle short': '셔틀이 하나 모자라요',
-  'Still floating when the last shuttle is taken.': '마지막 셔틀까지 다 찼을 때 아직 떠다니면 탈락.',
-  'Every heat has one shuttle fewer than racers. Drift into a docking circle to get a seat; the beams pull harder as a heat goes on.':
-    '매 판마다 셔틀은 참가자보다 하나 적어요. 도킹 원 안으로 떠 들어가면 자리를 잡아요. 시간이 갈수록 셔틀이 더 세게 끌어당겨요.',
-  'There is always one shuttle too few: drift into a docking circle to take a seat, and whoever is left floating each heat is out.':
-    '셔틀은 늘 하나 모자라요. 도킹 원으로 떠 들어가면 자리를 잡고, 매 판 끝까지 떠다니는 한 명이 탈락해요.',
+  'Still floating when the last shuttle is taken, or falling into a black hole.':
+    '마지막 셔틀까지 다 찼을 때 아직 떠다니거나, 블랙홀에 빠지면 탈락.',
+  'Every heat has one shuttle fewer than racers. Drift into a docking circle to get a seat, and keep clear of the black holes in the corners.':
+    '매 판마다 셔틀은 참가자보다 하나 적어요. 도킹 원 안으로 떠 들어가면 자리를 잡아요. 구석의 블랙홀은 조심하세요.',
+  'There is always one shuttle too few: drift into a docking circle to take a seat, mind the black holes, and whoever is left floating each heat is out.':
+    '셔틀은 늘 하나 모자라요. 도킹 원으로 떠 들어가면 자리를 잡고, 블랙홀을 조심하세요. 매 판 끝까지 떠다니는 한 명이 탈락해요.',
   'No shuttle!': '셔틀 없음!',
   'Round {n} · {free} of {all} shuttles free': '{n}번째 판 · 빈 셔틀 {free}/{all}',
 
