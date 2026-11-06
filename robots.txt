@@ -1,0 +1,6 @@
+# Every page is open to search engines. (Cloudflare may add its own notice
+# about AI use above this when it serves the file.)
+User-agent: *
+Allow: /
+
+Sitemap: https://cosmosroulette.com/sitemap.xml
