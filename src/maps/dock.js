@@ -54,11 +54,17 @@ export default {
   theme: 'dock',
   population: [2, 16],
   blurb: 'one shuttle short',
+  // Losing is good here. The racer left floating without a shuttle escapes
+  // and is out of the race, safe; getting a seat means going again. The
+  // last one left, who kept getting seats, comes last. round.js numbers the
+  // places from the first one out, and hud.js says "last place" for the end.
+  lastIsLoser: true,
   rules: {
-    out: 'Still floating when the last shuttle is taken, or falling into a black hole.',
-    watch: 'Every heat has one shuttle fewer than racers. Drift into a docking circle to get a seat. Pulsars shove you away, comets barge through, and black holes swallow you.',
+    out: 'Left floating when the last shuttle is taken: you escape. Falling into a black hole gets you out too.',
+    watch: 'Every heat has one shuttle fewer than racers. Getting a seat means going round again; the one left floating gets away.',
+    goal: 'Escape early. The last one left is last place.',
   },
-  description: 'There is always one shuttle too few: drift into a docking circle to take a seat, dodge the pulsars, comets and black holes, and whoever is left floating each heat is out.',
+  description: 'There is always one shuttle too few, and you want to be the one without: whoever is left floating each heat escapes, and the last one left is last place.',
 
   build({ sim, seed }) {
     const { Matter } = sim;
@@ -442,7 +448,8 @@ export default {
         } else if (heat.phase === 'verdict') {
           if (heat.t >= VERDICT_MS) {
             const loser = heat.loser;
-            if (loser && loser.alive) round.kill(loser, 'boom', { at: loser.body.position, cause: 'noShuttle' });
+            // Escaping: drifting off into the dark, not blowing up.
+            if (loser && loser.alive) round.kill(loser, 'drift', { at: loser.body.position, cause: 'escaped' });
             if (round.aliveCount <= 1) {
               heat.phase = 'done';
               return;
@@ -506,17 +513,18 @@ export default {
           drawShuttle(g, s, time, k, occ || null);
         }
 
-        // The racer left floating, ringed in red while the verdict shows.
+        // The racer left floating, ringed in green while the verdict shows:
+        // here, being left without a shuttle is the good way out.
         if (heat && heat.phase === 'verdict' && heat.loser && heat.loser.body) {
           const pos = heat.loser.body.position;
           const pulse = 1 + 0.08 * Math.sin(time / 90);
           g.save();
-          g.strokeStyle = '#F08A7A';
+          g.strokeStyle = '#7ED491';
           g.lineWidth = 6;
           g.beginPath();
           g.arc(pos.x, pos.y, BODY.radius * 2 * pulse, 0, Math.PI * 2);
           g.stroke();
-          label(g, t('No shuttle!'), pos.x, pos.y - BODY.radius * 2.6, 40, '#F08A7A');
+          label(g, t('Escaped!'), pos.x, pos.y - BODY.radius * 2.6, 40, '#7ED491');
           g.restore();
         }
 

@@ -702,6 +702,14 @@
   .rank-row.out { opacity: 0.55; }
   .rank-row.out .rank-name { text-decoration: line-through; text-decoration-thickness: 1px; }
   .rank-row.out .rank-icon { filter: grayscale(0.8); }
+  /* Docking Bay, where getting out is the good result: the ones out read as
+     safe, in green, and the last one left is marked as last place. */
+  .rank-row.safe .rank-place, .rank-row.safe .rank-status { color: #7ed491; }
+  body.light .rank-row.safe .rank-place, body.light .rank-row.safe .rank-status { color: #2f8a45; }
+  .rank-row.lose { color: #F08A7A; font-weight: 600; }
+  .rank-row.lose .rank-place, .rank-row.lose .rank-status { color: #F08A7A; }
+  body.light .rank-row.lose, body.light .rank-row.lose .rank-place,
+  body.light .rank-row.lose .rank-status { color: #C2463A; }
   .rank-empty { color: var(--ink-dim); font-style: italic; font-size: 12.5px; }
 
   /* ── Choose icon ────────────────────────────────────────────────────── */
@@ -1207,6 +1215,9 @@
   /* Shifted off centre: the winner is framed dead centre by then, and a word
      printed across it hides the thing you are meant to be looking at. */
   #banner.winner { font-size: 62px; letter-spacing: 0.05em; top: 27%; }
+  /* The same moment where the last one left is the loser (Docking Bay). */
+  #banner.winner.loser { color: #F08A7A; }
+  body.light #banner.winner.loser { color: #C2463A; }
 
   @keyframes slideIn {
     from { opacity: 0; transform: translateX(-14px); }

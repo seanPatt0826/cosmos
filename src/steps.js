@@ -35,7 +35,7 @@ export function createSteps() {
     return [
       [t('Line up'), t('Everyone waits on the line. Press Start to go.')],
       [t('Out if'), t(r.out || 'Knocked off the map.')],
-      [t('Goal'), t('Last one left wins.')],
+      [t('Goal'), t(r.goal || 'Last one left wins.')],
     ];
   }
 

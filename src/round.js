@@ -129,12 +129,14 @@ export function createRound(mapDef, seed, audio, names = [], opts = {}) {
       if (!player.alive || round.aliveCount <= 1) return false;
       player.alive = false;
       round.aliveCount--;
-      // Where they finished, for the Ranking panel: the first out of ten is
-      // tenth. The feed's log is capped, so the place lives on the racer.
-      player.place = round.aliveCount + 1;
+      // Where they finished, for the Ranking panel (the feed's log is capped,
+      // so the place lives on the racer). Normally the first out of ten is
+      // tenth; on a map where the last one left is the loser (Docking Bay),
+      // the first out is first.
+      player.place = mapDef.lastIsLoser ? round.startCount - round.aliveCount : round.aliveCount + 1;
       // What the lists call it. Usually the kind itself, but a map can name
-      // the reason separately (Docking Bay's left-out racer still explodes,
-      // but went out for having no shuttle).
+      // the reason separately (Docking Bay's left-out racer drifts away like
+      // anyone flung out, but it escaped).
       const cause = opts.cause || kind;
       player.outKind = cause;
 

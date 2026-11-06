@@ -68,7 +68,13 @@ export function createHud() {
         setBanner(String(Math.max(1, left)), 'count-in');
       } else if (round.phase === PHASE.WINNER) {
         // With a roster, the name is the payoff. Without one, the word will do.
-        setBanner(round.winner && round.winner.name ? round.winner.name : t('winner'), 'winner');
+        // Where the last one left is the loser (Docking Bay), it says so.
+        const name = round.winner && round.winner.name;
+        if (round.mapDef.lastIsLoser) {
+          setBanner(name ? t('{name} is last!', { name }) : t('last place'), 'winner loser');
+        } else {
+          setBanner(name || t('winner'), 'winner');
+        }
       } else if (round.phase === PHASE.RUNNING && !round.idle && n <= ROUND.finalCallout && n > 1) {
         setBanner(t('final {n}', { n }), 'final');
       } else {
@@ -101,13 +107,14 @@ export function createHud() {
 
   // The causes, in the words someone watching would use. The engine's names
   // for them — scribble, boom — describe the drawing, not what happened.
-  // noShuttle is Docking Bay's: left floating when the last seat went.
+  // escaped is Docking Bay's: left floating when the last seat went, which
+  // there is the good way out.
   const CAUSE = {
     hole: 'black hole',
     drift: 'flung out',
     scribble: 'burned up',
     boom: 'blown apart',
-    noShuttle: 'no shuttle',
+    escaped: 'escaped',
   };
 
   // How long an entry stays on the left before it fades out. This is a feed of
@@ -150,9 +157,10 @@ export function createHud() {
     lastRank = sig;
 
     const alive = ps.filter((p) => p.alive);
+    const flipped = !!round.mapDef.lastIsLoser;
     if (el.rankCount) {
       el.rankCount.textContent = !ps.length ? ''
-        : round.winner ? t('winner')
+        : round.winner ? t(flipped ? 'last place' : 'winner')
           : alive.length === ps.length ? t('{n} entrants', { n: ps.length })
             : t('{n} left', { n: alive.length });
     }
@@ -175,15 +183,31 @@ export function createHud() {
       + `<span class="rank-name">${escapeHtml(p.label)}</span>`
       + `<span class="rank-status">${escapeHtml(status)}</span></li>`;
 
-    el.rankList.innerHTML = [
-      ...inRows.map((p) => (round.winner === p
-        ? row(p, '1', 'win', t('winner'))
-        : row(p, '·', 'in', t('in')))),
-      ...out.map((p) => row(p, String(p.place), 'out', t(CAUSE[p.outKind] || 'out'))),
-    ].join('');
+    // Docking Bay turns it upside down: whoever got out first finished first,
+    // so they lead the list in green, the ones still in sit below them, and
+    // the last one left comes last.
+    let shown;
+    let rows;
+    if (flipped) {
+      const still = alive.filter((p) => p !== round.winner);
+      shown = [...out, ...still, ...(round.winner ? [round.winner] : [])];
+      rows = [
+        ...out.map((p) => row(p, String(p.place), 'safe', t(CAUSE[p.outKind] || 'out'))),
+        ...still.map((p) => row(p, '·', 'in', t('in'))),
+        ...(round.winner ? [row(round.winner, String(ps.length), 'lose', t('last place'))] : []),
+      ];
+    } else {
+      shown = [...inRows, ...out];
+      rows = [
+        ...inRows.map((p) => (round.winner === p
+          ? row(p, '1', 'win', t('winner'))
+          : row(p, '·', 'in', t('in')))),
+        ...out.map((p) => row(p, String(p.place), 'out', t(CAUSE[p.outKind] || 'out'))),
+      ];
+    }
+    el.rankList.innerHTML = rows.join('');
 
     // Each icon in its racer's own colour, as it looks in the arena.
-    const shown = [...inRows, ...out];
     el.rankList.querySelectorAll('canvas.rank-icon').forEach((c, k) => paintThumb(c, shown[k].archetype, shown[k].col));
   }
 

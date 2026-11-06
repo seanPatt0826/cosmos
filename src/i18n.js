@@ -113,7 +113,7 @@ const KO = {
   'Crashing into the planet, a black hole, or drifting past the ring.': '행성이나 블랙홀에 부딪히거나, 고리 밖으로 떠내려가면 탈락.',
   'Getting knocked past the closing ring, or into a black hole.': '좁혀지는 고리 밖으로 밀려나거나, 블랙홀에 빠지면 탈락.',
   'Touching a star, a black hole, or getting flung past the ring.': '별이나 블랙홀에 닿거나, 고리 밖으로 튕겨 나가면 탈락.',
-  'Bouncing past the shrinking ring, or into a black hole.': '줄어드는 고리 밖으로 튕겨 나가거나, 블랙홀에 빠지면 탈락.',
+  'Bouncing past the shrinking ring.': '줄어드는 고리 밖으로 튕겨 나가면 탈락.',
   "Touching the star's core, or getting thrown past the ring.": '별의 중심에 닿거나, 고리 밖으로 내던져지면 탈락.',
   'Falling into a black hole, or drifting past the ring.': '블랙홀에 빠지거나, 고리 밖으로 떠내려가면 탈락.',
   'The holes creep toward the middle. Purple clouds slow you down; pulsars can fling you clear.': '블랙홀이 점점 가운데로 다가와요. 보라색 구름은 속도를 늦추고, 펄서는 멀리 튕겨 줄 수 있어요.',
@@ -206,14 +206,17 @@ const KO = {
   'Docking Bay': '도킹 정거장',
   'Leave Docking Bay': '도킹 정거장 나가기',
   'one shuttle short': '셔틀이 하나 모자라요',
-  'Still floating when the last shuttle is taken, or falling into a black hole.':
-    '마지막 셔틀까지 다 찼을 때 아직 떠다니거나, 블랙홀에 빠지면 탈락.',
-  'Every heat has one shuttle fewer than racers. Drift into a docking circle to get a seat. Pulsars shove you away, comets barge through, and black holes swallow you.':
-    '매 판마다 셔틀은 참가자보다 하나 적어요. 도킹 원 안으로 떠 들어가면 자리를 잡아요. 펄서는 밀어내고, 혜성은 부딪쳐 오고, 블랙홀은 삼켜 버려요.',
-  'There is always one shuttle too few: drift into a docking circle to take a seat, dodge the pulsars, comets and black holes, and whoever is left floating each heat is out.':
-    '셔틀은 늘 하나 모자라요. 도킹 원으로 떠 들어가 자리를 잡고, 펄서와 혜성과 블랙홀을 피하세요. 매 판 끝까지 떠다니는 한 명이 탈락해요.',
-  'No shuttle!': '셔틀 없음!',
-  'no shuttle': '셔틀 없음',
+  'Left floating when the last shuttle is taken: you escape. Falling into a black hole gets you out too.':
+    '마지막 셔틀까지 다 찼을 때 떠다니고 있으면 탈출! 블랙홀에 빠져도 빠져나가요.',
+  'Every heat has one shuttle fewer than racers. Getting a seat means going round again; the one left floating gets away.':
+    '매 판마다 셔틀은 참가자보다 하나 적어요. 셔틀에 타면 다음 판을 또 해야 하고, 셔틀을 못 탄 한 명은 빠져나가요.',
+  'Escape early. The last one left is last place.': '빨리 빠져나가세요. 마지막까지 남으면 꼴찌!',
+  'There is always one shuttle too few, and you want to be the one without: whoever is left floating each heat escapes, and the last one left is last place.':
+    '셔틀은 늘 하나 모자라요. 이번엔 셔틀을 못 타는 게 좋아요. 매 판 떠다니는 한 명이 탈출하고, 마지막까지 남은 사람이 꼴찌예요.',
+  'Escaped!': '탈출!',
+  'escaped': '탈출',
+  'last place': '꼴찌',
+  '{name} is last!': '{name} 꼴찌!',
   'Round {n} · {free} of {all} shuttles free': '{n}번째 판 · 빈 셔틀 {free}/{all}',
 
 };

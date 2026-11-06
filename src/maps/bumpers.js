@@ -6,6 +6,10 @@
 //
 // The bumpers outlived the pinball map they were built for. They were the best
 // thing in it, and they never needed gravity to work.
+//
+// No black holes any more: a ring of bumpers turns slowly round the inside of
+// the boundary instead, riding in with it as it closes, so the edge itself
+// throws you about. Going past the ring is the only way out.
 
 import { makeRng, hashSeed } from '../rng.js';
 import { staticCircle, add, onCollide } from '../engine.js';
@@ -14,13 +18,17 @@ import { drawRing } from './common.js';
 import { softGlow } from '../sketch.js';
 import { PALETTE } from '../config.js';
 import {
-  createHole, updateHoles, holeCapturing, drawHoles,
   createPulsar, updatePulsars, drawPulsars,
   createStuckWatch,
   createArcFence, drawFence,
 } from './hazards.js';
 
 const ARENA = 1680;
+const RIM_COUNT = 12;     // bumpers in the ring round the edge
+const RIM_R = 34;         // their size
+const RIM_IN = 140;       // how far inside the boundary they ride
+const RIM_MIN = 1010;     // closer in than this they would crowd the field; they leave
+const RIM_TURN = 0.00007; // radians per ms the ring turns
 
 export default {
   id: 'bumpers',
@@ -31,7 +39,7 @@ export default {
   // The short version, shown above the description: how you go out, and
   // what to keep an eye on. The goal is the same everywhere.
   rules: {
-    out: "Bouncing past the shrinking ring, or into a black hole.",
+    out: "Bouncing past the shrinking ring.",
     watch: "Nothing ever slows down, so one big hit keeps you flying.",
   },
   description: "Repulsors and a closing ring, and nothing ever slows down.",
@@ -84,25 +92,29 @@ export default {
       }
     }
 
+    // The ring round the edge: evenly spaced so no stretch of the boundary is
+    // safer than another, in the same four colours as the field.
+    const rim = [];
+    for (let i = 0; i < RIM_COUNT; i++) {
+      const a = (i / RIM_COUNT) * Math.PI * 2;
+      const d = ARENA - RIM_IN;
+      const col = palette[i % palette.length];
+      const body = staticCircle(sim, Math.cos(a) * d, Math.sin(a) * d, RIM_R, {
+        restitution: 1.15, friction: 0, label: 'bumper',
+      });
+      add(sim, body);
+      const b = { body, r: RIM_R, col, flash: 0, sprite: bakeBumper(RIM_R, n, col), boil: n % 3, home: a, gone: false };
+      bumpers.push(b);
+      rim.push(b);
+      n++;
+    }
+    let rimTurn = 0;
+
     const pulsars = [];
     for (let i = 0; i < 2; i++) {
       const a = rng.range(0, Math.PI * 2) + i * Math.PI;
       const d = rng.range(380, 700);
       pulsars.push(createPulsar(sim, Math.cos(a) * d, Math.sin(a) * d, hashSeed('bfp', seed, i)));
-    }
-
-    const holes = [];
-    for (let i = 0; i < 2; i++) {
-      const a = rng.range(0, Math.PI * 2) + i * Math.PI;
-      const d = rng.range(340, 720);
-      const r = rng.range(25, 34);
-      holes.push(createHole(sim, {
-        x: Math.cos(a) * d, y: Math.sin(a) * d, r,
-        seed: hashSeed('bfh', seed, i),
-        drift: 0.45,
-        mu: r * 165,
-        maxAccel: 0.9,
-      }));
     }
 
     onCollide(sim, (a, b) => {
@@ -122,13 +134,16 @@ export default {
       }
     });
 
-    const stuckWatch = createStuckWatch();
+    // Stricter than the default: in a field this bouncy a racer can ping-pong
+    // hard between two bumpers and land near where it started, which is busy,
+    // not stuck. Only one that has truly stalled should go up.
+    const stuckWatch = createStuckWatch({ travel: 30, windowMs: 9000 });
 
     const fence = createArcFence(sim, {
       radius: ARENA,
       arcs: 5,
-      openFrac: 0,
-      spin: 0,
+      openFrac: 0.38,
+      spin: 0.00011,
       colour: '#D6A0C8',
       seed: hashSeed('fence', seed),
     });
@@ -163,27 +178,28 @@ export default {
         for (const b of bumpers) b.flash *= Math.pow(0.86, dt / 16.667);
         const alive = round.alivePlayers();
         updatePulsars(sim, pulsars, dt, alive, round.particles);
-        updateHoles(holes, dt, p, bounds, round.particles, { grow: 0.3, muGrow: 0.4 });
 
-        for (const h of holes) {
-          const d = Math.hypot(h.well.x, h.well.y);
-          const limit = this.edge - h.well.capture - 110;
-          if (d > limit && d > 0) {
-            h.well.x = (h.well.x / d) * limit;
-            h.well.y = (h.well.y / d) * limit;
-            h.vx *= -1;
-            h.vy *= -1;
+        // The edge ring turns and rides in with the boundary. Once the
+        // boundary closes far enough that it would crowd the field's own
+        // bumpers, it leaves.
+        rimTurn += dt * RIM_TURN;
+        const rimD = this.edge - RIM_IN;
+        for (const b of rim) {
+          if (b.gone) continue;
+          if (rimD < RIM_MIN) {
+            b.gone = true;
+            sim.Matter.Body.setPosition(b.body, { x: -99999, y: -99999 });
+            continue;
           }
+          const a = b.home + rimTurn;
+          sim.Matter.Body.setPosition(b.body, { x: Math.cos(a) * rimD, y: Math.sin(a) * rimD });
         }
 
         for (const pl of alive) {
           const pos = pl.body.position;
           if (Math.hypot(pos.x, pos.y) > this.edge) {
             round.kill(pl, 'drift', { at: pos });
-            continue;
           }
-          const h = holeCapturing(holes, pos);
-          if (h) round.kill(pl, 'hole', { at: pos, target: { x: h.well.x, y: h.well.y } });
         }
 
         stuckWatch(round.alivePlayers(), dt, (pl) => {
@@ -199,8 +215,8 @@ export default {
       },
 
       drawFront(g, cam, time) {
-        drawHoles(g, holes, time);
         for (const b of bumpers) {
+          if (b.gone) continue;
           const s = 1 + b.flash * 0.16;
           if (b.flash > 0.02) {
             softGlow(g, b.body.position.x, b.body.position.y, b.r * 3.4, b.col.glow, b.flash * 0.4);
