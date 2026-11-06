@@ -160,7 +160,7 @@ export const SIM = {
 // still reserves its space, so switching it on never shifts the layout.
 
 export const ADS_ENABLED = false;
-export const ADSENSE_CLIENT = 'ca-pub-0000000000000000';
+export const ADSENSE_CLIENT = 'ca-pub-2816135433711869';
 export const ADSENSE_SLOT = '0000000000';
 
 // Paying to remove the ads. ADFREE_LINK is a Stripe Payment Link, set up in

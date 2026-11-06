@@ -296,11 +296,15 @@ function esc(s) {
 }
 
 function installNetwork(slot) {
-  const s = document.createElement('script');
-  s.async = true;
-  s.crossOrigin = 'anonymous';
-  s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
-  document.head.appendChild(s);
+  // Every page already loads the AdSense script in its <head> (it is also
+  // how Google verified the site), so only add it if a page lacks it.
+  if (!document.querySelector('script[src*="adsbygoogle.js"]')) {
+    const s = document.createElement('script');
+    s.async = true;
+    s.crossOrigin = 'anonymous';
+    s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
+    document.head.appendChild(s);
+  }
 
   // One responsive ad unit, asked for at exactly the slot's size on this
   // screen: 300x250 beside the arena, 300x100 on a short laptop, 320x50 along
