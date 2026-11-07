@@ -214,6 +214,7 @@ const KO = {
   'Everyone is split into two teams': '모두 두 팀으로 나뉘어요',
   '{name} wins!': '{name} 우승!',
   '{name} gets the penalty!': '{name} 벌칙 당첨!',
+  'Penalty!': '벌칙 당첨!',
   'penalty': '벌칙',
   '{name} is 1st!': '{name} 1등!',
   'The teams are made!': '팀이 정해졌어요!',

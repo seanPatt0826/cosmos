@@ -81,7 +81,9 @@ export function createHud() {
           const first = finishOrder(round)[0];
           setBanner(t('{name} is 1st!', { name: first.name || first.label }), 'winner');
         } else if (v.kind === 'penalty') {
-          setBanner(name ? t('{name} gets the penalty!', { name }) : t('penalty'), 'winner loser');
+          // Two lines, the name on top: big enough to read across a room.
+          setBanner(name ? `${name}
+${t('Penalty!')}` : t('penalty'), 'winner loser penalty');
         } else if (v.kind === 'last') {
           setBanner(name ? t('{name} is last!', { name }) : t('last place'), 'winner loser');
         } else {

@@ -15,12 +15,12 @@
 const STORE = 'cosmos.purpose';
 export const PURPOSES = ['pick', 'penalty', 'order', 'teams'];
 
-// Icon, chip label, and the line under Start saying what pressing it does.
+// Chip label, and the line under Start saying what pressing it does.
 export const PURPOSE_INFO = {
-  pick: { icon: '🏆', label: 'Pick one', line: 'The last one left is picked' },
-  penalty: { icon: '😈', label: 'Penalty', line: 'The last one left gets the penalty' },
-  order: { icon: '🔢', label: 'Turn order', line: 'Everyone gets a place in order' },
-  teams: { icon: '👥', label: 'Two teams', line: 'Everyone is split into two teams' },
+  pick: { label: 'Pick one', line: 'The last one left is picked' },
+  penalty: { label: 'Penalty', line: 'The last one left gets the penalty' },
+  order: { label: 'Turn order', line: 'Everyone gets a place in order' },
+  teams: { label: 'Two teams', line: 'Everyone is split into two teams' },
 };
 
 let current = read();

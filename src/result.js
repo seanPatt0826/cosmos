@@ -61,17 +61,9 @@ export function createResult() {
     return [];
   }
 
-  function icon(r) {
-    if (r.purpose === 'teams') return '👥';
-    if (r.purpose === 'order') return '🔢';
-    if (r.verdict.kind === 'penalty') return '😈';
-    if (r.verdict.kind === 'last') return '🐢';
-    return '🏆';
-  }
-
   function asText(r) {
     return [
-      `${icon(r)} ${headline(r)}`,
+      headline(r),
       ...lines(r),
       '',
       `${t('Cosmos')} · ${r.universe} — ${SITE}`,
@@ -82,7 +74,22 @@ export function createResult() {
 
   function paint() {
     if (!current) return;
-    el.title.textContent = `${icon(current)} ${headline(current)}`;
+    // A penalty is the moment everyone came for: the name, big, with what
+    // it won underneath.
+    const penalty = current.verdict.kind === 'penalty' && current.purpose === 'penalty';
+    el.card.classList.toggle('is-penalty', penalty);
+    el.title.textContent = '';
+    if (penalty) {
+      const big = document.createElement('span');
+      big.className = 'rc-name';
+      big.textContent = current.verdict.name;
+      const tag = document.createElement('span');
+      tag.className = 'rc-tag';
+      tag.textContent = t('Penalty!');
+      el.title.append(big, tag);
+    } else {
+      el.title.textContent = headline(current);
+    }
     const ls = lines(current);
     el.body.innerHTML = '';
     if (current.purpose === 'order') {
@@ -157,7 +164,13 @@ export function createResult() {
     g.textAlign = 'center';
     g.textBaseline = 'alphabetic';
     g.fillStyle = r.verdict.kind === 'penalty' || r.verdict.kind === 'last' ? '#F08A7A' : '#E8A33D';
-    fitText(g, `${icon(r)} ${headline(r)}`, SIZE / 2, panelTop + 40, SIZE - 120, 92, font);
+    if (r.verdict.kind === 'penalty' && r.purpose === 'penalty') {
+      // The name as large as the frame allows, the penalty above it.
+      fitText(g, t('Penalty!'), SIZE / 2, panelTop - 70, SIZE - 120, 72, font);
+      fitText(g, r.verdict.name, SIZE / 2, panelTop + 80, SIZE - 120, 170, font);
+    } else {
+      fitText(g, headline(r), SIZE / 2, panelTop + 40, SIZE - 120, 92, font);
+    }
 
     g.fillStyle = '#F2EADB';
     let y = panelTop + 120;

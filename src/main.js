@@ -535,7 +535,7 @@ function buildControls() {
       b.className = 'purpose-chip';
       b.setAttribute('role', 'radio');
       b.setAttribute('aria-checked', p === now ? 'true' : 'false');
-      b.textContent = `${info.icon} ${t(info.label)}`;
+      b.textContent = t(info.label);
       b.addEventListener('click', () => setPurpose(p));
       purposeRow.appendChild(b);
     }
