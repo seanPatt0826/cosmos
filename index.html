@@ -1894,7 +1894,7 @@
 
   /* ── Phones: the race on top, everything else below it ──────────────── */
   /* The universe dropdown (src/phonebar.js) is for phones only. */
-  .phone-bar { display: none; }
+  .phone-bar, .phone-lang { display: none; }
   /*
      Floating the cards over the race left a phone with a race the size of a
      stamp and cards too cramped to type in. So on a phone the page scrolls:
@@ -1987,6 +1987,22 @@
       -webkit-appearance: none;
     }
     .phone-bar select option { background: var(--void); color: var(--paper); }
+
+    /* The language button, top right of the race, big enough for a thumb. */
+    .phone-lang, body:not(.lang-ko) .phone-lang {
+      display: inline-flex;
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 4;
+      height: 38px;
+      padding: 0 14px 1px;
+      gap: 7px;
+      font-size: 16px;
+      background: var(--panel-bg);
+    }
+    body:not(.lang-ko) .phone-lang { font-size: 18px; }
+    .phone-lang .lang-icon { width: 18px; height: 18px; }
 
     /* Each card folds by its heading, with an arrow to say so. */
     .rail > .panel > label { cursor: pointer; display: flex; align-items: center; gap: 8px; }

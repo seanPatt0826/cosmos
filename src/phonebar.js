@@ -76,3 +76,24 @@ for (const panel of document.querySelectorAll('.rail > .panel')) {
   if (START_FOLDED.some((sel) => panel.matches(sel))) panel.classList.add('phone-folded');
   sync();
 }
+
+// The language button, where a phone can reach it: top right of the race,
+// instead of the bottom of a long page. It presses the real one in the
+// corner, so the choice is remembered the same way, and copies its label.
+const langBtn = document.getElementById('btn-lang');
+if (langBtn) {
+  const phoneLang = document.createElement('button');
+  phoneLang.type = 'button';
+  phoneLang.className = 'lang-toggle phone-lang';
+  const copy = () => {
+    phoneLang.innerHTML = langBtn.innerHTML;
+    phoneLang.setAttribute('aria-label', langBtn.getAttribute('aria-label') || '');
+  };
+  phoneLang.addEventListener('click', () => {
+    langBtn.click();
+    copy();
+  });
+  onLang(copy);
+  copy();
+  canvas.after(phoneLang);
+}
