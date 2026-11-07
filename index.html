@@ -1814,6 +1814,82 @@
   }
 
 
+  /* ── Phones: the race on top, everything else below it ──────────────── */
+  /*
+     Floating the cards over the race left a phone with a race the size of a
+     stamp and cards too cramped to type in. So on a phone the page scrolls:
+     the race fills the width at the top, and the cards follow it at full
+     width, entrants first. .stage-wrap keeps the height of the race, so the
+     canvas (which sizes itself to it) stays that size; the cards spill out
+     below it. The rail and the left column step aside (display: contents) so
+     their cards can be put in order.
+  */
+  @media (max-width: 600px) and (orientation: portrait),
+         (max-width: 1100px) and (max-height: 520px) and (orientation: landscape) {
+    html, body { height: auto; }
+    body { overflow-x: hidden; overflow-y: auto; padding-bottom: 72px; }
+    body.ad-folded { padding-bottom: 36px; }
+    body.ad-free { padding-bottom: 12px; }
+    .console { height: auto; }
+    .stage-wrap, body.ad-folded .stage-wrap, body.ad-free .stage-wrap {
+      --arena-h: min(128vw, calc(100svh - 76px));
+      position: relative;
+      inset: auto;
+      height: var(--arena-h);
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    canvas#stage { flex: 0 0 auto; height: var(--arena-h); }
+    .hud, #fade { height: var(--arena-h); bottom: auto; }
+
+    .rail, .left-col { display: contents; }
+    .rail > .panel:nth-child(n), .left-col > .panel:nth-child(n), .rail > #standings.panel, .corner {
+      position: static;
+      width: auto;
+      max-width: 560px;
+      margin: 12px 12px 0;
+      transform: none;
+    }
+    .rail > .panel:nth-child(n), .left-col > .panel:nth-child(n) { padding: 14px 16px 16px; }
+    .names { order: 1; }
+    .ranking { order: 2; }
+    .universes { order: 3; }
+    .chase { order: 4; }
+    .map-about { order: 5; }
+    /* It shrinks to fit inside the column on a desktop; here it keeps its size. */
+    .left-col > .map-about.panel { flex-shrink: 0; overflow: visible; }
+    .corner { order: 6; max-width: none; margin-bottom: 8px; }
+    .feed { display: none !important; }
+
+    /* Full size, now that the cards have the whole width. */
+    .rail .panel > label, .left-col .panel > label, #count { font-size: 18px; }
+    #name-list { grid-template-columns: 1fr 1fr; max-height: none; }
+    .names label, .names-hint { display: block; }
+    #standings-list { font-size: 15px; max-height: 50vh; }
+    #universe-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #universe-grid > .universe:nth-child(n) { grid-column: auto; width: auto; justify-self: stretch; }
+    .universe-name { font-size: 12px; }
+    .map-about-title { white-space: normal; }
+    .corner h1 { font-size: 22px; }
+    .corner nav { font-size: 14px; }
+
+    /* Over the race: the bar along its bottom edge, Start just above it. */
+    #controls { left: 50%; bottom: 10px; max-width: calc(100% - 16px); padding: 6px 8px; gap: 4px; }
+    #btn-start, body.lang-ko #btn-start { left: 50%; bottom: 74px; }
+  }
+  /* Sideways there is width to spare: two cards to a row below the race. */
+  @media (max-width: 1100px) and (max-height: 520px) and (orientation: landscape) {
+    .stage-wrap { flex-direction: row; flex-wrap: wrap; align-content: flex-start; align-items: flex-start; }
+    canvas#stage { flex: 0 0 100%; }
+    .rail > .panel:nth-child(n), .left-col > .panel:nth-child(n), .rail > #standings.panel {
+      flex: 1 1 calc(50% - 24px); max-width: none; margin: 12px 6px 0;
+    }
+    .left-col > .map-about.panel { flex-grow: 0; }
+    .corner { flex: 0 0 100%; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     #banner, #fade, #map-name.intro { transition: none; animation: none; }
   }
