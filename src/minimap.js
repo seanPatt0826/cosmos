@@ -69,8 +69,12 @@ export function createMiniMap(canvasEl, captionEl) {
   // resolution it is shown at rather than stretched from a fixed bitmap.
   function size(dpr) {
     const r = canvasEl.getBoundingClientRect();
-    const w = Math.max(1, Math.round((r.width || canvasEl.width) * dpr));
-    const h = Math.max(1, Math.round((r.height || canvasEl.height) * dpr));
+    // Hidden (a folded card on a phone): keep the size it has. Falling back to
+    // the backing store here multiplied it by dpr again every frame, and the
+    // canvas doubled until the page froze.
+    if (!r.width || !r.height) return { w: canvasEl.width, h: canvasEl.height };
+    const w = Math.max(1, Math.round(r.width * dpr));
+    const h = Math.max(1, Math.round(r.height * dpr));
     if (canvasEl.width !== w) canvasEl.width = w;
     if (canvasEl.height !== h) canvasEl.height = h;
     return { w, h };
