@@ -1887,7 +1887,8 @@
       flex: 1 1 calc(50% - 24px); max-width: none; margin: 12px 6px 0;
     }
     .left-col > .map-about.panel { flex-grow: 0; }
-    .corner { flex: 0 0 100%; }
+    /* Its own row; the side margins come out of that width. */
+    .corner { flex: 0 0 calc(100% - 24px); }
   }
 
   @media (prefers-reduced-motion: reduce) {
