@@ -25,6 +25,8 @@ export const THEMES = {
   warp: { wash: ['#1D4A5E', '#2E6E6A', '#3A3A7E'], deep: '#060E16' },
   // Hangar blue: a docking bay lit by its runway lights.
   dock: { wash: ['#1E2E66', '#2A4A7A', '#3A2A6E'], deep: '#05081A' },
+  // A winter night: deep blue with frost at the edges.
+  snow: { wash: ['#1B3A5C', '#2A5A6E', '#33406E'], deep: '#050A14' },
 };
 
 // Daytime. Not the dark palette lightened — a different drawing: a cool sheet
@@ -38,6 +40,7 @@ export const LIGHT_THEMES = {
   nova: { wash: ['#F0B894', '#E8C49A', '#D2A8BE'], deep: '#F0E7DA' },
   warp: { wash: ['#A6CBD8', '#A8D6CE', '#B4B4DE'], deep: '#E2EAE6' },
   dock: { wash: ['#A8B8E6', '#A8C4DC', '#BCB0E0'], deep: '#E4E6EE' },
+  snow: { wash: ['#C6DCEC', '#D2E6EE', '#C8CCE6'], deep: '#EEF3F6' },
 };
 
 export function createBackground(w, h, seed, themeKey) {

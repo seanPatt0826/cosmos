@@ -557,6 +557,84 @@
   .corner nav { display: flex; gap: 13px; font-size: 12.5px; margin-top: 1px; }
   .corner nav a { color: var(--ink-dim); text-decoration: none; cursor: pointer; }
 
+
+  /* ── What it is for ─────────────────────────────────────────────────── */
+
+  /* Four chips over the names: pick one, penalty, turn order, two teams. */
+  .purpose-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; margin: 0 0 9px; }
+  .purpose-chip {
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+    font-family: inherit; font-size: 13px; color: var(--ink);
+    padding: 5px 8px; border-radius: 999px; cursor: pointer;
+    border: 1.5px solid var(--line); background: rgba(255, 255, 255, 0.04);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .purpose-chip:hover { border-color: var(--accent); color: var(--paper); }
+  .purpose-chip[aria-checked="true"] {
+    border-color: var(--accent); background: rgba(232, 163, 61, 0.2); color: var(--paper); font-weight: 600;
+  }
+  .purpose-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  body.light .purpose-chip { background: rgba(46, 41, 52, 0.04); }
+
+  /* Start says what pressing it will do, on a small second line. */
+  #btn-start .start-word { display: block; }
+  #btn-start .start-line {
+    display: block; margin-top: 1px; font-size: 13px; font-weight: 600; letter-spacing: 0;
+    opacity: 0.78; white-space: nowrap;
+  }
+  body.lang-ko #btn-start .start-line { font-size: 15px; }
+
+  /* ── The result card ────────────────────────────────────────────────── */
+
+  .result-card {
+    position: absolute;
+    left: calc((100% - var(--rail-w) - 9px) / 2);
+    top: 52%;
+    transform: translate(-50%, -50%);
+    z-index: 6;
+    width: min(340px, calc(100% - 32px));
+    max-height: 46vh;
+    overflow-y: auto;
+    padding: 14px 16px 12px;
+    text-align: center;
+    background: rgba(14, 11, 26, 0.94);
+    /* The layer it sits in lets clicks through to the arena; the card itself
+       must take them. */
+    pointer-events: auto;
+  }
+  body.light .result-card { background: rgba(250, 246, 237, 0.96); }
+  .result-card[hidden] { display: none; }
+  .rc-close {
+    position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; padding: 6px;
+    border: 0; border-radius: 50%; background: transparent; color: var(--ink-dim); cursor: pointer;
+  }
+  .rc-close svg { display: block; width: 100%; height: 100%; }
+  .rc-close:hover { color: var(--paper); }
+  .rc-title { margin: 2px 22px 8px; font-size: 22px; font-weight: 700; color: var(--accent); line-height: 1.3; }
+  .rc-body { margin: 0 0 10px; font-size: 14px; color: var(--paper); text-align: left; }
+  .rc-body ol { margin: 0; padding-left: 26px; columns: 2; column-gap: 16px; }
+  .rc-body li { padding: 1px 0; break-inside: avoid; }
+  .rc-body p { margin: 0 0 5px; line-height: 1.45; }
+  .rc-buttons { display: flex; gap: 8px; }
+  .rc-buttons button {
+    flex: 1 1 0; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+    padding: 8px 10px; border-radius: 999px; border: 1.5px solid var(--accent);
+  }
+  .rc-share { background: var(--accent); color: var(--void); }
+  .rc-copy { background: transparent; color: var(--accent); }
+  .rc-buttons button:hover { filter: brightness(1.08); }
+  .rc-note { margin: 8px 0 0; min-height: 1em; font-size: 12.5px; color: var(--ink-dim); }
+
+  /* ── Full screen ────────────────────────────────────────────────────── */
+
+  /* For a projector or a stream: the arena alone, with the controls bar and
+     the banners. The side panels and the ads step aside. */
+  body.theatre .rail,
+  body.theatre .left-col,
+  body.theatre .corner,
+  body.theatre .ad { display: none !important; }
+  body.theatre { --rail-w: 0px; }
+
   /* ── Entrants ───────────────────────────────────────────────────────── */
 
   .names { padding: 11px 12px 12px; }
@@ -1894,6 +1972,36 @@
   @media (prefers-reduced-motion: reduce) {
     #banner, #fade, #map-name.intro { transition: none; animation: none; }
   }
+
+  /* The result card on a phone held upright: the panels sit below the arena
+     there, so the card centres on the full width, and it sits low in the
+     arena, clear of the big banner at the top. */
+  @media (max-width: 600px) and (orientation: portrait),
+         (max-width: 900px) and (orientation: portrait) {
+    .result-card {
+      left: 50%;
+      top: auto;
+      bottom: 12px;
+      transform: translateX(-50%);
+      max-height: calc(var(--arena-h, 60vh) * 0.5);
+      padding: 10px 14px 10px;
+    }
+    .rc-title { font-size: 19px; margin-bottom: 6px; }
+  }
+  /* Full screen on a phone: the arena takes the whole screen, with no
+     cards below it to scroll to. */
+  @media (max-width: 600px) and (orientation: portrait),
+         (max-width: 1100px) and (max-height: 520px) and (orientation: landscape) {
+    body.theatre .stage-wrap, body.theatre.ad-folded .stage-wrap, body.theatre.ad-free .stage-wrap {
+      --arena-h: 100svh;
+    }
+    body.theatre { overflow: hidden; padding-bottom: 0; }
+  }
+  /* Phone on its side: short, so the card keeps to the lower part too. */
+  @media (max-width: 1100px) and (max-height: 520px) and (orientation: landscape) {
+    .result-card { top: auto; bottom: 10px; transform: translateX(-50%); max-height: 60vh; padding: 8px 12px; }
+    .rc-title { font-size: 17px; margin-bottom: 4px; }
+  }
 </style>
 <!-- Naver Search Advisor: proves to Naver this is our site. Keep it. -->
 <meta name="naver-site-verification" content="b378170270a688746f60060e108ab10d1ae17446" />
@@ -1924,6 +2032,8 @@
 
       <section class="names panel">
         <label data-i18n>Entrants</label>
+        <!-- What the race is for; built by main.js from src/purpose.js. -->
+        <div class="purpose-row" id="purpose-row" role="radiogroup" aria-label="What is it for?" data-i18n-aria="What is it for?"></div>
         <div id="name-list"></div>
         <div class="names-row">
           <button type="button" id="btn-shuffle" title="Shuffle who stands where (S)"
@@ -2043,7 +2153,21 @@
       <div id="banner"></div>
       <div id="fps" hidden></div>
 
-      <button type="button" id="btn-start" hidden title="Start the race (Enter)" data-i18n-title="Start the race (Enter)" data-i18n>Start</button>
+      <button type="button" id="btn-start" hidden title="Start the race (Enter)" data-i18n-title="Start the race (Enter)"><span class="start-word">Start</span><small class="start-line"></small></button>
+
+      <!-- What the race decided, with share and copy (src/result.js). -->
+      <section class="result-card panel" id="result-card" hidden aria-live="polite">
+        <button type="button" class="rc-close" id="rc-close" aria-label="Close">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+        <h3 class="rc-title" id="rc-title"></h3>
+        <div class="rc-body" id="rc-body"></div>
+        <div class="rc-buttons">
+          <button type="button" class="rc-share" id="rc-share"></button>
+          <button type="button" class="rc-copy" id="rc-copy"></button>
+        </div>
+        <p class="rc-note" id="rc-note" role="status"></p>
+      </section>
 
       <div id="controls">
         <button type="button" id="btn-play">pause</button>
@@ -2052,6 +2176,7 @@
         <button type="button" id="btn-theme">light</button>
         <button type="button" id="btn-restart">restart</button>
         <button type="button" id="btn-skip">skip</button>
+        <button type="button" id="btn-full">full screen</button>
       </div>
     </div>
 

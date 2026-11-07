@@ -10,6 +10,7 @@ import { ROUND } from './config.js';
 import { t, getLang } from './i18n.js';
 import { createSteps } from './steps.js';
 import { paintThumb, onLooksChange } from './looks.js';
+import { getPurpose, verdict, finishOrder } from './purpose.js';
 
 const RANK_ICON_PX = 44;   // backing size of a ranking icon; drawn at 22 CSS px
 
@@ -68,9 +69,20 @@ export function createHud() {
         setBanner(String(Math.max(1, left)), 'count-in');
       } else if (round.phase === PHASE.WINNER) {
         // With a roster, the name is the payoff. Without one, the word will do.
-        // Where the last one left is the loser (Docking Bay), it says so.
+        // What it says depends on what the race was for (purpose.js): a
+        // winner, a penalty, last place in Docking Bay, the first in the
+        // order, or that the teams are made.
         const name = round.winner && round.winner.name;
-        if (round.mapDef.lastIsLoser) {
+        const purpose = getPurpose();
+        const v = verdict(round);
+        if (purpose === 'teams' && name) {
+          setBanner(t('The teams are made!'), 'winner');
+        } else if (purpose === 'order' && name) {
+          const first = finishOrder(round)[0];
+          setBanner(t('{name} is 1st!', { name: first.name || first.label }), 'winner');
+        } else if (v.kind === 'penalty') {
+          setBanner(name ? t('{name} gets the penalty!', { name }) : t('penalty'), 'winner loser');
+        } else if (v.kind === 'last') {
           setBanner(name ? t('{name} is last!', { name }) : t('last place'), 'winner loser');
         } else {
           setBanner(name || t('winner'), 'winner');
@@ -151,7 +163,7 @@ export function createHud() {
   function drawRanking(round) {
     if (!el.rankList) return;
     const ps = round.idle ? [] : round.players;
-    const sig = getLang() + round.phase + ':' + (round.winner ? round.winner.id : '') + ':'
+    const sig = getLang() + getPurpose() + round.phase + ':' + (round.winner ? round.winner.id : '') + ':'
       + ps.map((p) => `${p.id}${p.label}${p.archetype}${p.col.name}${p.alive ? '' : p.place}`).join('|');
     if (sig === lastRank) return;
     lastRank = sig;
@@ -200,7 +212,9 @@ export function createHud() {
       shown = [...inRows, ...out];
       rows = [
         ...inRows.map((p) => (round.winner === p
-          ? row(p, '1', 'win', t('winner'))
+          ? (getPurpose() === 'penalty'
+            ? row(p, '1', 'lose', t('penalty'))
+            : row(p, '1', 'win', t('winner')))
           : row(p, '·', 'in', t('in')))),
         ...out.map((p) => row(p, String(p.place), 'out', t(CAUSE[p.outKind] || 'out'))),
       ];

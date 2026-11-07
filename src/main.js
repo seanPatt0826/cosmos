@@ -18,6 +18,9 @@ import { createUniverses } from './universes.js';
 import { installTooltips } from './tooltip.js';
 import { t, installLang, onLang, examplePool, setTip } from './i18n.js';
 import { setIcon } from './icons.js';
+import { PURPOSES, PURPOSE_INFO, getPurpose, setPurpose, onPurpose } from './purpose.js';
+import { createResult } from './result.js';
+import { confetti } from './confetti.js';
 
 const STORE_NAMES = 'cosmos.names';
 const STORE_THEME = 'cosmos.theme';
@@ -84,7 +87,10 @@ function resize() {
   // On a desktop there is room to keep the arena clear of the column entirely.
   // On a phone that would leave the game barely half the screen, so there the
   // arena uses the full width and the translucent panels simply float over it.
-  if (viewW > 900) {
+  // Full screen hides the column, so the arena takes the whole width.
+  if (document.body.classList.contains('theatre')) {
+    stageW = viewW;
+  } else if (viewW > 900) {
     const railRect = document.querySelector('.rail').getBoundingClientRect();
     stageW = Math.max(320, Math.floor(railRect.left - rect.left - 10));
   } else {
@@ -256,6 +262,59 @@ function goToMap(id) {
   }, ROUND.fadeMs * 0.55);
 }
 
+// ── The finish ──────────────────────────────────────────────────────────────
+//
+// When a race reaches its winner: confetti at once, then, once the winner's
+// bloom has filled in, a snapshot of the arena and the result card (see
+// result.js). The card stays while the field lines up again and goes when the
+// next race starts or the universe changes.
+
+let result = null;
+let setTheatre = () => {};
+let finishPhase = null;
+let finishRound = null;
+let cardTimer = null;
+
+function watchFinish() {
+  if (!round || !result) return;
+  if (round !== finishRound) {
+    // A new field: same universe lining up again keeps the card; anything
+    // else (another universe) means the result is stale.
+    if (finishRound && finishRound.mapDef !== round.mapDef) result.hide();
+    finishRound = round;
+    finishPhase = round.phase;
+  }
+  if (round.phase === finishPhase) return;
+  finishPhase = round.phase;
+  if (round.phase === PHASE.WINNER && !round.idle && round.winner) {
+    confetti();
+    clearTimeout(cardTimer);
+    const finished = round;
+    cardTimer = setTimeout(() => {
+      if (round !== finished) return;
+      result.show(finished, snapshot());
+    }, 1100);
+  } else if (round.phase === PHASE.COUNTDOWN) {
+    clearTimeout(cardTimer);
+    result.hide();
+  }
+}
+
+// The visible part of the arena, copied out at its current resolution.
+function snapshot() {
+  try {
+    const c = document.createElement('canvas');
+    const w = Math.round(stageW * dpr);
+    const h = Math.round(viewH * dpr);
+    c.width = w;
+    c.height = h;
+    c.getContext('2d').drawImage(canvas, 0, 0, w, h, 0, 0, w, h);
+    return c;
+  } catch (e) {
+    return null;
+  }
+}
+
 // ── Loop ────────────────────────────────────────────────────────────────────
 
 function frame(now) {
@@ -279,6 +338,7 @@ function frame(now) {
   drawNameTags(g, round, round.time, stageW, viewH);
   if (minimap) minimap.update(round, stageW, viewH, dpr, round.focusId);
   hud.update(round, raw);
+  watchFinish();
   // One name stands on the line but cannot race alone.
   if (!racing()) document.getElementById('btn-start').hidden = true;
   refreshShuffle();
@@ -430,7 +490,63 @@ function buildControls() {
   themeBtn.addEventListener('click', () => applyTheme(isLight() ? 'dark' : 'light'));
   applyTheme(load(STORE_THEME) === 'light' ? 'light' : 'dark', { rebuild: false });
   // The icons stay put when the language flips; only their tooltips change.
-  onLang(() => { showPlay(); showSpeed(); showSound(); showSkip(); showRestart(); showTheme(); });
+  // Full screen: the arena alone, for a projector or a stream. Uses the
+  // browser's real full screen where it can; where it cannot (iPhone), the
+  // page still drops its side panels and ads.
+  const fullBtn = document.getElementById('btn-full');
+  const showFull = () => {
+    const on = document.body.classList.contains('theatre');
+    setIcon(fullBtn, on ? 'shrink' : 'expand', t(on ? 'Exit full screen' : 'Full screen'));
+    fullBtn.classList.toggle('active', on);
+  };
+  setTheatre = (on) => {
+    document.body.classList.toggle('theatre', on);
+    try {
+      if (on && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else if (!on && document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch (e) { /* the panels still step aside */ }
+    showFull();
+    resize();
+  };
+  fullBtn.addEventListener('click', () => setTheatre(!document.body.classList.contains('theatre')));
+  // Leaving the browser's full screen (Esc, swipe) leaves the mode too.
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && document.body.classList.contains('theatre')) setTheatre(false);
+  });
+  showFull();
+
+  onLang(() => { showPlay(); showSpeed(); showSound(); showSkip(); showRestart(); showTheme(); showFull(); });
+
+  // What the race is for: four chips over the names, and a line under Start
+  // saying what pressing it will do (purpose.js).
+  const purposeRow = document.getElementById('purpose-row');
+  const startWord = document.querySelector('#btn-start .start-word');
+  const startLine = document.querySelector('#btn-start .start-line');
+  function paintPurpose() {
+    const now = getPurpose();
+    purposeRow.innerHTML = '';
+    for (const p of PURPOSES) {
+      const info = PURPOSE_INFO[p];
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'purpose-chip';
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', p === now ? 'true' : 'false');
+      b.textContent = `${info.icon} ${t(info.label)}`;
+      b.addEventListener('click', () => setPurpose(p));
+      purposeRow.appendChild(b);
+    }
+    startWord.textContent = t('Start');
+    startLine.textContent = t(PURPOSE_INFO[now].line);
+    if (result) result.repaint();
+  }
+  paintPurpose();
+  onPurpose(paintPurpose);
+  onLang(paintPurpose);
+  result = createResult();
 
   // The "how this universe works" card on the arena. Open by default so a
   // first visit explains itself; once closed it stays closed, with the round
@@ -618,7 +734,10 @@ function buildControls() {
   });
 
   window.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape') lockedId = null;
+    if (ev.key === 'Escape') {
+      lockedId = null;
+      if (document.body.classList.contains('theatre')) setTheatre(false);
+    }
   });
 
   // Resting the pointer on a dot in the mini map rings that racer in the arena,

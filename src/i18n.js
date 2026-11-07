@@ -202,6 +202,37 @@ const KO = {
   'Saved. {name} is wearing it.': '저장했어요. 이제 {name}이(가) 이 아이콘으로 달려요.',
   'No room for more drawings. Delete one first.': '그림을 더 저장할 수 없어요. 먼저 하나를 지워 주세요.',
 
+  // What it is for (src/purpose.js) and the result card (src/result.js)
+  'What is it for?': '무엇을 정할까요?',
+  'Pick one': '한 명 뽑기',
+  'Penalty': '벌칙 정하기',
+  'Turn order': '순서 정하기',
+  'Two teams': '팀 나누기',
+  'The last one left is picked': '마지막까지 남은 한 명이 뽑혀요',
+  'The last one left gets the penalty': '마지막까지 남은 한 명이 벌칙!',
+  'Everyone gets a place in order': '모두의 순서가 정해져요',
+  'Everyone is split into two teams': '모두 두 팀으로 나뉘어요',
+  '{name} wins!': '{name} 우승!',
+  '{name} gets the penalty!': '{name} 벌칙 당첨!',
+  'penalty': '벌칙',
+  '{name} is 1st!': '{name} 1등!',
+  'The teams are made!': '팀이 정해졌어요!',
+  'Team A': 'A팀',
+  'Team B': 'B팀',
+  'Share result': '결과 공유',
+  'Copy result': '결과 복사',
+  'Picture saved. Send it to your friends!': '사진을 저장했어요. 친구들에게 보내 보세요!',
+  'Copied. Paste it into a chat!': '복사했어요. 채팅방에 붙여 넣어 보세요!',
+  'Full screen': '전체 화면',
+  'Exit full screen': '전체 화면 끄기',
+
+  // Snowy Night (src/maps/snow.js)
+  'Snowy Night': '눈 오는 밤',
+  'mind the ice': '얼음 조심',
+  'Sliding into a hole in the ice, or being thrown past the ring.': '얼음 구멍에 빠지거나, 울타리 밖으로 튕겨 나가면 탈락.',
+  "Snowmen bat you away, and Santa's sleigh tears through now and then.": '눈사람이 튕겨 내고, 가끔 산타 썰매가 휩쓸고 지나가요.',
+  "A snowy night round a Christmas tree: snowmen bounce you, Santa's sleigh barges through, and holes in the ice swallow you.": '크리스마스트리 둘레의 눈 오는 밤. 눈사람은 튕겨 내고, 산타 썰매는 밀고 지나가고, 얼음 구멍은 삼켜 버려요.',
+
   // Docking Bay (src/maps/dock.js)
   'Docking Bay': '도킹 정거장',
   'Leave Docking Bay': '도킹 정거장 나가기',

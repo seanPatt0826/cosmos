@@ -22,7 +22,7 @@ const W = 560;
 const H = 340;
 // A fixed seed per map so the pictures only change when the map does. Each
 // was checked to give a race that actually finishes.
-const SEEDS = { garden: 11, orbit: 7, belt: 3, binary: 5, bumpers: 2, nova: 9, warp: 4, dock: 6 };
+const SEEDS = { garden: 11, orbit: 7, belt: 3, binary: 5, bumpers: 2, nova: 9, warp: 4, dock: 6, snow: 3 };
 
 // `node tools/shoot-steps.js dock` shoots only the maps named; no names, all.
 const ONLY = process.argv.slice(2);

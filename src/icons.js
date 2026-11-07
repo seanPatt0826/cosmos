@@ -31,7 +31,12 @@ const ICONS = {
   restart: `<path d="M19 12a7 7 0 1 1-2.05-4.95" ${S}/>`
     + `<path d="M19.2 4.4v3.4h-3.4" ${S}/>`,
 
-  skip: `<path d="M5.5 6.2v11.6a.7.7 0 0 0 1.1.6l8.6-5.8a.7.7 0 0 0 0-1.2L6.6 5.6a.7.7 0 0 0-1.1.6z" fill="currentColor"/>`
+  skip: `<path d="M5.5 6.2v11.6a.7.7 0 0 0 1.1.6l8.6-5.8a.7.7 0 0 0 0-1.2L6.6 5.6a.7.7 0 0 0-1.1.6z" fill="currentColor"/>`,
+
+  // Four corners pointing out: fill the screen. Pointing in: back again.
+  expand: `<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" ${S}/>`,
+
+  shrink: `<path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" ${S}/>`
     + `<path d="M18.5 5.5v13" ${S} stroke-width="2.4"/>`,
 };
 

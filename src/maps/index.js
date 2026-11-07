@@ -6,8 +6,9 @@ import bumpers from './bumpers.js';
 import nova from './nova.js';
 import warp from './warp.js';
 import dock from './dock.js';
+import snow from './snow.js';
 
-export const MAPS = [garden, orbit, belt, binary, bumpers, nova, warp, dock];
+export const MAPS = [garden, orbit, belt, binary, bumpers, nova, warp, dock, snow];
 
 export function mapById(id) {
   return MAPS.find((m) => m.id === id) || MAPS[0];
